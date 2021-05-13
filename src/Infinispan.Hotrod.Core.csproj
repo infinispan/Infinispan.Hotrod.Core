@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>netcoreapp3.1</TargetFrameworks>
+    <Version>1.2.4</Version>
+    <Company>beetlex.io</Company>
+    <Authors>henryfan</Authors>
+    <Copyright>Copyright © beetlex.io 2019-2021</Copyright>
+    <Description>A high-performance async/non-blocking  Infinispan client components for dotnet core</Description>
+    <PackageLicenseUrl></PackageLicenseUrl>
+    <PackageProjectUrl></PackageProjectUrl>
+    <PackageIconUrl />
+    <SignAssembly>false</SignAssembly>
+    <!--AssemblyOriginatorKeyFile></AssemblyOriginatorKeyFile-->
+    <!--PackageIcon>beetlex200.png</PackageIcon-->
+    <PackageReleaseNotes />
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="BeetleX" Version="1.6.5.41" />
+    <PackageReference Include="BeetleX.Tracks" Version="0.7.5" />
+    <PackageReference Include="MailKit" Version="2.11.1" />
+    <PackageReference Include="MessagePack" Version="2.1.115" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+    <PackageReference Include="protobuf-net" Version="2.4.6" />
+    <PackageReference Include="System.Text.Json" Version="5.0.2" />
+  </ItemGroup>
+</Project>
