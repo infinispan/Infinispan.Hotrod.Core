@@ -105,21 +105,21 @@ namespace Infinispan.Hotrod.Core
             }
         }
 
-        public async ValueTask<V> Set<K,V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key, V value)
+        public async ValueTask<V> Put<K,V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key, V value)
         {
-            return await Set(km, vm, cache, key, value, null, null);
+            return await Put(km, vm, cache, key, value, null, null);
         }
 
-        public async ValueTask<V> Set<K,V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key, V value, int? seconds, bool? nx)
+        public async ValueTask<V> Put<K,V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key, V value, int? seconds, bool? nx)
         {
-            Commands.SET<K,V> set = new Commands.SET<K,V>(km, vm, key, value);
+            Commands.PUT<K,V> put = new Commands.PUT<K,V>(km, vm, key, value);
             if (cache.ForceReturnValue) {
-                set.Flags |= 0x01;
+                put.Flags |= 0x01;
             }
-            var result = await Execute(cache, set);
+            var result = await Execute(cache, put);
             if (result.IsError)
                 throw new InfinispanException(result.Messge);
-            return set.PrevValue;
+            return put.PrevValue;
         }
         public async ValueTask<V> Get<K,V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key)
         {

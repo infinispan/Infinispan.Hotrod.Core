@@ -47,9 +47,9 @@ namespace Infinispan.Hotrod.Core
             return await Cluster.Get<K1,V1>(km, vm, (UntypedCache)this, key);
         }
 
-        public async ValueTask<V> Set<K,V>(Marshaller<K> km, Marshaller<V> vm, K key, V value)
+        public async ValueTask<V1> Put<K1,V1>(Marshaller<K1> km, Marshaller<V1> vm, K1 key, V1 value)
         {
-            return await Cluster.Set(km, vm, this, key, value);
+            return await Cluster.Put(km, vm, this, key, value);
         }
 
 

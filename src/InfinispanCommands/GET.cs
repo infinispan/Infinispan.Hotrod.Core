@@ -23,22 +23,22 @@ namespace Infinispan.Hotrod.Core.Commands
 
         public override Byte Code => 0x03;
 
-        public override void OnExecute(Cache<K,V> cache)
+        public override void OnExecute(UntypedCache cache)
         {
             // TODO: here the code to build the bytebuffer that will be sent
             base.OnExecute(cache); // Generic code (build header?)
         }
 
-        public override void Execute(Cache<K,V> cache, InfinispanClient client, PipeStream stream)
+        public override void Execute(UntypedCache cache, InfinispanClient client, PipeStream stream)
         {
             base.Execute(cache, client, stream);
             Codec.writeArray(KeyMarshaller.marshall(Key), stream);
             stream.Flush();
         }
 
-        public override Result OnReceive(InfinispanRequest<K,V> request, PipeStream stream)
+        public override Result OnReceive(InfinispanRequest request, PipeStream stream)
         {
-            if (request.ResponseStatus == InfinispanRequest<K,V>.KEY_DOES_NOT_EXIST_STATUS) {
+            if (request.ResponseStatus == InfinispanRequest.KEY_DOES_NOT_EXIST_STATUS) {
                 return new Result{ Status =  ResultStatus.Completed, ResultType = ResultType.Null };
             }
             Value = ValueMarshaller.unmarshall(Codec.readArray(stream));

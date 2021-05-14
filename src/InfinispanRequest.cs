@@ -11,7 +11,7 @@ namespace Infinispan.Hotrod.Core
     public class InfinispanRequest
     {
         // TODO: find the right place for error codes
-        public const byte NO_ERROR_STATUS                          = 0x00; ///< No error
+        public const byte NO_ERROR_STATUS = 0x00; ///< No error
         public const byte NOT_PUT_REMOVED_REPLACED_STATUS = 0x01;
         public const byte KEY_DOES_NOT_EXIST_STATUS = 0x02;
         public const byte SUCCESS_WITH_PREVIOUS = 0x03;

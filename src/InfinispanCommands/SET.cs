@@ -5,9 +5,9 @@ using BeetleX.Buffers;
 
 namespace Infinispan.Hotrod.Core.Commands
 {
-    public class SET<K,V> : Command
+    public class PUT<K,V> : Command
     {
-        public SET(Marshaller<K> km, Marshaller<V> vm, K key, V data)
+        public PUT(Marshaller<K> km, Marshaller<V> vm, K key, V data)
         {
             Key = key;
             Value = data;
