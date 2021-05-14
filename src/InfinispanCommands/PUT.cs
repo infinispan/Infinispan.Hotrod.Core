@@ -23,7 +23,7 @@ namespace Infinispan.Hotrod.Core.Commands
         public ExpirationTime Lifespan = new ExpirationTime{ Unit = TimeUnit.DEFAULT, Value = 0};
         public ExpirationTime MaxIdle = new ExpirationTime{ Unit = TimeUnit.DEFAULT, Value = 0};
 
-        public override string Name => "SET";
+        public override string Name => "PUT";
 
         public override Byte Code => 0x01;
 

@@ -8,9 +8,15 @@ namespace Infinispan.Hotrod.Core.XUnitTest
     public class DefaultCacheTestFixture : IDisposable
     {
         public HotRodServer hotRodServer {get; private set;}
+        public Cache<string,string> cache;
         public DefaultCacheTestFixture() {
             hotRodServer = new HotRodServer("infinispan.xml");
             hotRodServer.StartHotRodServer();
+            DefaultInfinispan.Instance.AddHost("127.0.0.1");
+            DefaultInfinispan.Instance.Version=0x30;
+            DefaultInfinispan.Instance.ForceReturnValue=false;
+            DefaultInfinispan.Instance.ClientIntelligence=0x01;
+            cache = DefaultInfinispan.Instance.newCache(new StringMarshaller(), new StringMarshaller(), "default");
         }
          
         public void Dispose()   
@@ -21,9 +27,10 @@ namespace Infinispan.Hotrod.Core.XUnitTest
     public class DefaultCacheTest : IClassFixture<DefaultCacheTestFixture>
     {
         private readonly DefaultCacheTestFixture _fixture;
-
+        private Cache<string,string> _cache;
         public DefaultCacheTest(DefaultCacheTestFixture fixture) {
             _fixture = fixture;
+            _cache = _fixture.cache;
         }
 
         [Fact]
@@ -31,44 +38,86 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             Console.WriteLine("Running test");
             Assert.True(_fixture.hotRodServer.IsRunning(), "Server is not running");
         }
-        // private IRemoteCache<String, String> cache;
 
-        // [OneTimeSetUp]
-        // public void BeforeClass()
+        [Fact]
+        public void NameTest()
+        {
+            Assert.NotNull(_cache.Name);
+        }
+
+        [Fact]
+        public void VersionTest()
+        {
+            Assert.NotNull(_cache.Version);
+        }
+
+        // TODO: Verify if GetProtocolVersion method is needed
+        // [Fact]
+        // public void ProtocolVersionTest()
         // {
-        //     ConfigurationBuilder conf = new ConfigurationBuilder();
-        //     conf.AddServer().Host("127.0.0.1").Port(11222);
-        //     conf.ConnectionTimeout(90000).SocketTimeout(6000);
-        //     RemoteCacheManager remoteManager = new RemoteCacheManager(conf.Build(), true);
-        //     cache = remoteManager.GetCache<String, String>();
+        //     Assert.NotNull(_cache.GetProtocolVersion());
         // }
 
-        // [Test]
+        [Fact]
+        public async void GetTest()
+        {
+            String key = UniqueKey.NextKey();
+
+            Assert.Null(await _cache.Get(key));
+            await _cache.Put(key, "carbon");
+            Assert.Equal("carbon", await _cache.Get(key));
+        }
+
+        [Fact]
+        public async void PutTest()
+        {
+            String key1 = UniqueKey.NextKey();
+            String key2 = UniqueKey.NextKey();
+            UInt32 initialSize = await _cache.Size();
+
+            await _cache.Put(key1, "boron");
+            Assert.Equal(initialSize + 1, await _cache.Size());
+            Assert.Equal("boron", await _cache.Get(key1));
+
+            await _cache.Put(key2, "chlorine");
+            Assert.Equal(initialSize + 2, await _cache.Size());
+            Assert.Equal("chlorine", await _cache.Get(key2));
+        }
+
+        [Fact]
+        public async void ContainsKeyTest()
+        {
+            String key = UniqueKey.NextKey();
+            Assert.False(await _cache.ContainsKey(key));
+            await _cache.Put(key, "oxygen");
+            Assert.True(await _cache.ContainsKey(key));
+        }
+
+
+        [Fact]
+        public async void RemoveTest()
+        {
+            String key = UniqueKey.NextKey();
+            await _cache.Put(key, "bromine");
+            Assert.True(await _cache.ContainsKey(key));
+            await _cache.Remove(key);
+            Assert.False(await _cache.ContainsKey(key));
+        }
+
+
+
         // public void NameTest()
-        // {
-        //     Assert.IsNotNull(cache.GetName());
-        // }
-
-        // [Test]
         // public void VersionTest()
-        // {
-        //     Assert.IsNotNull(cache.GetVersion());
-        // }
+        // public void GetTest()
+        // public void PutTest()
+        // public void ContainsKeyTest()
+        // public void RemoveTest()
+
 
         // [Test]
         // public void ProtocolVersionTest()
         // {
         //     Assert.IsNotNull(cache.GetProtocolVersion());
-        // }
-
-        // [Test]
-        // public void GetTest()
-        // {
-        //     String key = UniqueKey.NextKey();
-
-        //     Assert.IsNull(cache.Get(key));
-        //     cache.Put(key, "carbon");
-        //     Assert.AreEqual("carbon", cache.Get(key));
         // }
 
         // [Test]
@@ -90,8 +139,6 @@ namespace Infinispan.Hotrod.Core.XUnitTest
         //     Assert.AreEqual(d[key1], "carbon");
         //     Assert.AreEqual(d[key2], "oxygen");
         // }
-
-
 
         // [Test]
         // public void GetVersionedTest()
@@ -166,22 +213,6 @@ namespace Infinispan.Hotrod.Core.XUnitTest
         // }
 
         // [Test]
-        // public void PutTest()
-        // {
-        //     String key1 = UniqueKey.NextKey();
-        //     String key2 = UniqueKey.NextKey();
-        //     ulong initialSize = cache.Size();
-
-        //     cache.Put(key1, "boron");
-        //     Assert.AreEqual(initialSize + 1, cache.Size());
-        //     Assert.AreEqual("boron", cache.Get(key1));
-
-        //     cache.Put(key2, "chlorine");
-        //     Assert.AreEqual(initialSize + 2, cache.Size());
-        //     Assert.AreEqual("chlorine", cache.Get(key2));
-        // }
-
-        // [Test]
         // public void PutAllTest()
         // {
         //     ulong initialSize = cache.Size();
@@ -200,16 +231,6 @@ namespace Infinispan.Hotrod.Core.XUnitTest
         //     Assert.AreEqual("v1", cache.Get(key1));
         //     Assert.AreEqual("v2", cache.Get(key2));
         //     Assert.AreEqual("v3", cache.Get(key3));
-        // }
-
-        // [Test]
-        // public void ContainsKeyTest()
-        // {
-        //     String key = UniqueKey.NextKey();
-
-        //     Assert.IsFalse(cache.ContainsKey(key));
-        //     cache.Put(key, "oxygen");
-        //     Assert.IsTrue(cache.ContainsKey(key));
         // }
 
         // [Test]
@@ -242,17 +263,6 @@ namespace Infinispan.Hotrod.Core.XUnitTest
         //     Assert.AreNotEqual(newVersion, version);
         //     Assert.IsTrue(cache.ReplaceWithVersion(key, "barium", newVersion));
         //     Assert.AreEqual("barium", cache.Get(key));
-        // }
-
-        // [Test]
-        // public void RemoveTest()
-        // {
-        //     String key = UniqueKey.NextKey();
-
-        //     cache.Put(key, "bromine");
-        //     Assert.IsTrue(cache.ContainsKey(key));
-        //     cache.Remove(key);
-        //     Assert.IsFalse(cache.ContainsKey(key));
         // }
 
         // [Test]

@@ -1,21 +1,25 @@
-﻿using System;
+﻿using BeetleX.Buffers;
+using System;
 using System.Collections.Generic;
 using System.Text;
-using BeetleX.Buffers;
 
 namespace Infinispan.Hotrod.Core.Commands
 {
-    public class AUTH_MECH_LIST : Command
+    public class CONTAINSKEY<K> : Command
     {
-        public AUTH_MECH_LIST()
+        public CONTAINSKEY(Marshaller<K> km, K key)
         {
+            Key = key;
+            KeyMarshaller = km;
             NetworkReceive = OnReceive;
         }
-        public int TimeOut { get; set; }
+        public Marshaller<K> KeyMarshaller;
+        public K Key { get; set; }
+        public override string Name => "CONTAINSKEY";
 
-        public override string Name => "AUTH_MECH_LIST";
-        public override Byte Code => 0x21;
-        public string[] availableMechs { get; set; }
+        public override Byte Code => 0x0F;
+        public Boolean IsContained;
+
         public override void OnExecute(UntypedCache cache)
         {
             // TODO: here the code to build the bytebuffer that will be sent
@@ -25,14 +29,12 @@ namespace Infinispan.Hotrod.Core.Commands
         public override void Execute(UntypedCache cache, InfinispanClient client, PipeStream stream)
         {
             base.Execute(cache, client, stream);
+            Codec.writeArray(KeyMarshaller.marshall(Key), stream);
         }
+
         public override Result OnReceive(InfinispanRequest request, PipeStream stream)
         {
-            var count = Codec.readVInt(stream);
-            availableMechs = new string[count];
-            for (int i=0; i<count; i++) {
-                availableMechs[i]= Encoding.ASCII.GetString(Codec.readArray(stream));
-            }
+            IsContained = request.ResponseStatus==InfinispanRequest.NO_ERROR_STATUS;
             return new Result{ Status =  ResultStatus.Completed, ResultType = ResultType.Object };
         }
     }

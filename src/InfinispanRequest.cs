@@ -101,13 +101,13 @@ namespace Infinispan.Hotrod.Core
                 return;
             }
 
-            var ResponseOpCode = (byte) stream.ReadByte();
-            var ResponseStatus = (byte) stream.ReadByte();
+            ResponseOpCode = (byte) stream.ReadByte();
+            ResponseStatus = (byte) stream.ReadByte();
             var topologyChanged = (byte) stream.ReadByte();
             if (topologyChanged!=0) {
                 var topology=readNewTopologyInfo(stream); // TODO: store topology in the righ place and use it to get the owner host for a key
             }
-            var errMsg = readResponseError(ResponseStatus, stream);            
+            var errMsg = readResponseError(ResponseStatus, stream);
             if (errMsg != null) {
                 Result.ResultType=ResultType.Error;  // TODO: needed some design for errors
                 Result.Messge=Encoding.ASCII.GetString(errMsg);

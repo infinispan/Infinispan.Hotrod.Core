@@ -33,9 +33,9 @@ namespace Infinispan.Hotrod.Core.Samples
             var vm = new StringMarshaller();
             var cache = DefaultInfinispan.Instance.newCache(km, vm, "default");
             cache.ForceReturnValue = true;
-            string result = await cache.Put<string,string>(km, vm, "key1", "value1");
+            string result = await cache.Put("key1", "value1");
             Console.WriteLine("Result is: "+result);
-            string getResult = await cache.Get<string,string>(km, vm, "key1");
+            string getResult = await cache.Get("key1");
             Console.WriteLine("Get Result is: "+getResult);
         }
     }

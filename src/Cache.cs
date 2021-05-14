@@ -42,16 +42,27 @@ namespace Infinispan.Hotrod.Core
         Marshaller<K> KeyMarshaller;
         Marshaller<V> ValueMarshaller;
 
-        public async ValueTask<V1> Get<K1,V1>(Marshaller<K1> km, Marshaller<V1> vm, K1 key)
+        public async ValueTask<V> Get(K key)
         {
-            return await Cluster.Get<K1,V1>(km, vm, (UntypedCache)this, key);
+            return await Cluster.Get(KeyMarshaller, ValueMarshaller, (UntypedCache)this, key);
         }
 
-        public async ValueTask<V1> Put<K1,V1>(Marshaller<K1> km, Marshaller<V1> vm, K1 key, V1 value)
+        public async ValueTask<V> Put(K key, V value)
         {
-            return await Cluster.Put(km, vm, this, key, value);
+            return await Cluster.Put(KeyMarshaller, ValueMarshaller, this, key, value);
         }
-
+        public async ValueTask<UInt32> Size()
+        {
+            return await Cluster.Size(this);
+        }
+        public async ValueTask<Boolean> ContainsKey(K key)
+        {
+            return await Cluster.ContainsKey(KeyMarshaller, (UntypedCache)this, key);
+        }
+        public async ValueTask<V> Remove(K key)
+        {
+            return await Cluster.Remove(KeyMarshaller,  ValueMarshaller, (UntypedCache)this, key);
+        }
 
     }
 }

@@ -18,10 +18,10 @@ namespace Infinispan.Hotrod.Core
             Encoding = (enc == null) ? Encoding.ASCII : Encoding = enc;
         }
         public override byte[] marshall(string t) {
-            return Encoding.GetBytes(t);
+            return t==null ? null : Encoding.GetBytes(t);
         }
         public override string unmarshall(byte[] buff) {
-            return Encoding.GetString(buff);
+            return buff==null ? null : Encoding.GetString(buff);
         }
     }
 

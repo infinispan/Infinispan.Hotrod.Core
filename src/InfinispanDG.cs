@@ -129,6 +129,31 @@ namespace Infinispan.Hotrod.Core
                 throw new InfinispanException(result.Messge);
             return cmd.Value;
         }
+
+        public async ValueTask<UInt32> Size(UntypedCache cache) {
+            Commands.SIZE cmd = new Commands.SIZE();
+            var result = await Execute(cache, cmd);
+            if (result.IsError)
+                throw new InfinispanException(result.Messge);
+            return cmd.Size;
+        }
+        public async ValueTask<Boolean> ContainsKey<K>(Marshaller<K> km, UntypedCache cache, K key)
+        {
+            Commands.CONTAINSKEY<K> cmd = new Commands.CONTAINSKEY<K>(km, key);
+            var result = await Execute(cache, cmd);
+            if (result.IsError)
+                throw new InfinispanException(result.Messge);
+            return cmd.IsContained;
+        }
+        public async ValueTask<V> Remove<K,V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key)
+        {
+            Commands.REMOVE<K,V> cmd = new Commands.REMOVE<K,V>(km, vm, key);
+            var result = await Execute(cache, cmd);
+            if (result.IsError)
+                throw new InfinispanException(result.Messge);
+            return cmd.PrevValue;
+        }
+        
         private bool mIsDisposed = false;
 
         public void Dispose()
