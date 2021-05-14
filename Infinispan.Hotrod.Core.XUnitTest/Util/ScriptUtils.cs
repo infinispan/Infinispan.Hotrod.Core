@@ -1,7 +1,7 @@
 ﻿using System;
-using Infinispan.HotRod;
+using Infinispan.Hotrod.Core;
 
-namespace Infinispan.HotRod.Tests.Util
+namespace Infinispan.Hotrod.Core.Tests.Util
 {
     public interface IRemoteCache<K,V> {
         void Put(K k, V v);

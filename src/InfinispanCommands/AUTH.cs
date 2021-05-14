@@ -5,7 +5,7 @@ using BeetleX.Buffers;
 using System.Net;
 using MailKit.Security;
 
-namespace BeetleX.Infinispan.Commands
+namespace Infinispan.Hotrod.Core.Commands
 {
     public class AUTH : Command
     {

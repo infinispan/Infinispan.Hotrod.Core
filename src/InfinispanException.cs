@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace BeetleX.Infinispan
+namespace Infinispan.Hotrod.Core
 {
     public class InfinispanException : Exception
     {

@@ -3,7 +3,7 @@ using System.Threading;
 using System.Net;
 using System.Net.Sockets;
 
-namespace Infinispan.HotRod.Tests.Util
+namespace Infinispan.Hotrod.Core.Tests.Util
 {
     public class PortProbe
     {

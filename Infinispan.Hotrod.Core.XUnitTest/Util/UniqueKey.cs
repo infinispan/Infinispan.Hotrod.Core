@@ -1,6 +1,6 @@
 using System;
 
-namespace Infinispan.HotRod.Tests.Util
+namespace Infinispan.Hotrod.Core.Tests.Util
 {
     /**
        Utility class which can be used to generated unique

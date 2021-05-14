@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Infinispan.HotRod;
+using Infinispan.Hotrod.Core;
 using System.Diagnostics;
 using System.IO;
 
-namespace Infinispan.HotRod.Tests.Util
+namespace Infinispan.Hotrod.Core.Tests.Util
 {
     public class HotRodServer : IDisposable
     {

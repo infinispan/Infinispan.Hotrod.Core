@@ -1,4 +1,5 @@
-﻿using BeetleX.Buffers;
+﻿using BeetleX;
+using BeetleX.Buffers;
 using BeetleX.Clients;
 using MessagePack;
 using System;
@@ -6,7 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-namespace BeetleX.Infinispan
+namespace Infinispan.Hotrod.Core
 {
     public class InfinispanClient
     {

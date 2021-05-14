@@ -1,8 +1,8 @@
 using System;
-using Infinispan.HotRod.Tests.Util;
+using Infinispan.Hotrod.Core.Tests.Util;
 using Xunit;
 
-namespace BeetleX.Infinispan.XUnitTest
+namespace Infinispan.Hotrod.Core.XUnitTest
 {
 
     public class DefaultCacheTestFixture : IDisposable
@@ -220,7 +220,7 @@ namespace BeetleX.Infinispan.XUnitTest
         //         cache.ContainsValue("key");
         //         Assert.Fail("Should throw an unsupported op exception for now.");
         //     }
-        //     catch (Infinispan.HotRod.Exceptions.UnsupportedOperationException)
+        //     catch (Infinispan.Hotrod.Exceptions.UnsupportedOperationException)
         //     {
         //     }
         // }
@@ -311,7 +311,7 @@ namespace BeetleX.Infinispan.XUnitTest
         //         cache.EntrySet();
         //         Assert.Fail("Should throw an unsupported op exception for now.");
         //     }
-        //     catch (Infinispan.HotRod.Exceptions.UnsupportedOperationException)
+        //     catch (Infinispan.Hotrod.Exceptions.UnsupportedOperationException)
         //     {
         //     }
         // }
@@ -343,7 +343,7 @@ namespace BeetleX.Infinispan.XUnitTest
         //         cache.Values();
         //         Assert.Fail("Should throw an unsupported op exception for now.");
         //     }
-        //     catch (Infinispan.HotRod.Exceptions.UnsupportedOperationException)
+        //     catch (Infinispan.Hotrod.Exceptions.UnsupportedOperationException)
         //     {
         //     }
         // }

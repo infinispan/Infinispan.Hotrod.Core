@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-namespace BeetleX.Infinispan
+namespace Infinispan.Hotrod.Core
 {
     public class Codec {
         public static UInt64 readVLong(PipeStream stream) {

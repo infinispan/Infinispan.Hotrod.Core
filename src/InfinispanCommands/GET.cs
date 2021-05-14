@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace BeetleX.Infinispan.Commands
+namespace Infinispan.Hotrod.Core.Commands
 {
     public class GET<K,V> : Command
     {

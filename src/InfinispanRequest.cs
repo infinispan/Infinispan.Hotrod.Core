@@ -1,3 +1,4 @@
+using BeetleX;
 using BeetleX.Buffers;
 using BeetleX.Clients;
 using BeetleX.Tracks;
@@ -5,7 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
-namespace BeetleX.Infinispan
+namespace Infinispan.Hotrod.Core
 {
     public class InfinispanRequest
     {

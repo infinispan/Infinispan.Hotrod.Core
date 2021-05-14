@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BeetleX.Infinispan
+namespace Infinispan.Hotrod.Core
 {
     public class InfinispanDG : IHostHandler, IDisposable
     {
@@ -14,7 +14,6 @@ namespace BeetleX.Infinispan
             DB = db;
             if (hostHandler == null)
             {
-                mDetectionTime = new System.Threading.Timer(OnDetection, null, 1000, 1000);
                 this.Host = this;
             }
             else
@@ -23,53 +22,39 @@ namespace BeetleX.Infinispan
             }
         }
 
-        private System.Threading.Timer mDetectionTime;
-
         private static InfinispanDG mDefault = new InfinispanDG();
-
         internal static InfinispanDG Default => mDefault;
-
         public bool AutoPing { get; set; } = true;
-
-        public IHostHandler Host { get; set; }
-
-        private void OnDetection(object state)
-        {
-            mDetectionTime?.Change(-1, -1);
-            if (AutoPing)
-            {
-                var rHost = mActiveHosts;
-                foreach (var item in rHost)
-                    item.Ping();
-            }
-            mDetectionTime?.Change(1000, 1000);
-
-        }
-
+        public string User { get; set; }
+        public string Password { get; set; }
+        public string AuthMech { get; set; }
+        public byte Version {get; set;} = 0x30;
+        public byte ClientIntelligence {get; set;} = 0x01;
+        public UInt32 TopologyId {get; set;} = 0x01;
+        public bool ForceReturnValue = false;
+        private IHostHandler Host;
         private List<InfinispanHost> mHosts = new List<InfinispanHost>();
-
         private InfinispanHost[] mActiveHosts = new InfinispanHost[0];
-
         private bool OnClientPush(InfinispanClient client)
         {
             return true;
         }
-
         public int DB { get; set; }
-
-        InfinispanHost IHostHandler.AddHost(string host, int port = 11222)
+        public InfinispanHost AddHost(string host, int port = 11222)
         {
-            return ((IHostHandler)this).AddHost(host, port, false);
+            return AddHost(host, port, false);
         }
-
-        InfinispanHost IHostHandler.AddHost(string host, int port, bool ssl)
+        public InfinispanHost AddHost(string host, int port, bool ssl)
         {
             if (port == 0)
-                port = 6379;
-            InfinispanHost redisHost = new InfinispanHost(ssl, DB, host, port);
-            mHosts.Add(redisHost);
+                port = 11222;
+            InfinispanHost ispnHost = new InfinispanHost(ssl, DB, host, port);
+            ispnHost.User=User;
+            ispnHost.Password=Password;
+            ispnHost.AuthMech=AuthMech;
+            mHosts.Add(ispnHost);
             mActiveHosts = mHosts.ToArray();
-            return redisHost;
+            return ispnHost;
         }
 
   
@@ -151,17 +136,12 @@ namespace BeetleX.Infinispan
             if (!mIsDisposed)
             {
                 mIsDisposed = true;
-                if (mDetectionTime != null)
-                {
-                    mDetectionTime.Dispose();
-                    mDetectionTime = null;
-                }
                 foreach (var item in mHosts)
                     item.Dispose();
             }
         }
         public Cache newCache(string name) {
-            return new Cache(name);
+            return new Cache(this, name);
         }
     }
 }

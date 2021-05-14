@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BeetleX.Infinispan
+namespace Infinispan.Hotrod.Core
 {
     public static class InfinispanDGEx
     {
@@ -26,16 +26,5 @@ namespace BeetleX.Infinispan
             }
 
         }
-
-        public static async ValueTask<V> Get<K,V>(Marshaller<K> km, Marshaller<V> vm, Cache cache, K key)
-        {
-            return await Instance.Get<K,V>(km, vm, cache, key);
-        }
-
-        public static async ValueTask<V> Set<K,V>(Marshaller<K> km, Marshaller<V> vm, Cache cache, K key, V value)
-        {
-            return await Instance.Set(km, vm, cache, key, value);
-        }
-
     }
 }

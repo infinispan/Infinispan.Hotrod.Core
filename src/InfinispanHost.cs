@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
-namespace BeetleX.Infinispan
+namespace Infinispan.Hotrod.Core
 {
     public class InfinispanHost : IDisposable
     {
@@ -199,37 +199,5 @@ namespace BeetleX.Infinispan
                 }
             }
         }
-
-        private int mPingStatus = 0;
-
-        public async void Ping()
-        {
-            if (System.Threading.Interlocked.CompareExchange(ref mPingStatus, 1, 0) == 0)
-            {
-
-                try
-                {
-                    // Connect(mPingClient);
-                    // Commands.PING ping = new Commands.PING(null);
-                    // var request = new InfinispanRequest(null, mPingClient, ping, typeof(string));
-                    // var result = await request.Execute();
-
-                    var temp = new TaskCompletionSource<Result>();
-                    temp.SetResult(new Result());
-                    var result = await temp.Task;
-                }
-                catch
-                {
-
-                }
-                finally
-                {
-                    System.Threading.Interlocked.Exchange(ref mPingStatus, 0);
-
-                }
-            }
-        }
-
-
     }
 }

@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace BeetleX.Infinispan
+namespace Infinispan.Hotrod.Core
 {
     public abstract class Marshaller<T> {
         public abstract byte[] marshall(T t);

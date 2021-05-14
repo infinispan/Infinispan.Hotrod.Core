@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using BeetleX.Buffers;
 
-namespace BeetleX.Infinispan.Commands
+namespace Infinispan.Hotrod.Core.Commands
 {
     public class AUTH_MECH_LIST : Command
     {

@@ -5,7 +5,7 @@ using System.Text;
 using System.Collections.Concurrent;
 using BeetleX.Tracks;
 
-namespace BeetleX.Infinispan
+namespace Infinispan.Hotrod.Core
 {
     public abstract class Command
     {

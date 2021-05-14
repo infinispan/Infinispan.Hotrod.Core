@@ -1,7 +1,7 @@
 using System;
 using System.Diagnostics;
 
-namespace Infinispan.HotRod.Tests.Util
+namespace Infinispan.Hotrod.Core.Tests.Util
 {
     public class PlatformUtils
     {
