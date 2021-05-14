@@ -105,7 +105,7 @@ namespace Infinispan.Hotrod.Core
                     if (!string.IsNullOrEmpty(Password))
                     {
                         Commands.AUTH_MECH_LIST authMechList = new Commands.AUTH_MECH_LIST();
-                        InfinispanRequest request = new InfinispanRequest(Cache.NullCache, this, client, authMechList, typeof(string));
+                        InfinispanRequest request = new InfinispanRequest(UntypedCache.NullCache, this, client, authMechList, typeof(string));
                         var task = request.Execute();
                         task.Wait();
                         if (task.Result.ResultType == ResultType.DataError ||
@@ -130,7 +130,7 @@ namespace Infinispan.Hotrod.Core
                         }
                         Commands.AUTH auth = new Commands.AUTH(this.AuthMech, new System.Net.NetworkCredential(User, Password));
                         while (auth.Completed==0) {
-                            request = new InfinispanRequest(Cache.NullCache, this, client, auth, typeof(string));
+                            request = new InfinispanRequest(UntypedCache.NullCache, this, client, auth, typeof(string));
                             task = request.Execute();
                             task.Wait();
                             if (task.Result.ResultType == ResultType.DataError ||

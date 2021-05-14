@@ -26,7 +26,7 @@ namespace Infinispan.Hotrod.Core
         public const byte REQUEST_PARSING_ERROR_STATUS       = 0x84; ///< Request parsing error
         public const byte SERVER_ERROR_STATUS                = 0x85; ///< Server Error
         public const byte COMMAND_TIMEOUT_STATUS             = 0x86; ///< Command timed out
-        public InfinispanRequest(Cache cache, InfinispanHost host, InfinispanClient client, Command cmd, params Type[] types)
+        public InfinispanRequest(UntypedCache cache, InfinispanHost host, InfinispanClient client, Command cmd, params Type[] types)
         {
             Client = client;
             Client.TcpClient.DataReceive = OnReceive;
@@ -47,7 +47,7 @@ namespace Infinispan.Hotrod.Core
 
         public InfinispanHost Host { get; set; }
 
-        public Cache Cache {get; set;}
+        public UntypedCache Cache {get; set;}
         private void OnError(IClient c, ClientErrorArgs e)
         {
             if (e.Error is BeetleX.BXException || e.Error is System.Net.Sockets.SocketException ||

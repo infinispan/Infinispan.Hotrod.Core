@@ -68,7 +68,7 @@ namespace Infinispan.Hotrod.Core
             }
           return null;
         }
-        public async Task<Result> Execute(Cache cache, Command cmd, params Type[] types)
+        public async Task<Result> Execute(UntypedCache cache, Command cmd)
         {
             var host = Host.GetHost();
             if (host == null)
@@ -92,7 +92,7 @@ namespace Infinispan.Hotrod.Core
                         tarck.Activity?.AddTag("tag", "BeetleX Redis");
                     }
                     cmd.Activity = tarck.Activity;
-                    InfinispanRequest request = new InfinispanRequest(cache, host, client, cmd, types);
+                    InfinispanRequest request = new InfinispanRequest(cache, host, client, cmd);
                     request.Activity = tarck.Activity;
                     result = await request.Execute();
                     return result;
@@ -105,26 +105,26 @@ namespace Infinispan.Hotrod.Core
             }
         }
 
-        public async ValueTask<V> Set<K,V>(Marshaller<K> km, Marshaller<V> vm, Cache cache, K key, V value)
+        public async ValueTask<V> Set<K,V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key, V value)
         {
             return await Set(km, vm, cache, key, value, null, null);
         }
 
-        public async ValueTask<V> Set<K,V>(Marshaller<K> km, Marshaller<V> vm, Cache cache, K key, V value, int? seconds, bool? nx)
+        public async ValueTask<V> Set<K,V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key, V value, int? seconds, bool? nx)
         {
             Commands.SET<K,V> set = new Commands.SET<K,V>(km, vm, key, value);
             if (cache.ForceReturnValue) {
                 set.Flags |= 0x01;
             }
-            var result = await Execute(cache, set, typeof(string));
+            var result = await Execute(cache, set);
             if (result.IsError)
                 throw new InfinispanException(result.Messge);
             return set.PrevValue;
         }
-        public async ValueTask<V> Get<K,V>(Marshaller<K> km, Marshaller<V> vm, Cache cache, K key)
+        public async ValueTask<V> Get<K,V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key)
         {
             Commands.GET<K,V> cmd = new Commands.GET<K,V>(km, vm, key);
-            var result = await Execute(cache, cmd, typeof(V));
+            var result = await Execute(cache, cmd);
             if (result.IsError)
                 throw new InfinispanException(result.Messge);
             return cmd.Value;
@@ -140,8 +140,8 @@ namespace Infinispan.Hotrod.Core
                     item.Dispose();
             }
         }
-        public Cache newCache(string name) {
-            return new Cache(this, name);
+        public Cache<K,V> newCache<K,V>(Marshaller<K> keyM, Marshaller<V> valM, string name) {
+            return new Cache<K,V>(this, keyM, valM, name);
         }
     }
 }

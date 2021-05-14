@@ -29,10 +29,10 @@ namespace Infinispan.Hotrod.Core.Samples
         }
         static async Task Test()
         {
-            var cache = DefaultInfinispan.Instance.newCache("default");
-            cache.ForceReturnValue = true;
             var km = new StringMarshaller();
             var vm = new StringMarshaller();
+            var cache = DefaultInfinispan.Instance.newCache(km, vm, "default");
+            cache.ForceReturnValue = true;
             string result = await cache.Set<string,string>(km, vm, "key1", "value1");
             Console.WriteLine("Result is: "+result);
             string getResult = await cache.Get<string,string>(km, vm, "key1");

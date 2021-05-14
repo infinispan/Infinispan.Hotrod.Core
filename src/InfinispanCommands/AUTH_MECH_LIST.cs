@@ -16,13 +16,13 @@ namespace Infinispan.Hotrod.Core.Commands
         public override string Name => "AUTH_MECH_LIST";
         public override Byte Code => 0x21;
         public string[] availableMechs { get; set; }
-        public override void OnExecute(Cache cache)
+        public override void OnExecute(UntypedCache cache)
         {
             // TODO: here the code to build the bytebuffer that will be sent
             base.OnExecute(cache); // Generic code (build header?)
         }
 
-        public override void Execute(Cache cache, InfinispanClient client, PipeStream stream)
+        public override void Execute(UntypedCache cache, InfinispanClient client, PipeStream stream)
         {
             base.Execute(cache, client, stream);
             stream.Flush();

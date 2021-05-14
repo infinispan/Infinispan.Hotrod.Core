@@ -49,31 +49,11 @@ namespace Infinispan.Hotrod.Core
         private List<CommandParameter> mParameters = new List<CommandParameter>();
 
         private ConcurrentDictionary<string, byte[]> mCommandBuffers = new ConcurrentDictionary<string, byte[]>();
-
-        public Command AddText(object text)
-        {
-            mParameters.Add(new CommandParameter { Value = text });
-            return this;
-        }
-
-        public Command AddData(object data)
-        {
-            if (data is ArraySegment<byte> buffer)
-            {
-                mParameters.Add(new CommandParameter { DataBuffer = buffer });
-            }
-            else
-            {
-                mParameters.Add(new CommandParameter { Value = data, DataFormater = this.DataFormater, Serialize = true });
-            }
-            return this;
-        }
-
-        public virtual void OnExecute(Cache cache)
+        public virtual void OnExecute(UntypedCache cache)
         {
         }
 
-        public virtual void Execute(Cache cache, InfinispanClient client, PipeStream stream)
+        public virtual void Execute(UntypedCache cache, InfinispanClient client, PipeStream stream)
         {
             // TODO: here where the byte buffer is streamed. Caller will then flush the data
             using (var track = CodeTrackFactory.Track("Write", CodeTrackLevel.Function, Activity?.Id, "Infinispan", "Protocol"))

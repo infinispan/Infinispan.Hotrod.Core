@@ -41,7 +41,7 @@ namespace Infinispan.Hotrod.Core
             }
         }
 
-        public void Send(Cache cache, Command cmd)
+        public void Send(UntypedCache cache, Command cmd)
         {
             PipeStream stream = TcpClient.Stream.ToPipeStream();
 
