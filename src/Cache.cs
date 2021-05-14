@@ -63,6 +63,14 @@ namespace Infinispan.Hotrod.Core
         {
             return await Cluster.Remove(KeyMarshaller,  ValueMarshaller, (UntypedCache)this, key);
         }
+        public async ValueTask Clear()
+        {
+            await Cluster.Clear(this);
+        }
+        public async ValueTask<Boolean> IsEmpty()
+        {
+            return await Cluster.Size(this)==0;
+        }
 
     }
 }

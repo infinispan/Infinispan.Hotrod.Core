@@ -153,6 +153,13 @@ namespace Infinispan.Hotrod.Core
                 throw new InfinispanException(result.Messge);
             return cmd.PrevValue;
         }
+        public async ValueTask Clear(UntypedCache cache) {
+            Commands.CLEAR cmd = new Commands.CLEAR();
+            var result = await Execute(cache, cmd);
+            if (result.IsError)
+                throw new InfinispanException(result.Messge);
+            return;
+        }
         
         private bool mIsDisposed = false;
 

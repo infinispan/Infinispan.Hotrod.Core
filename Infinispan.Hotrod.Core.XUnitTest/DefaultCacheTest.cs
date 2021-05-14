@@ -104,6 +104,24 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             Assert.False(await _cache.ContainsKey(key));
         }
 
+        [Fact]
+        public async void ClearTest()
+        {
+            String key1 = UniqueKey.NextKey();
+            String key2 = UniqueKey.NextKey();
+
+            await _cache.Put(key1, "hydrogen");
+            await _cache.Put(key2, "helium");
+            Assert.False(await _cache.IsEmpty());
+
+            await _cache.Clear();
+
+            Assert.Null(await _cache.Get(key1));
+            Assert.Null(await _cache.Get(key2));
+
+            Assert.Equal((uint)0, await _cache.Size());
+            Assert.True(await _cache.IsEmpty());
+        }
 
 
         // public void NameTest()
@@ -112,6 +130,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
         // public void PutTest()
         // public void ContainsKeyTest()
         // public void RemoveTest()
+        // public void ClearTest()
 
 
         // [Test]
@@ -279,25 +298,6 @@ namespace Infinispan.Hotrod.Core.XUnitTest
         //     version = (ulong)cache.GetVersioned(key).GetVersion();
         //     Assert.IsTrue(cache.RemoveWithVersion(key, version));
         //     Assert.IsNull(cache.Get(key));
-        // }
-
-        // [Test]
-        // public void ClearTest()
-        // {
-        //     String key1 = UniqueKey.NextKey();
-        //     String key2 = UniqueKey.NextKey();
-
-        //     cache.Put(key1, "hydrogen");
-        //     cache.Put(key2, "helium");
-        //     Assert.IsFalse(cache.IsEmpty());
-
-        //     cache.Clear();
-
-        //     Assert.IsNull(cache.Get(key1));
-        //     Assert.IsNull(cache.Get(key2));
-
-        //     Assert.AreEqual(0, cache.Size());
-        //     Assert.IsTrue(cache.IsEmpty());
         // }
 
         // [Test]
