@@ -66,14 +66,16 @@ namespace Infinispan.Hotrod.Core.Tests.Util
                 throw new Exception("Another process already listening on the same ip/port.");
             }
             // Cleanup data dir
-            if (PlatformUtils.isUnix())
-            {
-                Directory.Delete(Path.Combine(jbossHome, serverHome+"/data"), true);
-            }
-            else
-            {
-                Directory.Delete(Path.Combine(jbossHome, serverHome+"\\data"), true);
-            }
+            try {
+                if (PlatformUtils.isUnix())
+                {
+                    Directory.Delete(Path.Combine(jbossHome, serverHome+"/data"), true);
+                }
+                else
+                {
+                    Directory.Delete(Path.Combine(jbossHome, serverHome+"\\data"), true);
+                }
+            } catch (DirectoryNotFoundException) {}
             hrServer = new Process
             {
                 StartInfo =
