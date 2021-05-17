@@ -1,0 +1,17 @@
+name: learn-github-actions
+on: [push]
+jobs:
+  check-bats-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: wget
+        uses: wei/wget@v1
+        with:
+          args: -q https://downloads.jboss.org/infinispan/11.0.9.Final/infinispan-server-11.0.9.Final.zip
+      - uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: '3.1.x' # SDK Version to use; x will use the latest version of the 3.1 channel
+      - run: dotnet build
+      - run: dotnet test
+
