@@ -46,10 +46,18 @@ namespace Infinispan.Hotrod.Core
         {
             return await Cluster.Get(KeyMarshaller, ValueMarshaller, (UntypedCache)this, key);
         }
-
-        public async ValueTask<V> Put(K key, V value)
+        public async ValueTask<ValueWithVersion<V>> GetWithVersion(K key)
         {
-            return await Cluster.Put(KeyMarshaller, ValueMarshaller, this, key, value);
+            return await Cluster.GetWithVersion(KeyMarshaller, ValueMarshaller, (UntypedCache)this, key);
+        }
+        public async ValueTask<ValueWithMetadata<V>> GetWithMetadata(K key)
+        {
+            return await Cluster.GetWithMetadata(KeyMarshaller, ValueMarshaller, (UntypedCache)this, key);
+        }
+
+        public async ValueTask<V> Put(K key, V value, ExpirationTime lifespan =null, ExpirationTime maxidle=null)
+        {
+            return await Cluster.Put(KeyMarshaller, ValueMarshaller, this, key, value, lifespan, maxidle);
         }
         public async ValueTask<UInt32> Size()
         {
@@ -71,6 +79,108 @@ namespace Infinispan.Hotrod.Core
         {
             return await Cluster.Size(this)==0;
         }
+        public async ValueTask<ServerStatistics> Stats()
+        {
+            return await Cluster.Stats(this);
+        }
+
 
     }
+    public class ValueWithVersion<V> {
+        public V Value;
+        public UInt64 Version;
+    }
+
+    public class ValueWithMetadata<V> : ValueWithVersion<V> {
+        public Int64 Created;
+        public Int32 Lifespan;
+        public Int64 LastUsed;
+        public Int32 MaxIdle;
+    }
+
+    public class ServerStatistics
+    {
+        public ServerStatistics(Dictionary<string,string> stats) {
+            this.stats = stats;
+        }
+        /// <summary>
+        ///   Number of seconds since Hot Rod started.
+        /// </summary>
+        public const String TIME_SINCE_START = "timeSinceStart";
+
+        /// <summary>
+        ///   Number of entries currently in the Hot Rod server.
+        /// </summary>
+        public const String CURRENT_NR_OF_ENTRIES = "currentNumberOfEntries";
+
+        /// <summary>
+        ///   Number of entries stored in Hot Rod server since the server started running.
+        /// </summary>
+        public const String TOTAL_NR_OF_ENTRIES = "totalNumberOfEntries";
+
+        /// <summary>
+        ///   Number of put operations.
+        /// </summary>
+        public const String STORES = "stores";
+
+        /// <summary>
+        ///   Number of get operations.
+        /// </summary>
+        public const String RETRIEVALS = "retrievals";
+
+        /// <summary>
+        ///   Number of get hits.
+        /// </summary>
+        public const String HITS = "hits";
+
+        /// <summary>
+        ///   Number of get misses.
+        /// </summary>
+        public const String MISSES = "misses";
+
+        /// <summary>
+        ///   Number of removal hits.
+        /// </summary>
+        public const String REMOVE_HITS = "removeHits";
+
+        /// <summary>
+        ///   Number of removal misses.
+        /// </summary>
+        public const String REMOVE_MISSES = "removeMisses";
+
+        /// <summary>
+        ///   Retrieve the complete list of statistics and their associated value.
+        /// </summary>
+        public IDictionary<String, String> GetStatsMap()
+        {
+            return stats;
+        }
+
+        /// <summary>
+        ///   Retrive the value of the specified statistic.
+        /// </summary>
+        ///
+        /// <param name="statName">name of the statistic to retrieve</param>
+        ///
+        /// <returns>the value for the specified statistic as a string or null</returns>
+        public String GetStatistic(String statsName)
+        {
+            return stats != null ? stats[statsName] : null;
+        }
+
+        /// <summary>
+        ///   Retrive the value of the specified statistic.
+        /// </summary>
+        ///
+        /// <param name="statName">name of the statistic to retrieve</param>
+        ///
+        /// <returns>the value for the specified statistic as an int or -1 if no value is available</returns>
+        public int GetIntStatistic(String statsName)
+        {
+            String value = GetStatistic(statsName);
+            return value == null ? -1 : int.Parse(value);
+        }
+        private IDictionary<String, String> stats;        
+   }
+
 }

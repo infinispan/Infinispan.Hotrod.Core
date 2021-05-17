@@ -55,6 +55,7 @@ namespace Infinispan.Hotrod.Core.Tests.Util
         void StartHotrodServerInternal()
         {
             var jbossHome = Environment.GetEnvironmentVariable("JBOSS_HOME");
+            jbossHome="/home/rigazilla/git/cpp-client/infinispan-server-11.0.9.Final";
             var path = Environment.GetEnvironmentVariable("PATH");
             Console.WriteLine("PATH= "+path);
             if (jbossHome == null)

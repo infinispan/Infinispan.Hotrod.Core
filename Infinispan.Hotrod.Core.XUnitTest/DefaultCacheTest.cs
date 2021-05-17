@@ -123,6 +123,123 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             Assert.True(await _cache.IsEmpty());
         }
 
+        [Fact]
+        public async void GetWithVersionTest()
+        {
+            String key = UniqueKey.NextKey();
+            await _cache.Put(key, "uranium");
+            ValueWithVersion<string> previous = await _cache.GetWithVersion(key);
+            await _cache.Put(key, "rubidium");
+            ValueWithVersion<string> current = await _cache.GetWithVersion(key);
+            Assert.Equal("rubidium", current.Value);
+            Assert.NotEqual(previous.Version, current.Version);
+        }
+
+        [Fact]
+        public async void GetWithMetadataTest()
+        {
+            String key = UniqueKey.NextKey();
+
+            /* Created with lifespan/maxidle. */
+            await _cache.Put(key, "rubidium", new ExpirationTime{ Value = 60, Unit = TimeUnit.MINUTES}, new ExpirationTime {Value = 30, Unit = TimeUnit.MINUTES});
+
+            ValueWithMetadata<string> metadata = await _cache.GetWithMetadata(key);
+            Assert.Equal("rubidium", metadata.Value);
+
+            Assert.Equal((Int32)3600, metadata.Lifespan);
+            Assert.NotEqual((Int64)0, metadata.Created);
+
+            Assert.Equal((Int32)1800, metadata.MaxIdle);
+            Assert.NotEqual((Int64)0, metadata.LastUsed);
+        }
+
+        [Fact]
+        public async void GetWithMetadataImmortalTest()
+        {
+            String key = UniqueKey.NextKey();
+
+            /* Created immortal entry. */
+            await _cache.Put(key, "uranium");
+            ValueWithMetadata<string> metadata = await _cache.GetWithMetadata(key);
+            Assert.Equal("uranium", metadata.Value);
+
+            Assert.True(metadata.Lifespan < 0);
+            Assert.Equal(-1, metadata.Created);
+
+            Assert.True(metadata.MaxIdle < 0);
+            Assert.Equal(-1, metadata.LastUsed);
+        }
+
+        [Fact]
+        public async void StatTest()
+        {
+            ServerStatistics stats;
+
+            /* Gather the initial stats. */
+            stats = await _cache.Stats();
+            int initialTimeSinceStart = stats.GetIntStatistic(ServerStatistics.TIME_SINCE_START);
+            int initialEntries = stats.GetIntStatistic(ServerStatistics.CURRENT_NR_OF_ENTRIES);
+            int initialTotalEntries = stats.GetIntStatistic(ServerStatistics.TOTAL_NR_OF_ENTRIES);
+            int initialStores = stats.GetIntStatistic(ServerStatistics.STORES);
+            int initialRetrievals = stats.GetIntStatistic(ServerStatistics.RETRIEVALS);
+            int initialHits = stats.GetIntStatistic(ServerStatistics.HITS);
+            int initialMisses = stats.GetIntStatistic(ServerStatistics.MISSES);
+            int initialRemoveHits = stats.GetIntStatistic(ServerStatistics.REMOVE_HITS);
+            int initialRemoveMisses = stats.GetIntStatistic(ServerStatistics.REMOVE_MISSES);
+
+            /* Check that all are present. */
+            Assert.True(initialTimeSinceStart >= 0);
+            Assert.True(initialEntries >= 0);
+            Assert.True(initialTotalEntries >= 0);
+            Assert.True(initialStores >= 0);
+            Assert.True(initialRetrievals >= 0);
+            Assert.True(initialHits >= 0);
+            Assert.True(initialMisses >= 0);
+            Assert.True(initialRemoveHits >= 0);
+            Assert.True(initialRemoveMisses >= 0);
+
+            /* Add 3 key/value pairs. */
+            String key1 = UniqueKey.NextKey();
+            String key2 = UniqueKey.NextKey();
+            String key3 = UniqueKey.NextKey();
+
+            await _cache.Put(key1, "v");
+            await _cache.Put(key2, "v");
+            await _cache.Put(key3, "v");
+
+            stats = await _cache.Stats();
+            Assert.Equal(initialEntries + 3, stats.GetIntStatistic(ServerStatistics.CURRENT_NR_OF_ENTRIES));
+            Assert.Equal(initialTotalEntries + 3, stats.GetIntStatistic(ServerStatistics.TOTAL_NR_OF_ENTRIES));
+            Assert.Equal(initialStores + 3, stats.GetIntStatistic(ServerStatistics.STORES));
+
+            /* Get hit/misses. */
+            await _cache.Get(key1);
+            await _cache.Get(key2);
+            await _cache.Get(UniqueKey.NextKey());
+
+            stats = await _cache.Stats();
+            Assert.Equal(initialRetrievals + 3, stats.GetIntStatistic(ServerStatistics.RETRIEVALS));
+            Assert.Equal(initialHits + 2, stats.GetIntStatistic(ServerStatistics.HITS));
+            Assert.Equal(initialMisses + 1, stats.GetIntStatistic(ServerStatistics.MISSES));
+
+            /* Remove hit/misses. */
+            await _cache.Remove(key3);
+            await _cache.Remove(UniqueKey.NextKey());
+            await _cache.Remove(UniqueKey.NextKey());
+            await _cache.Remove(UniqueKey.NextKey());
+
+            stats = await _cache.Stats();
+            Assert.Equal(initialRemoveHits + 1, stats.GetIntStatistic(ServerStatistics.REMOVE_HITS));
+            Assert.Equal(initialRemoveMisses + 3, stats.GetIntStatistic(ServerStatistics.REMOVE_MISSES));
+
+            /* Clear the cache. */
+            await _cache.Clear();
+
+            stats = await _cache.Stats();
+            Assert.Equal(0, stats.GetIntStatistic(ServerStatistics.CURRENT_NR_OF_ENTRIES));
+            Assert.Equal(initialTotalEntries + 3, stats.GetIntStatistic(ServerStatistics.TOTAL_NR_OF_ENTRIES));
+        }
+
 
         // public void NameTest()
         // public void VersionTest()
@@ -131,13 +248,11 @@ namespace Infinispan.Hotrod.Core.XUnitTest
         // public void ContainsKeyTest()
         // public void RemoveTest()
         // public void ClearTest()
+        // public void GetVersionedTest()
+        // public void GetWithMetadataTest()
+        // public void GetWithMetadataImmortalTest()
+        // public void StatTest()
 
-
-        // [Test]
-        // public void ProtocolVersionTest()
-        // {
-        //     Assert.IsNotNull(cache.GetProtocolVersion());
-        // }
 
         // [Test]
         // public void GetAllTest()
@@ -157,56 +272,6 @@ namespace Infinispan.Hotrod.Core.XUnitTest
         //     Assert.AreEqual(d[key2], cache.Get(key2));
         //     Assert.AreEqual(d[key1], "carbon");
         //     Assert.AreEqual(d[key2], "oxygen");
-        // }
-
-        // [Test]
-        // public void GetVersionedTest()
-        // {
-        //     String key = UniqueKey.NextKey();
-
-        //     cache.Put(key, "uranium");
-        //     IVersionedValue<String> previous = cache.GetVersioned(key);
-        //     cache.Put(key, "rubidium");
-
-        //     IVersionedValue<String> current = cache.GetVersioned(key);
-        //     Assert.AreEqual("rubidium", current.GetValue());
-
-        //     Assert.AreNotEqual(previous.GetVersion(), current.GetVersion());
-        // }
-
-        // [Test]
-        // public void GetWithMetadataImmortalTest()
-        // {
-        //     String key = UniqueKey.NextKey();
-
-        //     /* Created immortal entry. */
-        //     cache.Put(key, "uranium");
-        //     IMetadataValue<String> metadata = cache.GetWithMetadata(key);
-        //     Assert.AreEqual("uranium", metadata.GetValue());
-
-        //     Assert.IsTrue(metadata.GetLifespan() < 0);
-        //     Assert.AreEqual(-1, metadata.GetCreated());
-
-        //     Assert.IsTrue(metadata.GetMaxIdle() < 0);
-        //     Assert.AreEqual(-1, metadata.GetLastUsed());
-        // }
-
-        // [Test]
-        // public void GetWithMetadataTest()
-        // {
-        //     String key = UniqueKey.NextKey();
-
-        //     /* Created with lifespan/maxidle. */
-        //     cache.Put(key, "rubidium", 60, TimeUnit.MINUTES, 30, TimeUnit.MINUTES);
-
-        //     IMetadataValue<String> metadata = cache.GetWithMetadata(key);
-        //     Assert.AreEqual("rubidium", metadata.GetValue());
-
-        //     Assert.AreEqual(3600, metadata.GetLifespan());
-        //     Assert.AreNotEqual(0, metadata.GetCreated());
-
-        //     Assert.AreEqual(1800, metadata.GetMaxIdle());
-        //     Assert.AreNotEqual(0, metadata.GetLastUsed());
         // }
 
         // [Test]
@@ -376,75 +441,6 @@ namespace Infinispan.Hotrod.Core.XUnitTest
         //     // Assert.IsTrue(metadata.GetMaxIdle() > 0);
         // }
 
-        // [Test]
-        // public void StatTest()
-        // {
-        //     ServerStatistics stats;
-
-        //     /* Gather the initial stats. */
-        //     stats = cache.Stats();
-        //     int initialTimeSinceStart = stats.GetIntStatistic(ServerStatistics.TIME_SINCE_START);
-        //     int initialEntries = stats.GetIntStatistic(ServerStatistics.CURRENT_NR_OF_ENTRIES);
-        //     int initialTotalEntries = stats.GetIntStatistic(ServerStatistics.TOTAL_NR_OF_ENTRIES);
-        //     int initialStores = stats.GetIntStatistic(ServerStatistics.STORES);
-        //     int initialRetrievals = stats.GetIntStatistic(ServerStatistics.RETRIEVALS);
-        //     int initialHits = stats.GetIntStatistic(ServerStatistics.HITS);
-        //     int initialMisses = stats.GetIntStatistic(ServerStatistics.MISSES);
-        //     int initialRemoveHits = stats.GetIntStatistic(ServerStatistics.REMOVE_HITS);
-        //     int initialRemoveMisses = stats.GetIntStatistic(ServerStatistics.REMOVE_MISSES);
-
-        //     /* Check that all are present. */
-        //     Assert.IsTrue(initialTimeSinceStart >= 0);
-        //     Assert.IsTrue(initialEntries >= 0);
-        //     Assert.IsTrue(initialTotalEntries >= 0);
-        //     Assert.IsTrue(initialStores >= 0);
-        //     Assert.IsTrue(initialRetrievals >= 0);
-        //     Assert.IsTrue(initialHits >= 0);
-        //     Assert.IsTrue(initialMisses >= 0);
-        //     Assert.IsTrue(initialRemoveHits >= 0);
-        //     Assert.IsTrue(initialRemoveMisses >= 0);
-
-        //     /* Add 3 key/value pairs. */
-        //     String key1 = UniqueKey.NextKey();
-        //     String key2 = UniqueKey.NextKey();
-        //     String key3 = UniqueKey.NextKey();
-
-        //     cache.Put(key1, "v");
-        //     cache.Put(key2, "v");
-        //     cache.Put(key3, "v");
-
-        //     stats = cache.Stats();
-        //     Assert.AreEqual(initialEntries + 3, stats.GetIntStatistic(ServerStatistics.CURRENT_NR_OF_ENTRIES));
-        //     Assert.AreEqual(initialTotalEntries + 3, stats.GetIntStatistic(ServerStatistics.TOTAL_NR_OF_ENTRIES));
-        //     Assert.AreEqual(initialStores + 3, stats.GetIntStatistic(ServerStatistics.STORES));
-
-        //     /* Get hit/misses. */
-        //     cache.Get(key1);
-        //     cache.Get(key2);
-        //     cache.Get(UniqueKey.NextKey());
-
-        //     stats = cache.Stats();
-        //     Assert.AreEqual(initialRetrievals + 3, stats.GetIntStatistic(ServerStatistics.RETRIEVALS));
-        //     Assert.AreEqual(initialHits + 2, stats.GetIntStatistic(ServerStatistics.HITS));
-        //     Assert.AreEqual(initialMisses + 1, stats.GetIntStatistic(ServerStatistics.MISSES));
-
-        //     /* Remove hit/misses. */
-        //     cache.Remove(key3);
-        //     cache.Remove(UniqueKey.NextKey());
-        //     cache.Remove(UniqueKey.NextKey());
-        //     cache.Remove(UniqueKey.NextKey());
-
-        //     stats = cache.Stats();
-        //     Assert.AreEqual(initialRemoveHits + 1, stats.GetIntStatistic(ServerStatistics.REMOVE_HITS));
-        //     Assert.AreEqual(initialRemoveMisses + 3, stats.GetIntStatistic(ServerStatistics.REMOVE_MISSES));
-
-        //     /* Clear the cache. */
-        //     cache.Clear();
-
-        //     stats = cache.Stats();
-        //     Assert.AreEqual(0, stats.GetIntStatistic(ServerStatistics.CURRENT_NR_OF_ENTRIES));
-        //     Assert.AreEqual(initialTotalEntries + 3, stats.GetIntStatistic(ServerStatistics.TOTAL_NR_OF_ENTRIES));
-        // }
 
     }
 }

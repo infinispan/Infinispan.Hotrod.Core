@@ -41,7 +41,18 @@ namespace Infinispan.Hotrod.Core
             UInt16 val;
             var b = (byte) stream.ReadByte();
             val = (UInt16)(b<<8);
-            val += (byte) stream.ReadByte();
+            val |= (byte) (stream.ReadByte() & 0xff);
+            return val;
+        }
+
+        public static UInt32 readInt(PipeStream stream) {
+            UInt32 val = readShort(stream);
+            val = val << 16 | readShort(stream);
+            return val;
+        }
+        public static UInt64 readLong(PipeStream stream) {
+            UInt64 val = readInt(stream);
+            val = val << 32 | readInt(stream);
             return val;
         }
 
@@ -98,7 +109,7 @@ namespace Infinispan.Hotrod.Core
                 writeVLong(Lifespan.Value, stream);
             }
             if (MaxIdle.hasValue()) {
-                writeVLong(Lifespan.Value, stream);
+                writeVLong(MaxIdle.Value, stream);
             }
         }
     }

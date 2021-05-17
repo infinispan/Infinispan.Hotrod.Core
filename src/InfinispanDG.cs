@@ -104,17 +104,17 @@ namespace Infinispan.Hotrod.Core
                     host.Push(client);
             }
         }
-
-        public async ValueTask<V> Put<K,V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key, V value)
-        {
-            return await Put(km, vm, cache, key, value, null, null);
-        }
-
-        public async ValueTask<V> Put<K,V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key, V value, int? seconds, bool? nx)
+        public async ValueTask<V> Put<K,V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key, V value, ExpirationTime lifespan=null, ExpirationTime maxidle=null)
         {
             Commands.PUT<K,V> put = new Commands.PUT<K,V>(km, vm, key, value);
             if (cache.ForceReturnValue) {
                 put.Flags |= 0x01;
+            }
+            if (lifespan!=null){
+                put.Lifespan = lifespan;
+            }
+            if (maxidle!=null) {
+                put.MaxIdle = maxidle;
             }
             var result = await Execute(cache, put);
             if (result.IsError)
@@ -128,6 +128,23 @@ namespace Infinispan.Hotrod.Core
             if (result.IsError)
                 throw new InfinispanException(result.Messge);
             return cmd.Value;
+        }
+
+        public async ValueTask<ValueWithVersion<V>> GetWithVersion<K,V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key)
+        {
+            Commands.GETWITHVERSION<K,V> cmd = new Commands.GETWITHVERSION<K,V>(km, vm, key);
+            var result = await Execute(cache, cmd);
+            if (result.IsError)
+                throw new InfinispanException(result.Messge);
+            return cmd.ValueWithVersion;
+        }
+        public async ValueTask<ValueWithMetadata<V>> GetWithMetadata<K,V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key)
+        {
+            Commands.GETWITHMETADATA<K,V> cmd = new Commands.GETWITHMETADATA<K,V>(km, vm, key);
+            var result = await Execute(cache, cmd);
+            if (result.IsError)
+                throw new InfinispanException(result.Messge);
+            return cmd.ValueWithMetadata;
         }
 
         public async ValueTask<UInt32> Size(UntypedCache cache) {
@@ -160,6 +177,15 @@ namespace Infinispan.Hotrod.Core
                 throw new InfinispanException(result.Messge);
             return;
         }
+
+        public async ValueTask<ServerStatistics> Stats(UntypedCache cache) {
+            Commands.STATS cmd = new Commands.STATS();
+            var result = await Execute(cache, cmd);
+            if (result.IsError)
+                throw new InfinispanException(result.Messge);
+            return cmd.Stats;
+        }
+
         
         private bool mIsDisposed = false;
 
