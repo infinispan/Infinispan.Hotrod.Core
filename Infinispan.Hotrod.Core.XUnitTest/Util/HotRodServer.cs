@@ -99,6 +99,7 @@ namespace Infinispan.Hotrod.Core.Tests.Util
                 hrServer.OutputDataReceived += new DataReceivedEventHandler(DropOutputHandler);
                 hrServer.ErrorDataReceived += new DataReceivedEventHandler(DropOutputHandler);
             }
+            Console.WriteLine("Command is:"+hrServer.StartInfo.FileName);
             hrServer.Start();
 
             if (!IsRunning()) {
