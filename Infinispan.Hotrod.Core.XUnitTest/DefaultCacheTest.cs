@@ -10,7 +10,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
         public HotRodServer hotRodServer {get; private set;}
         public Cache<string,string> cache;
         public DefaultCacheTestFixture() {
-            hotRodServer = new HotRodServer("infinispan.xml");
+            hotRodServer = new HotRodServer("infinispan-noauth.xml");
             hotRodServer.StartHotRodServer();
             DefaultInfinispan.Instance.AddHost("127.0.0.1");
             DefaultInfinispan.Instance.Version=0x30;
