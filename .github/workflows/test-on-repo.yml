@@ -16,7 +16,7 @@ jobs:
         with:
           args: -q https://downloads.jboss.org/infinispan/11.0.9.Final/infinispan-server-11.0.9.Final.zip
       - name: Set env
-        run: echo "JBOSS_HOME=$(echo $HOME/infinispan-server-11.0.9.Final)" >> $GITHUB_ENV
+        run: echo "JBOSS_HOME=$(echo $PWD/infinispan-server-11.0.9.Final)" >> $GITHUB_ENV
       - run: pwd && unzip infinispan-server-11.0.9.Final.zip
       - run: ls $JBOSS_HOME
       - run: ls $JBOSS_HOME/bin
