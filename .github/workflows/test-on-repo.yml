@@ -5,14 +5,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: '3.1.x' # SDK Version to use; x will use the latest version of the 3.1 channel
+      - uses: actions/setup-java@v2
+        with:
+          distribution: 'adopt' # See 'Supported distributions' for available options
+          java-version: '11'
       - uses: wei/wget@v1
         with:
           args: -q https://downloads.jboss.org/infinispan/11.0.9.Final/infinispan-server-11.0.9.Final.zip
       - name: Set env
         run: echo "JBOSS_HOME=$(echo $HOME/infinispan-server-11.0.9.Final)" >> $GITHUB_ENV
-      - uses: actions/setup-dotnet@v1
-        with:
-          dotnet-version: '3.1.x' # SDK Version to use; x will use the latest version of the 3.1 channel
       - run: unzip infinispan-server-11.0.9.Final.zip
       - run: dotnet build
       - run: dotnet test
