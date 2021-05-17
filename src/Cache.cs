@@ -92,10 +92,10 @@ namespace Infinispan.Hotrod.Core
     }
 
     public class ValueWithMetadata<V> : ValueWithVersion<V> {
-        public Int64 Created;
-        public Int32 Lifespan;
-        public Int64 LastUsed;
-        public Int32 MaxIdle;
+        public Int64 Created = -1;
+        public Int32 Lifespan = -1;
+        public Int64 LastUsed = -1;
+        public Int32 MaxIdle = -1;
     }
 
     public class ServerStatistics

@@ -55,7 +55,6 @@ namespace Infinispan.Hotrod.Core
             val = val << 32 | readInt(stream);
             return val;
         }
-
         public static void writeVLong(UInt64 val, PipeStream stream) {
             while (val>0x7f) {
                 byte b = (byte)(val & 0x7fL | 0x80);
