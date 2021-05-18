@@ -240,6 +240,50 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             Assert.Equal(initialTotalEntries + 3, stats.GetIntStatistic(ServerStatistics.TOTAL_NR_OF_ENTRIES));
         }
 
+        [Fact]
+        public async void ReplaceWithVersionTest()
+        {
+            String key = UniqueKey.NextKey();
+            await _cache.Put(key, "bromine");
+            ulong version = (await _cache.GetWithVersion(key)).Version;
+            await _cache.Put(key, "hexane");
+            bool response = await _cache.ReplaceWithVersion(key, "barium", version);
+            Assert.False(response);
+            Assert.Equal("hexane", await _cache.Get(key));
+
+            await _cache.Put(key, "oxygen");
+            ulong newVersion = (await _cache.GetWithVersion(key)).Version;
+            Assert.NotEqual(newVersion, version);
+            Assert.True(await _cache.ReplaceWithVersion(key, "barium", newVersion));
+            Assert.Equal("barium", await _cache.Get(key));
+        }
+
+        [Fact]
+        public async void RemoveWithVersionTest()
+        {
+            String key = UniqueKey.NextKey();
+
+            await _cache.Put(key, "bromine");
+            ulong version = (await _cache.GetWithVersion(key)).Version;
+
+            await _cache.Put(key, "hexane");
+            Assert.False((await _cache.RemoveWithVersion(key, version)).Removed);
+
+            version = (ulong)(await _cache.GetWithVersion(key)).Version;
+            Assert.True((await _cache.RemoveWithVersion(key, version)).Removed);
+            Assert.Null(await _cache.Get(key));
+        }
+
+        [Fact]
+        public async void DefaultValueForForceReturnValueTest()
+        {
+            String key = UniqueKey.NextKey();
+            Assert.Null(await _cache.Put(key, "v1"));
+            Assert.Null(await _cache.Put(key, "v2"));
+            Assert.Null((await _cache.Remove(key)).PrevValue);
+            Assert.Null((await _cache.Replace(key, "v3")).PrevValue);
+        }
+
 
         // public void NameTest()
         // public void VersionTest()
@@ -252,6 +296,9 @@ namespace Infinispan.Hotrod.Core.XUnitTest
         // public void GetWithMetadataTest()
         // public void GetWithMetadataImmortalTest()
         // public void StatTest()
+        // public void ReplaceWithVersionTest()
+        // public void RemoveWithVersionTest()
+        // public void DefaultValueForForceReturnValueTest()
 
 
         // [Test]
@@ -330,53 +377,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
         //     }
         // }
 
-        // [Test]
-        // public void ReplaceWithVersionTest()
-        // {
-        //     String key = UniqueKey.NextKey();
 
-        //     cache.Put(key, "bromine");
-        //     ulong version = (ulong)cache.GetVersioned(key).GetVersion();
-        //     cache.Put(key, "hexane");
-        //     bool response = cache.ReplaceWithVersion(key, "barium", version);
-        //     Assert.IsFalse(response);
-        //     Assert.AreEqual("hexane", cache.Get(key));
-
-        //     cache.Put(key, "oxygen");
-        //     ulong newVersion = (ulong)cache.GetVersioned(key).GetVersion();
-        //     Assert.AreNotEqual(newVersion, version);
-        //     Assert.IsTrue(cache.ReplaceWithVersion(key, "barium", newVersion));
-        //     Assert.AreEqual("barium", cache.Get(key));
-        // }
-
-        // [Test]
-        // public void RemoveWithVersionTest()
-        // {
-        //     String key = UniqueKey.NextKey();
-
-        //     cache.Put(key, "bromine");
-        //     ulong version = (ulong)cache.GetVersioned(key).GetVersion();
-
-        //     cache.Put(key, "hexane");
-        //     Assert.IsFalse(cache.RemoveWithVersion(key, version));
-
-        //     version = (ulong)cache.GetVersioned(key).GetVersion();
-        //     Assert.IsTrue(cache.RemoveWithVersion(key, version));
-        //     Assert.IsNull(cache.Get(key));
-        // }
-
-        // [Test]
-        // public void DefaultValueForForceReturnValueTest()
-        // {
-        //     String key = UniqueKey.NextKey();
-
-        //     Assert.IsNull(cache.Put(key, "v1"));
-        //     Assert.IsNull(cache.Put(key, "v2"));
-
-        //     Assert.IsNull(cache.Remove(key));
-
-        //     Assert.IsNull(cache.Replace(key, "v3"));
-        // }
 
         // [Test]
         // public void EntrySetTest()

@@ -67,7 +67,7 @@ namespace Infinispan.Hotrod.Core
         {
             return await Cluster.ContainsKey(KeyMarshaller, (UntypedCache)this, key);
         }
-        public async ValueTask<V> Remove(K key)
+        public async ValueTask<(V PrevValue, Boolean Removed)> Remove(K key)
         {
             return await Cluster.Remove(KeyMarshaller,  ValueMarshaller, (UntypedCache)this, key);
         }
@@ -83,6 +83,19 @@ namespace Infinispan.Hotrod.Core
         {
             return await Cluster.Stats(this);
         }
+        public async ValueTask<(V PrevValue, Boolean Replaced)> Replace(K key, V value, ExpirationTime lifespan =null, ExpirationTime maxidle=null)
+        {
+            return await Cluster.Replace(KeyMarshaller, ValueMarshaller, this, key, value, lifespan, maxidle);
+        }
+        public async ValueTask<Boolean> ReplaceWithVersion(K key, V value, UInt64 version, ExpirationTime lifeSpan = null, ExpirationTime maxIdle = null)
+        {
+            return await Cluster.ReplaceWithVersion(KeyMarshaller, ValueMarshaller, (UntypedCache)this, key, value, version, lifeSpan, maxIdle);
+        }
+
+        public async ValueTask<(V V, Boolean Removed)> RemoveWithVersion(K key, UInt64 version)
+        {
+            return await Cluster.RemoveWithVersion(KeyMarshaller, ValueMarshaller, (UntypedCache)this, key, version);
+        }
 
 
     }
@@ -96,6 +109,8 @@ namespace Infinispan.Hotrod.Core
         public Int32 Lifespan = -1;
         public Int64 LastUsed = -1;
         public Int32 MaxIdle = -1;
+    }
+    public class VersionedResponse<V> {
     }
 
     public class ServerStatistics

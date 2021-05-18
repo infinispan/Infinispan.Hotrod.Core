@@ -162,13 +162,13 @@ namespace Infinispan.Hotrod.Core
                 throw new InfinispanException(result.Messge);
             return cmd.IsContained;
         }
-        public async ValueTask<V> Remove<K,V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key)
+        public async ValueTask<(V V, Boolean Removed)> Remove<K,V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key)
         {
             Commands.REMOVE<K,V> cmd = new Commands.REMOVE<K,V>(km, vm, key);
             var result = await Execute(cache, cmd);
             if (result.IsError)
                 throw new InfinispanException(result.Messge);
-            return cmd.PrevValue;
+            return (cmd.PrevValue, cmd.Removed);
         }
         public async ValueTask Clear(UntypedCache cache) {
             Commands.CLEAR cmd = new Commands.CLEAR();
@@ -184,6 +184,53 @@ namespace Infinispan.Hotrod.Core
             if (result.IsError)
                 throw new InfinispanException(result.Messge);
             return cmd.Stats;
+        }
+        public async ValueTask<(V V, Boolean Replaced)> Replace<K,V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key, V value, ExpirationTime lifespan=null, ExpirationTime maxidle=null)
+        {
+            Commands.REPLACE<K,V> replace = new Commands.REPLACE<K,V>(km, vm, key, value);
+            if (cache.ForceReturnValue) {
+                replace.Flags |= 0x01;
+            }
+            if (lifespan!=null){
+                replace.Lifespan = lifespan;
+            }
+            if (maxidle!=null) {
+                replace.MaxIdle = maxidle;
+            }
+            var result = await Execute(cache, replace);
+            if (result.IsError)
+                throw new InfinispanException(result.Messge);
+            return (replace.PrevValue, replace.Replaced);
+        }
+        public async ValueTask<Boolean> ReplaceWithVersion<K,V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key, V value, UInt64 version, ExpirationTime lifespan=null, ExpirationTime maxidle=null)
+        {
+            Commands.REPLACEWITHVERSION<K,V> replace = new Commands.REPLACEWITHVERSION<K,V>(km, vm, key, value);
+            if (cache.ForceReturnValue) {
+                replace.Flags |= 0x01;
+            }
+            if (lifespan!=null){
+                replace.Lifespan = lifespan;
+            }
+            if (maxidle!=null) {
+                replace.MaxIdle = maxidle;
+            }
+            replace.Version = version;
+            var result = await Execute(cache, replace);
+            if (result.IsError)
+                throw new InfinispanException(result.Messge);
+            return replace.Replaced;
+        }
+        public async ValueTask<(V V, Boolean Removed)> RemoveWithVersion<K,V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key, UInt64 version)
+        {
+            Commands.REMOVEWITHVERSION<K,V> remove = new Commands.REMOVEWITHVERSION<K,V>(km, vm, key);
+            if (cache.ForceReturnValue) {
+                remove.Flags |= 0x01;
+            }
+            remove.Version = version;
+            var result = await Execute(cache, remove);
+            if (result.IsError)
+                throw new InfinispanException(result.Messge);
+            return (remove.PrevValue, remove.Removed);
         }
 
         

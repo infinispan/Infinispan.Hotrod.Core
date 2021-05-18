@@ -72,6 +72,24 @@ namespace Infinispan.Hotrod.Core
             stream.Write((byte)val);
         }
 
+        public static void writeInt(UInt32 v, PipeStream stream) {
+            stream.Write((byte) (v >> 24));
+            stream.Write((byte) (v >> 16));
+            stream.Write((byte) (v >> 8));
+            stream.Write((byte) v);
+        }
+
+        public static void writeLong(UInt64 v,PipeStream stream) {
+            stream.Write((byte) (v >> 56));
+            stream.Write((byte) (v >> 48));
+            stream.Write((byte) (v >> 40));
+            stream.Write((byte) (v >> 32));
+            stream.Write((byte) (v >> 24));
+            stream.Write((byte) (v >> 16));
+            stream.Write((byte) (v >> 8));
+            stream.Write((byte) v);
+        }
+
         public static void writeArray(byte[] arr, PipeStream stream) {
             writeVInt((UInt32)arr.Length, stream);
             if (arr.Length>0) {
@@ -149,6 +167,47 @@ namespace Infinispan.Hotrod.Core
                     return new Codec30();
             }
         }
+        public static Boolean isSuccess(int status) {
+            return status == NO_ERROR_STATUS
+                || status == NO_ERROR_STATUS_OBJ_STORAGE
+                || status == SUCCESS_WITH_PREVIOUS
+                || status == SUCCESS_WITH_PREVIOUS_OBJ_STORAGE;
+        }
+        public static Boolean isNotExecuted(int status) {
+            return status == NOT_PUT_REMOVED_REPLACED_STATUS
+                || status == NOT_EXECUTED_WITH_PREVIOUS
+                || status == NOT_EXECUTED_WITH_PREVIOUS_OBJ_STORAGE;
+        }
+
+        public static Boolean isNotExist(int status) {
+            return status == KEY_DOES_NOT_EXIST_STATUS;
+        }
+
+        public static Boolean hasPrevious(int status) {
+            return status == SUCCESS_WITH_PREVIOUS
+                    || status == SUCCESS_WITH_PREVIOUS_OBJ_STORAGE
+                    || status == NOT_EXECUTED_WITH_PREVIOUS
+                    || status == NOT_EXECUTED_WITH_PREVIOUS_OBJ_STORAGE;
+        }
+      //response status
+   const byte NO_ERROR_STATUS = 0x00;
+   const byte NOT_PUT_REMOVED_REPLACED_STATUS = 0x01;
+   const byte KEY_DOES_NOT_EXIST_STATUS = 0x02;
+   const byte SUCCESS_WITH_PREVIOUS = 0x03;
+   const byte NOT_EXECUTED_WITH_PREVIOUS = 0x04;
+   const byte INVALID_ITERATION = 0x05;
+   const byte NO_ERROR_STATUS_OBJ_STORAGE = 0x06;
+   const byte SUCCESS_WITH_PREVIOUS_OBJ_STORAGE = 0x07;
+   const byte NOT_EXECUTED_WITH_PREVIOUS_OBJ_STORAGE = 0x08;
+   const byte INVALID_MAGIC_OR_MESSAGE_ID_STATUS = 0x81;
+   const byte REQUEST_PARSING_ERROR_STATUS = 0x84;
+   const byte UNKNOWN_COMMAND_STATUS = 0x82;
+   const byte UNKNOWN_VERSION_STATUS = 0x83;
+   const byte SERVER_ERROR_STATUS = 0x85;
+   const byte COMMAND_TIMEOUT_STATUS = 0x86;
+   const byte NODE_SUSPECTED = 0x87;
+   const byte ILLEGAL_LIFECYCLE_STATE = 0x88;
+
     }
 }
 
