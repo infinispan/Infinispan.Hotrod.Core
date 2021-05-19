@@ -1,11 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFrameworks>netcoreapp3.1</TargetFrameworks>
-    <Version>1.2.4</Version>
-    <Company>beetlex.io</Company>
-    <Authors>henryfan</Authors>
-    <Copyright>Copyright © beetlex.io 2019-2021</Copyright>
-    <Description>A high-performance async/non-blocking  Infinispan client components for dotnet core</Description>
+    <Version>0.0.1</Version>
+    <Company>infinispan.org</Company>
+    <Authors>rigazilla</Authors>
+    <Description>An Infinispan client components for dotnet core</Description>
     <PackageLicenseUrl></PackageLicenseUrl>
     <PackageProjectUrl></PackageProjectUrl>
     <PackageIconUrl />
