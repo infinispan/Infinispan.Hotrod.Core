@@ -24,6 +24,7 @@ jobs:
       - run: |
              cd Infinispan.Hotrod.Application
              $JBOSS_HOME/bin/server.sh -c infinispan.xml &
+             timeout 20  bash -c "while ! sudo lsof -i:11222; do sleep 1; done"
              dotnet run
              kill %%
 
