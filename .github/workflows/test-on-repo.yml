@@ -21,5 +21,9 @@ jobs:
       - run: cp -r Infinispan.Hotrod.Core.XUnitTest/resources/conf/* $JBOSS_HOME/server/conf
       - run: dotnet build
       - run: dotnet test
-      - run: cd Infinispan.Hotrod.Application && dotnet run
+      - run: |
+             cd Infinispan.Hotrod.Application
+             $JBOSS_HOME/bin/server.sh -c infinispan.xml &
+             dotnet run
+             kill %%
 
