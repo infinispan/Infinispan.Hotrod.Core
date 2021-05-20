@@ -26,8 +26,7 @@ namespace Infinispan.Hotrod.Core.Commands
         public Boolean Removed;
         public override void OnExecute(UntypedCache cache)
         {
-            // TODO: here the code to build the bytebuffer that will be sent
-            base.OnExecute(cache); // Generic code (build header?)
+            base.OnExecute(cache);
         }
         public override void Execute(UntypedCache cache, InfinispanClient client, PipeStream stream)
         {

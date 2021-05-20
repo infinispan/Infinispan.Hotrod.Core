@@ -33,29 +33,17 @@ namespace Infinispan.Hotrod.Core
         {
             Flags = flags;
         }
-
         internal XActivity Activity { get; set; }
-
-        public Func<Result, PipeStream, InfinispanClient, bool> Reader { get; set; }
-
         public Func<InfinispanRequest, PipeStream, Result> NetworkReceive { get; set; }
-
-        public IDataFormater DataFormater { get; set; }
-
         public abstract string Name { get; }
-
         public abstract Byte Code { get; }
         public UInt32 Flags {get; set;} // TODO: where to store this?
-        private List<CommandParameter> mParameters = new List<CommandParameter>();
-
-        private ConcurrentDictionary<string, byte[]> mCommandBuffers = new ConcurrentDictionary<string, byte[]>();
         public virtual void OnExecute(UntypedCache cache)
         {
         }
 
         public virtual void Execute(UntypedCache cache, InfinispanClient client, PipeStream stream)
         {
-            // TODO: here where the byte buffer is streamed. Caller will then flush the data
             using (var track = CodeTrackFactory.Track("Write", CodeTrackLevel.Function, Activity?.Id, "Infinispan", "Protocol"))
             {
                 OnExecute(cache); // Build the message. But there's no need to build anything for hotrod
@@ -73,21 +61,5 @@ namespace Infinispan.Hotrod.Core
         }
 
         public abstract Result OnReceive(InfinispanRequest request, PipeStream stream);
-
-        public class CommandParameter
-        {
-            public object Value { get; set; }
-
-            public IDataFormater DataFormater { get; set; }
-
-            internal byte[] ValueBuffer { get; set; }
-
-            public ArraySegment<byte> DataBuffer { get; set; }
-
-            public bool Serialize
-            {
-                get; set;
-            } = false;
-        }
    }
 }

@@ -10,7 +10,6 @@ namespace Infinispan.Hotrod.Core
         {
 
         }
-
         public InfinispanException(string msg, Exception innerError) : base(msg, innerError) { }
     }
 }

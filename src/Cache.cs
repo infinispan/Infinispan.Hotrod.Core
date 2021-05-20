@@ -15,7 +15,21 @@ namespace Infinispan.Hotrod.Core
         public UInt64 MessageId {get;}
         public byte ClientIntelligence {get;}
         public UInt32 TopologyId {get; set;}
-         public bool ForceReturnValue;
+        public bool ForceReturnValue;
+        public bool UseCacheDefaultLifespan;
+        public bool UseCacheDefaultMaxIdle;
+
+        public UInt32 Flags {get {return getFlags();}}
+
+        private uint getFlags()
+        {
+            uint retVal=0;
+            if (ForceReturnValue) retVal+=1;
+            if (UseCacheDefaultLifespan) retVal+=2;
+            if (UseCacheDefaultMaxIdle) retVal+=4;
+            return retVal;
+        }
+
         public MediaType KeyMediaType {get; set;}
         public MediaType ValueMediaType {get; set;}
         public Codec30 codec;

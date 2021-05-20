@@ -106,24 +106,23 @@ namespace Infinispan.Hotrod.Core
         }
         public async ValueTask<V> Put<K,V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key, V value, ExpirationTime lifespan=null, ExpirationTime maxidle=null)
         {
-            Commands.PUT<K,V> put = new Commands.PUT<K,V>(km, vm, key, value);
-            if (cache.ForceReturnValue) {
-                put.Flags |= 0x01;
-            }
+            Commands.PUT<K,V> cmd = new Commands.PUT<K,V>(km, vm, key, value);
+            cmd.Flags = cache.Flags;
             if (lifespan!=null){
-                put.Lifespan = lifespan;
+                cmd.Lifespan = lifespan;
             }
             if (maxidle!=null) {
-                put.MaxIdle = maxidle;
+                cmd.MaxIdle = maxidle;
             }
-            var result = await Execute(cache, put);
+            var result = await Execute(cache, cmd);
             if (result.IsError)
                 throw new InfinispanException(result.Messge);
-            return put.PrevValue;
+            return cmd.PrevValue;
         }
         public async ValueTask<V> Get<K,V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key)
         {
             Commands.GET<K,V> cmd = new Commands.GET<K,V>(km, vm, key);
+            cmd.Flags = cache.Flags;
             var result = await Execute(cache, cmd);
             if (result.IsError)
                 throw new InfinispanException(result.Messge);
@@ -133,6 +132,7 @@ namespace Infinispan.Hotrod.Core
         public async ValueTask<ValueWithVersion<V>> GetWithVersion<K,V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key)
         {
             Commands.GETWITHVERSION<K,V> cmd = new Commands.GETWITHVERSION<K,V>(km, vm, key);
+            cmd.Flags = cache.Flags;
             var result = await Execute(cache, cmd);
             if (result.IsError)
                 throw new InfinispanException(result.Messge);
@@ -141,6 +141,7 @@ namespace Infinispan.Hotrod.Core
         public async ValueTask<ValueWithMetadata<V>> GetWithMetadata<K,V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key)
         {
             Commands.GETWITHMETADATA<K,V> cmd = new Commands.GETWITHMETADATA<K,V>(km, vm, key);
+            cmd.Flags = cache.Flags;
             var result = await Execute(cache, cmd);
             if (result.IsError)
                 throw new InfinispanException(result.Messge);
@@ -149,6 +150,7 @@ namespace Infinispan.Hotrod.Core
 
         public async ValueTask<UInt32> Size(UntypedCache cache) {
             Commands.SIZE cmd = new Commands.SIZE();
+            cmd.Flags = cache.Flags;
             var result = await Execute(cache, cmd);
             if (result.IsError)
                 throw new InfinispanException(result.Messge);
@@ -157,6 +159,7 @@ namespace Infinispan.Hotrod.Core
         public async ValueTask<Boolean> ContainsKey<K>(Marshaller<K> km, UntypedCache cache, K key)
         {
             Commands.CONTAINSKEY<K> cmd = new Commands.CONTAINSKEY<K>(km, key);
+            cmd.Flags = cache.Flags;
             var result = await Execute(cache, cmd);
             if (result.IsError)
                 throw new InfinispanException(result.Messge);
@@ -165,6 +168,7 @@ namespace Infinispan.Hotrod.Core
         public async ValueTask<(V V, Boolean Removed)> Remove<K,V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key)
         {
             Commands.REMOVE<K,V> cmd = new Commands.REMOVE<K,V>(km, vm, key);
+            cmd.Flags = cache.Flags;
             var result = await Execute(cache, cmd);
             if (result.IsError)
                 throw new InfinispanException(result.Messge);
@@ -172,6 +176,7 @@ namespace Infinispan.Hotrod.Core
         }
         public async ValueTask Clear(UntypedCache cache) {
             Commands.CLEAR cmd = new Commands.CLEAR();
+            cmd.Flags = cache.Flags;
             var result = await Execute(cache, cmd);
             if (result.IsError)
                 throw new InfinispanException(result.Messge);
@@ -180,6 +185,7 @@ namespace Infinispan.Hotrod.Core
 
         public async ValueTask<ServerStatistics> Stats(UntypedCache cache) {
             Commands.STATS cmd = new Commands.STATS();
+            cmd.Flags = cache.Flags;
             var result = await Execute(cache, cmd);
             if (result.IsError)
                 throw new InfinispanException(result.Messge);
@@ -187,50 +193,44 @@ namespace Infinispan.Hotrod.Core
         }
         public async ValueTask<(V V, Boolean Replaced)> Replace<K,V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key, V value, ExpirationTime lifespan=null, ExpirationTime maxidle=null)
         {
-            Commands.REPLACE<K,V> replace = new Commands.REPLACE<K,V>(km, vm, key, value);
-            if (cache.ForceReturnValue) {
-                replace.Flags |= 0x01;
-            }
+            Commands.REPLACE<K,V> cmd = new Commands.REPLACE<K,V>(km, vm, key, value);
+            cmd.Flags = cache.Flags;
             if (lifespan!=null){
-                replace.Lifespan = lifespan;
+                cmd.Lifespan = lifespan;
             }
             if (maxidle!=null) {
-                replace.MaxIdle = maxidle;
+                cmd.MaxIdle = maxidle;
             }
-            var result = await Execute(cache, replace);
+            var result = await Execute(cache, cmd);
             if (result.IsError)
                 throw new InfinispanException(result.Messge);
-            return (replace.PrevValue, replace.Replaced);
+            return (cmd.PrevValue, cmd.Replaced);
         }
         public async ValueTask<Boolean> ReplaceWithVersion<K,V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key, V value, UInt64 version, ExpirationTime lifespan=null, ExpirationTime maxidle=null)
         {
-            Commands.REPLACEWITHVERSION<K,V> replace = new Commands.REPLACEWITHVERSION<K,V>(km, vm, key, value);
-            if (cache.ForceReturnValue) {
-                replace.Flags |= 0x01;
-            }
+            Commands.REPLACEWITHVERSION<K,V> cmd = new Commands.REPLACEWITHVERSION<K,V>(km, vm, key, value);
+            cmd.Flags = cache.Flags;
             if (lifespan!=null){
-                replace.Lifespan = lifespan;
+                cmd.Lifespan = lifespan;
             }
             if (maxidle!=null) {
-                replace.MaxIdle = maxidle;
+                cmd.MaxIdle = maxidle;
             }
-            replace.Version = version;
-            var result = await Execute(cache, replace);
+            cmd.Version = version;
+            var result = await Execute(cache, cmd);
             if (result.IsError)
                 throw new InfinispanException(result.Messge);
-            return replace.Replaced;
+            return cmd.Replaced;
         }
         public async ValueTask<(V V, Boolean Removed)> RemoveWithVersion<K,V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key, UInt64 version)
         {
-            Commands.REMOVEWITHVERSION<K,V> remove = new Commands.REMOVEWITHVERSION<K,V>(km, vm, key);
-            if (cache.ForceReturnValue) {
-                remove.Flags |= 0x01;
-            }
-            remove.Version = version;
-            var result = await Execute(cache, remove);
+            Commands.REMOVEWITHVERSION<K,V> cmd = new Commands.REMOVEWITHVERSION<K,V>(km, vm, key);
+            cmd.Flags = cache.Flags;
+            cmd.Version = version;
+            var result = await Execute(cache, cmd);
             if (result.IsError)
                 throw new InfinispanException(result.Messge);
-            return (remove.PrevValue, remove.Removed);
+            return (cmd.PrevValue, cmd.Removed);
         }
 
         

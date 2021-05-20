@@ -101,7 +101,6 @@ namespace Infinispan.Hotrod.Core
                 if (client.TcpClient.Connect(out isNew))
                 {
                     this.Available = true;
-                    // TODO: this is the auth implementation on connect. Needs to be translated for Infinispan
                     if (!string.IsNullOrEmpty(Password))
                     {
                         Commands.AUTH_MECH_LIST authMechList = new Commands.AUTH_MECH_LIST();
@@ -140,14 +139,6 @@ namespace Infinispan.Hotrod.Core
                             }
                         }
                     }
-                    // TODO: this selects a specific database on the host, probably useless for Infinispan
-                    // or db can be replaced with Cache obj?
-                    // Commands.SELECT select = new Commands.SELECT(DB);
-                //  var req = new InfinispanRequest(null, client, select, typeof(string));
-                //     var t = req.Execute();
-                //     t.Wait();
-                // TODO: here will be implemented the real connect logic, now there's nothing except lines
-                // to complete the compile
                     var temp = new TaskCompletionSource<Result>();
                     temp.SetResult(new Result());
                     return temp.Task.Result;
