@@ -14,7 +14,7 @@ namespace Infinispan.Hotrod.Core.Commands
         public override string Name => "SIZE";
 
         public override Byte Code => 0x29;
-        public UInt32 Size;
+        public Int32 Size;
 
         public override void OnExecute(UntypedCache cache)
         {

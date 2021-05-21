@@ -12,18 +12,18 @@ namespace Infinispan.Hotrod.Core
         public string Name {get;}
         public byte[] NameAsBytes {get;}
         public byte Version {get;}
-        public UInt64 MessageId {get;}
+        public Int64 MessageId {get;}
         public byte ClientIntelligence {get;}
-        public UInt32 TopologyId {get; set;}
+        public Int32 TopologyId {get; set;}
         public bool ForceReturnValue;
         public bool UseCacheDefaultLifespan;
         public bool UseCacheDefaultMaxIdle;
 
-        public UInt32 Flags {get {return getFlags();}}
+        public Int32 Flags {get {return getFlags();}}
 
-        private uint getFlags()
+        private int getFlags()
         {
-            uint retVal=0;
+            int retVal=0;
             if (ForceReturnValue) retVal+=1;
             if (UseCacheDefaultLifespan) retVal+=2;
             if (UseCacheDefaultMaxIdle) retVal+=4;
@@ -73,7 +73,7 @@ namespace Infinispan.Hotrod.Core
         {
             return await Cluster.Put(KeyMarshaller, ValueMarshaller, this, key, value, lifespan, maxidle);
         }
-        public async ValueTask<UInt32> Size()
+        public async ValueTask<Int32> Size()
         {
             return await Cluster.Size(this);
         }
@@ -101,12 +101,12 @@ namespace Infinispan.Hotrod.Core
         {
             return await Cluster.Replace(KeyMarshaller, ValueMarshaller, this, key, value, lifespan, maxidle);
         }
-        public async ValueTask<Boolean> ReplaceWithVersion(K key, V value, UInt64 version, ExpirationTime lifeSpan = null, ExpirationTime maxIdle = null)
+        public async ValueTask<Boolean> ReplaceWithVersion(K key, V value, Int64 version, ExpirationTime lifeSpan = null, ExpirationTime maxIdle = null)
         {
             return await Cluster.ReplaceWithVersion(KeyMarshaller, ValueMarshaller, (UntypedCache)this, key, value, version, lifeSpan, maxIdle);
         }
 
-        public async ValueTask<(V V, Boolean Removed)> RemoveWithVersion(K key, UInt64 version)
+        public async ValueTask<(V V, Boolean Removed)> RemoveWithVersion(K key, Int64 version)
         {
             return await Cluster.RemoveWithVersion(KeyMarshaller, ValueMarshaller, (UntypedCache)this, key, version);
         }
@@ -115,7 +115,7 @@ namespace Infinispan.Hotrod.Core
     }
     public class ValueWithVersion<V> {
         public V Value;
-        public UInt64 Version;
+        public Int64 Version;
     }
 
     public class ValueWithMetadata<V> : ValueWithVersion<V> {

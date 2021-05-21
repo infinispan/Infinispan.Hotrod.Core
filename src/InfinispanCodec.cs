@@ -17,27 +17,27 @@ namespace Infinispan.Hotrod.Core
             }
         }
 
-        public static UInt64 readVLong(PipeStream stream) {
+        public static Int64 readVLong(PipeStream stream) {
             byte b = (byte)stream.ReadByte();
-            UInt64 i = (UInt64)(b & 0x7F);
+            Int64 i = (Int64)(b & 0x7F);
             for (int shift = 7; (b & 0x80) != 0; shift += 7) {
                 b = (byte)stream.ReadByte();
-                i |= (UInt64)((b & 0x7FL) << shift);
+                i |= (Int64)((b & 0x7FL) << shift);
             }
             return i;
         }
-        public static UInt32 readVInt(PipeStream stream) {
+        public static Int32 readVInt(PipeStream stream) {
             byte b = (byte)stream.ReadByte();
-            UInt32 i = (UInt32) (b & 0x7F);
+            Int32 i = (Int32) (b & 0x7F);
             for (int shift = 7; (b & 0x80) != 0; shift += 7) {
                 b = (byte)stream.ReadByte();
-                i |= (UInt32)((b & 0x7F) << shift);
+                i |= (Int32)((b & 0x7F) << shift);
             }
             return i;
         }
 
         public static byte[] readArray(PipeStream stream) {
-            UInt32 size = readVInt(stream);
+            Int32 size = readVInt(stream);
             byte[] ret = new byte[size];
             for (int i=0; i<size; i++) {
                 ret[i]= (byte)stream.ReadByte();
@@ -45,7 +45,14 @@ namespace Infinispan.Hotrod.Core
             return ret;
         }
 
-        public static UInt16 readShort(PipeStream stream) {
+        public static Int16 readShort(PipeStream stream) {
+            Int16 val;
+            var b = (byte) stream.ReadByte();
+            val = (Int16)(b<<8);
+            val += (byte) (stream.ReadByte() & 0xff);
+            return val;
+        }
+        public static UInt16 readUnsignedShort(PipeStream stream) {
             UInt16 val;
             var b = (byte) stream.ReadByte();
             val = (UInt16)(b<<8);
@@ -53,17 +60,18 @@ namespace Infinispan.Hotrod.Core
             return val;
         }
 
-        public static UInt32 readInt(PipeStream stream) {
-            UInt32 val = readShort(stream);
-            val = val << 16 | readShort(stream);
+
+        public static Int32 readInt(PipeStream stream) {
+            Int32 val = readShort(stream);
+            val = (val << 16) + readShort(stream);
             return val;
         }
-        public static UInt64 readLong(PipeStream stream) {
-            UInt64 val = readInt(stream);
-            val = val << 32 | readInt(stream);
+        public static Int64 readLong(PipeStream stream) {
+            Int64 val = readInt(stream);
+            val = (val << 32) + readInt(stream);
             return val;
         }
-        public static void writeVLong(UInt64 val, PipeStream stream) {
+        public static void writeVLong(Int64 val, PipeStream stream) {
             while (val>0x7f) {
                 byte b = (byte)(val & 0x7fL | 0x80);
                 stream.Write(b);
@@ -71,7 +79,7 @@ namespace Infinispan.Hotrod.Core
             }
             stream.Write((byte)val);
         }
-        public static void writeVInt(UInt32 val, PipeStream stream) {
+        public static void writeVInt(Int32 val, PipeStream stream) {
             while (val>0x7f) {
                 byte b = (byte)(val & 0x7fL | 0x80);
                 stream.Write(b);
@@ -80,14 +88,14 @@ namespace Infinispan.Hotrod.Core
             stream.Write((byte)val);
         }
 
-        public static void writeInt(UInt32 v, PipeStream stream) {
+        public static void writeInt(Int32 v, PipeStream stream) {
             stream.Write((byte) (v >> 24));
             stream.Write((byte) (v >> 16));
             stream.Write((byte) (v >> 8));
             stream.Write((byte) v);
         }
 
-        public static void writeLong(UInt64 v,PipeStream stream) {
+        public static void writeLong(Int64 v,PipeStream stream) {
             stream.Write((byte) (v >> 56));
             stream.Write((byte) (v >> 48));
             stream.Write((byte) (v >> 40));
@@ -99,7 +107,7 @@ namespace Infinispan.Hotrod.Core
         }
 
         public static void writeArray(byte[] arr, PipeStream stream) {
-            writeVInt((UInt32)arr.Length, stream);
+            writeVInt((Int32)arr.Length, stream);
             if (arr.Length>0) {
                 stream.Write(arr,0,arr.Length);
             }
@@ -118,7 +126,7 @@ namespace Infinispan.Hotrod.Core
                 break;
                 case 2:
                     writeArray(mt.CustomMediaType, stream);
-                    writeVInt((UInt32) mt.Params.Count, stream);
+                    writeVInt((Int32) mt.Params.Count, stream);
                     foreach  (var par in  mt.Params) {
                         writeArray(par.Item1, stream); // write parameter key
                         writeArray(par.Item2, stream); // and par value
@@ -152,7 +160,7 @@ namespace Infinispan.Hotrod.Core
     }
     public class ExpirationTime {
         public TimeUnit Unit { get; set; }
-        public UInt64 Value { get; set; }
+        public Int64 Value { get; set; }
         public bool hasValue() {
             return this!=null && this.Unit!=TimeUnit.DEFAULT && this.Unit!=TimeUnit.INFINITE; 
         }
@@ -160,7 +168,7 @@ namespace Infinispan.Hotrod.Core
  
     public class MediaType {
         public byte InfoType;
-        public UInt32 PredefinedMediaType;
+        public Int32 PredefinedMediaType;
         public byte[] CustomMediaType;
         public UInt32 ParamsNum;
         public List<Tuple<byte[],byte[]>> Params;

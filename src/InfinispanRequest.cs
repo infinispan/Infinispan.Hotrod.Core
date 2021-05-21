@@ -24,7 +24,7 @@ namespace Infinispan.Hotrod.Core
         }
 
         internal XActivity Activity { get; set; }
-        private UInt64 MessageId;
+        private Int64 MessageId;
 
         private byte ResponseOpCode;
         public byte ResponseStatus;
@@ -111,17 +111,17 @@ namespace Infinispan.Hotrod.Core
             t.servers = new List<Tuple<byte[], ushort>>();
             for (int i=0; i< serversNum; i++) {
                 var addr = Codec.readArray(stream);
-                var port = Codec.readShort(stream);
+                var port = Codec.readUnsignedShort(stream);
                 t.servers.Add(Tuple.Create(addr,port));
             }
             //  TODO: check if   clientIntelligence==CLIENT_INTELLIGENCE_HASH_DISTRIBUTION_AWARE
             t.HashFuncNum = (byte) stream.ReadByte();
             if (t.HashFuncNum > 0) {
                 var segmentsNum = Codec.readVInt(stream);
-                t.OwnersPerSegment = new List<List<UInt32>>();
+                t.OwnersPerSegment = new List<List<Int32>>();
                 for (int i=0; i < segmentsNum; i++) {
                     var ownerNumPerSeg = (byte) stream.ReadByte();
-                    var owners = new List<UInt32>();
+                    var owners = new List<Int32>();
                     for (int j=0; j < ownerNumPerSeg; j++) {
                         owners.Add(Codec.readVInt(stream));
                     }
@@ -210,9 +210,9 @@ namespace Infinispan.Hotrod.Core
         }
     }
     public class TopologyInfo {
-        public  UInt32 TopologyId;
+        public  Int32 TopologyId;
         public List<Tuple <byte[], UInt16>> servers;
         public byte HashFuncNum;
-        public List<List<UInt32>> OwnersPerSegment;
+        public List<List<Int32>> OwnersPerSegment;
     }
 }

@@ -30,7 +30,7 @@ namespace Infinispan.Hotrod.Core
         public string AuthMech { get; set; }
         public byte Version {get; set;} = 0x30;
         public byte ClientIntelligence {get; set;} = 0x01;
-        public UInt32 TopologyId {get; set;} = 0x01;
+        public Int32 TopologyId {get; set;} = 0x01;
         public bool ForceReturnValue = false;
         private IHostHandler Host;
         private List<InfinispanHost> mHosts = new List<InfinispanHost>();
@@ -148,7 +148,7 @@ namespace Infinispan.Hotrod.Core
             return cmd.ValueWithMetadata;
         }
 
-        public async ValueTask<UInt32> Size(UntypedCache cache) {
+        public async ValueTask<Int32> Size(UntypedCache cache) {
             Commands.SIZE cmd = new Commands.SIZE();
             cmd.Flags = cache.Flags;
             var result = await Execute(cache, cmd);
@@ -206,7 +206,7 @@ namespace Infinispan.Hotrod.Core
                 throw new InfinispanException(result.Messge);
             return (cmd.PrevValue, cmd.Replaced);
         }
-        public async ValueTask<Boolean> ReplaceWithVersion<K,V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key, V value, UInt64 version, ExpirationTime lifespan=null, ExpirationTime maxidle=null)
+        public async ValueTask<Boolean> ReplaceWithVersion<K,V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key, V value, Int64 version, ExpirationTime lifespan=null, ExpirationTime maxidle=null)
         {
             Commands.REPLACEWITHVERSION<K,V> cmd = new Commands.REPLACEWITHVERSION<K,V>(km, vm, key, value);
             cmd.Flags = cache.Flags;
@@ -222,7 +222,7 @@ namespace Infinispan.Hotrod.Core
                 throw new InfinispanException(result.Messge);
             return cmd.Replaced;
         }
-        public async ValueTask<(V V, Boolean Removed)> RemoveWithVersion<K,V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key, UInt64 version)
+        public async ValueTask<(V V, Boolean Removed)> RemoveWithVersion<K,V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key, Int64 version)
         {
             Commands.REMOVEWITHVERSION<K,V> cmd = new Commands.REMOVEWITHVERSION<K,V>(km, vm, key);
             cmd.Flags = cache.Flags;

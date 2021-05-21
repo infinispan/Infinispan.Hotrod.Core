@@ -29,7 +29,7 @@ namespace Infinispan.Hotrod.Core
             return mBodyHeaderLenData[length - 1];
         }
 
-        public Command(UInt32 flags = 0)
+        public Command(Int32 flags = 0)
         {
             Flags = flags;
         }
@@ -37,7 +37,7 @@ namespace Infinispan.Hotrod.Core
         public Func<InfinispanRequest, PipeStream, Result> NetworkReceive { get; set; }
         public abstract string Name { get; }
         public abstract Byte Code { get; }
-        public UInt32 Flags {get; set;} // TODO: where to store this?
+        public Int32 Flags {get; set;} // TODO: where to store this?
         public virtual void OnExecute(UntypedCache cache)
         {
         }

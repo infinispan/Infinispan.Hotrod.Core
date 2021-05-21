@@ -73,7 +73,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
         {
             String key1 = UniqueKey.NextKey();
             String key2 = UniqueKey.NextKey();
-            UInt32 initialSize = await _cache.Size();
+            Int32 initialSize = await _cache.Size();
 
             await _cache.Put(key1, "boron");
             Assert.Equal(initialSize + 1, await _cache.Size());
@@ -119,7 +119,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             Assert.Null(await _cache.Get(key1));
             Assert.Null(await _cache.Get(key2));
 
-            Assert.Equal((uint)0, await _cache.Size());
+            Assert.Equal(0, await _cache.Size());
             Assert.True(await _cache.IsEmpty());
         }
 
@@ -245,14 +245,14 @@ namespace Infinispan.Hotrod.Core.XUnitTest
         {
             String key = UniqueKey.NextKey();
             await _cache.Put(key, "bromine");
-            ulong version = (await _cache.GetWithVersion(key)).Version;
+            long version = (await _cache.GetWithVersion(key)).Version;
             await _cache.Put(key, "hexane");
             bool response = await _cache.ReplaceWithVersion(key, "barium", version);
             Assert.False(response);
             Assert.Equal("hexane", await _cache.Get(key));
 
             await _cache.Put(key, "oxygen");
-            ulong newVersion = (await _cache.GetWithVersion(key)).Version;
+            long newVersion = (await _cache.GetWithVersion(key)).Version;
             Assert.NotEqual(newVersion, version);
             Assert.True(await _cache.ReplaceWithVersion(key, "barium", newVersion));
             Assert.Equal("barium", await _cache.Get(key));
@@ -264,12 +264,12 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             String key = UniqueKey.NextKey();
 
             await _cache.Put(key, "bromine");
-            ulong version = (await _cache.GetWithVersion(key)).Version;
+            long version = (await _cache.GetWithVersion(key)).Version;
 
             await _cache.Put(key, "hexane");
             Assert.False((await _cache.RemoveWithVersion(key, version)).Removed);
 
-            version = (ulong)(await _cache.GetWithVersion(key)).Version;
+            version = (long)(await _cache.GetWithVersion(key)).Version;
             Assert.True((await _cache.RemoveWithVersion(key, version)).Removed);
             Assert.Null(await _cache.Get(key));
         }

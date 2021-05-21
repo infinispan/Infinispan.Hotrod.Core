@@ -18,7 +18,7 @@ namespace Infinispan.Hotrod.Core.Commands
         public Marshaller<K> KeyMarshaller;
         public Marshaller<V> ValueMarshaller;
         public int TimeOut { get; set; }
-        public UInt64 Version;
+        public Int64 Version;
         public override string Name => "REPLACEWITHVERSION";
         public override Byte Code => 0x0D;
         public K Key { get; set; }
