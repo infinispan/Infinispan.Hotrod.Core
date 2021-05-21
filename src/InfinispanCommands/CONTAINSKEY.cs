@@ -33,7 +33,7 @@ namespace Infinispan.Hotrod.Core.Commands
 
         public override Result OnReceive(InfinispanRequest request, PipeStream stream)
         {
-            IsContained = request.ResponseStatus==InfinispanRequest.NO_ERROR_STATUS;
+            IsContained = request.ResponseStatus==Codec30.NO_ERROR_STATUS;
             return new Result{ Status =  ResultStatus.Completed, ResultType = ResultType.Object };
         }
     }

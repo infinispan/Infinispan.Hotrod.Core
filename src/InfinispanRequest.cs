@@ -10,22 +10,6 @@ namespace Infinispan.Hotrod.Core
 {
     public class InfinispanRequest
     {
-        // TODO: find the right place for error codes
-        public const byte NO_ERROR_STATUS = 0x00; ///< No error
-        public const byte NOT_PUT_REMOVED_REPLACED_STATUS = 0x01;
-        public const byte KEY_DOES_NOT_EXIST_STATUS = 0x02;
-        public const byte SUCCESS_WITH_PREVIOUS = 0x03;
-        public const byte NOT_EXECUTED_WITH_PREVIOUS = 0x04;
-        public const byte INVALID_ITERATION = 0x05;
-        public const byte NO_ERROR_STATUS_COMPAT = 0x06;
-        public const byte SUCCESS_WITH_PREVIOUS_COMPAT = 0x07;
-        public const byte NOT_EXECUTED_WITH_PREVIOUS_COMPAT = 0x08;
-        public const byte INVALID_MAGIC_OR_MESSAGE_ID_STATUS = 0x81; ///< Invalid magic or message id
-        public const byte UNKNOWN_COMMAND_STATUS             = 0x82; ///< Unknown command
-        public const byte UNKNOWN_VERSION_STATUS             = 0x83; ///< Unknown version
-        public const byte REQUEST_PARSING_ERROR_STATUS       = 0x84; ///< Request parsing error
-        public const byte SERVER_ERROR_STATUS                = 0x85; ///< Server Error
-        public const byte COMMAND_TIMEOUT_STATUS             = 0x86; ///< Command timed out
         public InfinispanRequest(UntypedCache cache, InfinispanHost host, InfinispanClient client, Command cmd, params Type[] types)
         {
             Client = client;
@@ -146,15 +130,8 @@ namespace Infinispan.Hotrod.Core
             }
             return t;
         }
-
         private byte[] readResponseError(byte status, PipeStream stream) {
-            switch (status) {
-                case INVALID_MAGIC_OR_MESSAGE_ID_STATUS:
-                case UNKNOWN_COMMAND_STATUS:
-                case UNKNOWN_VERSION_STATUS:
-                case REQUEST_PARSING_ERROR_STATUS:
-                case SERVER_ERROR_STATUS:
-                case COMMAND_TIMEOUT_STATUS:
+            if (Codec30.hasError(status)) {
                 return Codec.readArray(stream);
             }
             return null;

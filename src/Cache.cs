@@ -44,7 +44,7 @@ namespace Infinispan.Hotrod.Core
                 TopologyId = Cluster.TopologyId;
                 ForceReturnValue = Cluster.ForceReturnValue;
             }
-            codec = Codec30.getCodec(Version);
+            codec = Codec.getCodec(Version);
         }
 
     }

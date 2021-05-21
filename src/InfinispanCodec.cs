@@ -9,6 +9,14 @@ using System.Text;
 namespace Infinispan.Hotrod.Core
 {
     public class Codec {
+
+        public static Codec30 getCodec(byte version = 30) {
+            switch (version) {
+                default:
+                    return new Codec30();
+            }
+        }
+
         public static UInt64 readVLong(PipeStream stream) {
             byte b = (byte)stream.ReadByte();
             UInt64 i = (UInt64)(b & 0x7F);
@@ -159,14 +167,8 @@ namespace Infinispan.Hotrod.Core
     }
 
     public class Codec30 {
-        private Codec30() {}
+        public Codec30() {}
 
-        public static Codec30 getCodec(byte version = 30) {
-            switch (version) {
-                default:
-                    return new Codec30();
-            }
-        }
         public static Boolean isSuccess(int status) {
             return status == NO_ERROR_STATUS
                 || status == NO_ERROR_STATUS_OBJ_STORAGE
@@ -189,24 +191,37 @@ namespace Infinispan.Hotrod.Core
                     || status == NOT_EXECUTED_WITH_PREVIOUS
                     || status == NOT_EXECUTED_WITH_PREVIOUS_OBJ_STORAGE;
         }
+
+        public static Boolean hasError(int status) {
+            switch (status) {
+                case INVALID_MAGIC_OR_MESSAGE_ID_STATUS:
+                case UNKNOWN_COMMAND_STATUS:
+                case UNKNOWN_VERSION_STATUS:
+                case REQUEST_PARSING_ERROR_STATUS:
+                case SERVER_ERROR_STATUS:
+                case COMMAND_TIMEOUT_STATUS:
+                return true;
+            }
+            return false;
+        }
       //response status
-   const byte NO_ERROR_STATUS = 0x00;
-   const byte NOT_PUT_REMOVED_REPLACED_STATUS = 0x01;
-   const byte KEY_DOES_NOT_EXIST_STATUS = 0x02;
-   const byte SUCCESS_WITH_PREVIOUS = 0x03;
-   const byte NOT_EXECUTED_WITH_PREVIOUS = 0x04;
-   const byte INVALID_ITERATION = 0x05;
-   const byte NO_ERROR_STATUS_OBJ_STORAGE = 0x06;
-   const byte SUCCESS_WITH_PREVIOUS_OBJ_STORAGE = 0x07;
-   const byte NOT_EXECUTED_WITH_PREVIOUS_OBJ_STORAGE = 0x08;
-   const byte INVALID_MAGIC_OR_MESSAGE_ID_STATUS = 0x81;
-   const byte REQUEST_PARSING_ERROR_STATUS = 0x84;
-   const byte UNKNOWN_COMMAND_STATUS = 0x82;
-   const byte UNKNOWN_VERSION_STATUS = 0x83;
-   const byte SERVER_ERROR_STATUS = 0x85;
-   const byte COMMAND_TIMEOUT_STATUS = 0x86;
-   const byte NODE_SUSPECTED = 0x87;
-   const byte ILLEGAL_LIFECYCLE_STATE = 0x88;
+   public const byte NO_ERROR_STATUS = 0x00;
+   public const byte NOT_PUT_REMOVED_REPLACED_STATUS = 0x01;
+   public const byte KEY_DOES_NOT_EXIST_STATUS = 0x02;
+   public const byte SUCCESS_WITH_PREVIOUS = 0x03;
+   public const byte NOT_EXECUTED_WITH_PREVIOUS = 0x04;
+   public const byte INVALID_ITERATION = 0x05;
+   public const byte NO_ERROR_STATUS_OBJ_STORAGE = 0x06;
+   public const byte SUCCESS_WITH_PREVIOUS_OBJ_STORAGE = 0x07;
+   public const byte NOT_EXECUTED_WITH_PREVIOUS_OBJ_STORAGE = 0x08;
+   public const byte INVALID_MAGIC_OR_MESSAGE_ID_STATUS = 0x81;
+   public const byte REQUEST_PARSING_ERROR_STATUS = 0x84;
+   public const byte UNKNOWN_COMMAND_STATUS = 0x82;
+   public const byte UNKNOWN_VERSION_STATUS = 0x83;
+   public const byte SERVER_ERROR_STATUS = 0x85;
+   public const byte COMMAND_TIMEOUT_STATUS = 0x86;
+   public const byte NODE_SUSPECTED = 0x87;
+   public const byte ILLEGAL_LIFECYCLE_STATE = 0x88;
 
     }
 }

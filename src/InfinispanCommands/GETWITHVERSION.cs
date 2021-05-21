@@ -37,7 +37,7 @@ namespace Infinispan.Hotrod.Core.Commands
 
         public override Result OnReceive(InfinispanRequest request, PipeStream stream)
         {
-            if (request.ResponseStatus == InfinispanRequest.KEY_DOES_NOT_EXIST_STATUS) {
+            if (request.ResponseStatus == Codec30.KEY_DOES_NOT_EXIST_STATUS) {
                 return new Result{ Status =  ResultStatus.Completed, ResultType = ResultType.Null };
             }
             ValueWithVersion = new ValueWithVersion<V>();

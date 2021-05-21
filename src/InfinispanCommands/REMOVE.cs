@@ -42,7 +42,7 @@ namespace Infinispan.Hotrod.Core.Commands
         public override Result OnReceive(InfinispanRequest request, PipeStream stream)
         {
             Removed=!Codec30.isNotExecuted(request.ResponseStatus);
-            if ((request.Command.Flags & 0x01) == 1 && request.ResponseStatus!=InfinispanRequest.KEY_DOES_NOT_EXIST_STATUS) {
+            if ((request.Command.Flags & 0x01) == 1 && request.ResponseStatus!=Codec30.KEY_DOES_NOT_EXIST_STATUS) {
                 PrevValue = ValueMarshaller.unmarshall(Codec.readArray(stream));
                 return new Result{ Status =  ResultStatus.Completed, ResultType = ResultType.Object };
             }

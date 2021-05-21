@@ -28,7 +28,7 @@ namespace Infinispan.Hotrod.Core.Commands
 
         public override Result OnReceive(InfinispanRequest request, PipeStream stream)
         {
-            if (request.ResponseStatus == InfinispanRequest.NO_ERROR_STATUS) {
+            if (request.ResponseStatus == Codec30.NO_ERROR_STATUS) {
                 var d = new Dictionary<string,string>();
                 var statsNum = Codec.readVInt(stream);
                 for (int i=0; i<statsNum; i++) {
