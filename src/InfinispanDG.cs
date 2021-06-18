@@ -73,7 +73,7 @@ namespace Infinispan.Hotrod.Core
             var host = Host.GetHost();
             if (host == null)
             {
-                return new Result() { ResultType = ResultType.NetError, Messge = "redis server is not available" };
+                return new Result() { ResultType = ResultType.NetError, Messge = "Infinispan server is not available" };
             }
             var client = await host.Pop();
             if (client == null)
