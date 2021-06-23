@@ -16,5 +16,4 @@
   <ItemGroup>
     <ProjectReference Include="../src/Infinispan.Hotrod.Core.csproj" />
   </ItemGroup>
-
 </Project>

@@ -1,5 +1,7 @@
-﻿namespace Infinispan.Hotrod.Core.XUnitTest
+﻿using Xunit;
+namespace Infinispan.Hotrod.Core.XUnitTest
 {
+    [Collection("MainSequence")]
     public class AuthorizationPlainTest : BaseAuthorizationTest
     {
         public AuthorizationPlainTest(AuthorizationCacheTestFixture fixture): base(fixture)

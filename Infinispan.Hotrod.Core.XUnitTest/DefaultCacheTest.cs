@@ -4,7 +4,6 @@ using Xunit;
 
 namespace Infinispan.Hotrod.Core.XUnitTest
 {
-
     public class DefaultCacheTestFixture : IDisposable
     {
         public HotRodServer hotRodServer {get; private set;}
@@ -24,6 +23,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             hotRodServer.Dispose();
         }
     }
+    [Collection("MainSequence")]
     public class DefaultCacheTest : IClassFixture<DefaultCacheTestFixture>
     {
         private readonly DefaultCacheTestFixture _fixture;
