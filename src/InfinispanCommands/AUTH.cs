@@ -27,17 +27,17 @@ namespace Infinispan.Hotrod.Core.Commands
         public byte Completed;
         public byte[] Challenge= new byte[0];
         private int Step = 0;
-        public override void OnExecute(UntypedCache cache)
+        public override void OnExecute(CommandContext ctx)
         {
-            base.OnExecute(cache);
+            base.OnExecute(ctx);
         }
 
-        public override void Execute(UntypedCache cache, InfinispanClient client, PipeStream stream)
+        public override void Execute(CommandContext ctx, InfinispanClient client, PipeStream stream)
         {
             switch (Step) {
                 case 0:
                     if (this.SaslMechName.Equals("DIGEST-MD5")) {
-                    base.Execute(cache, client, stream);
+                    base.Execute(ctx, client, stream);
                     Codec.writeArray(Encoding.ASCII.GetBytes(SaslMechName), stream);
                     Codec.writeArray(Challenge, stream);
                     stream.Flush();
@@ -47,7 +47,7 @@ namespace Infinispan.Hotrod.Core.Commands
                     Step++;
                     goto case 1;
                 case 1:
-                    base.Execute(cache, client, stream);
+                    base.Execute(ctx, client, stream);
                     Codec.writeArray(Encoding.ASCII.GetBytes(SaslMechName), stream);
                     var s = Convert.ToBase64String(Challenge);
                     s = SaslMech.Challenge(s);

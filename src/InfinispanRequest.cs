@@ -10,8 +10,7 @@ namespace Infinispan.Hotrod.Core
 {
     public class InfinispanRequest
     {
-        public InfinispanRequest(UntypedCache cache, InfinispanHost host, InfinispanClient client, Command cmd, params Type[] types)
-        {
+        public InfinispanRequest(InfinispanHost host, InfinispanDG cluster, UntypedCache cache, InfinispanClient client, Command cmd, params Type[] types) {
             Client = client;
             Client.TcpClient.DataReceive = OnReceive;
             Client.TcpClient.ClientError = OnError;
@@ -19,17 +18,27 @@ namespace Infinispan.Hotrod.Core
             Host = host;
             Types = types;
             Host = host;
+            Cluster = cluster;
             Cache = cache;
-            MessageId = Cache.MessageId;
+            context.MessageId = host.MessageId;
+            context.ClientIntelligence = Cluster.ClientIntelligence;
+            context.Version = Cluster.Version;
+            context.TopologyId = Cluster.TopologyId;
+            if (cache != null) {
+                context.NameAsBytes = cache.NameAsBytes;
+                context.KeyMediaType = cache.KeyMediaType;
+                context.ValueMediaType = cache.ValueMediaType;
+            } else {
+                context.NameAsBytes = new byte[]{};
+            }
         }
-
         internal XActivity Activity { get; set; }
-        private Int64 MessageId;
-
         private byte ResponseOpCode;
         public byte ResponseStatus;
 
+        public CommandContext context = new CommandContext();
         public InfinispanHost Host { get; set; }
+        public InfinispanDG Cluster { get; set; }
 
         public UntypedCache Cache {get; set;}
         private void OnError(IClient c, ClientErrorArgs e)
@@ -78,7 +87,7 @@ namespace Infinispan.Hotrod.Core
                 return;
             }
 
-            if (Codec.readVLong(stream)!=MessageId) {
+            if (Codec.readVLong(stream)!=context.MessageId) {
                 Result.ResultType=ResultType.Error;  // TODO: needed some design for errors
                 Result.Messge="Message ID mistmatch";
                 OnCompleted(Result.ResultType, Result.Messge);
@@ -150,7 +159,7 @@ namespace Infinispan.Hotrod.Core
         {
             try
             {
-                Client.Send(Cache, cmd);
+                Client.Send(context, cmd);
                 if (!Client.TcpClient.IsConnected)
                 {
                     OnCompleted(ResultType.NetError, "Connection is closed!");

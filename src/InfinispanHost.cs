@@ -6,15 +6,15 @@ namespace Infinispan.Hotrod.Core
 {
     public class InfinispanHost : IDisposable
     {
-        public InfinispanHost(bool ssl, int db, string host, int port = 6379)
+        public InfinispanHost(bool ssl, InfinispanDG cluster, string host, int port = 6379)
         {
             SSL = ssl;
-            Host = host;
+            Name = host;
             Port = port;
-            DB = db;
+            Cluster = cluster;
             Available = true;
             Master = true;
-            mPingClient = new InfinispanClient(SSL, Host, Port);
+            mPingClient = new InfinispanClient(SSL, this);
         }
 
         private InfinispanClient mPingClient;
@@ -23,7 +23,8 @@ namespace Infinispan.Hotrod.Core
 
         private int mCount = 0;
 
-
+        private long messageId = 0;
+        public long MessageId {get {return messageId++;} set {messageId=value;}}
         private Queue<TaskCompletionSource<InfinispanClient>> mQueue = new Queue<TaskCompletionSource<InfinispanClient>>();
 
         private Stack<InfinispanClient> mPool = new Stack<InfinispanClient>();
@@ -32,9 +33,9 @@ namespace Infinispan.Hotrod.Core
 
         public int MaxConnections { get; set; } = 30;
 
-        public int DB { get; set; }
+        public InfinispanDG Cluster { get; set; }
 
-        public string Host { get; set; }
+        public string Name { get; set; }
 
         public int Port { get; set; }
 
@@ -56,7 +57,7 @@ namespace Infinispan.Hotrod.Core
                     mCount++;
                     if (mCount <= MaxConnections)
                     {
-                        client = new InfinispanClient(SSL, Host, Port);
+                        client = new InfinispanClient(SSL, this);
                         result.SetResult(client);
                     }
                     else
@@ -81,7 +82,7 @@ namespace Infinispan.Hotrod.Core
 
         public InfinispanClient Create()
         {
-            var client = new InfinispanClient(SSL, Host, Port);
+            var client = new InfinispanClient(SSL, this);
             var result = Connect(client);
             if (result.IsError)
             {
@@ -104,7 +105,7 @@ namespace Infinispan.Hotrod.Core
                     if (!string.IsNullOrEmpty(Password))
                     {
                         Commands.AUTH_MECH_LIST authMechList = new Commands.AUTH_MECH_LIST();
-                        InfinispanRequest request = new InfinispanRequest(UntypedCache.NullCache, this, client, authMechList, typeof(string));
+                        InfinispanRequest request = new InfinispanRequest(this, this.Cluster, null, client, authMechList, typeof(string));
                         var task = request.Execute();
                         task.Wait();
                         if (task.Result.ResultType == ResultType.DataError ||
@@ -129,7 +130,7 @@ namespace Infinispan.Hotrod.Core
                         }
                         Commands.AUTH auth = new Commands.AUTH(this.AuthMech, new System.Net.NetworkCredential(User, Password));
                         while (auth.Completed==0) {
-                            request = new InfinispanRequest(UntypedCache.NullCache, this, client, auth, typeof(string));
+                            request = new InfinispanRequest(this, this.Cluster, null, client, auth, typeof(string));
                             task = request.Execute();
                             task.Wait();
                             if (task.Result.ResultType == ResultType.DataError ||

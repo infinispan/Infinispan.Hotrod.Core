@@ -38,25 +38,25 @@ namespace Infinispan.Hotrod.Core
         public abstract string Name { get; }
         public abstract Byte Code { get; }
         public Int32 Flags {get; set;} // TODO: where to store this?
-        public virtual void OnExecute(UntypedCache cache)
+        public virtual void OnExecute(CommandContext cache)
         {
         }
 
-        public virtual void Execute(UntypedCache cache, InfinispanClient client, PipeStream stream)
+        public virtual void Execute(CommandContext ctx, InfinispanClient client, PipeStream stream)
         {
             using (var track = CodeTrackFactory.Track("Write", CodeTrackLevel.Function, Activity?.Id, "Infinispan", "Protocol"))
             {
-                OnExecute(cache); // Build the message. But there's no need to build anything for hotrod
+                OnExecute(ctx); // Build the message. But there's no need to build anything for hotrod
                 stream.WriteByte(0xA0);
-                Codec.writeVLong(cache.MessageId, stream);
-                stream.Write(cache.Version);
+                Codec.writeVLong(ctx.MessageId, stream);
+                stream.Write(ctx.Version);
                 stream.Write(Code);
-                Codec.writeArray(cache.NameAsBytes,stream);
+                Codec.writeArray(ctx.NameAsBytes,stream);
                 Codec.writeVInt(Flags,stream);
-                stream.Write(cache.ClientIntelligence);
-                Codec.writeVInt(cache.TopologyId, stream);
-                Codec.writeMediaType(cache.KeyMediaType, stream);
-                Codec.writeMediaType(cache.ValueMediaType, stream);
+                stream.Write(ctx.ClientIntelligence);
+                Codec.writeVInt(ctx.TopologyId, stream);
+                Codec.writeMediaType(ctx.KeyMediaType, stream);
+                Codec.writeMediaType(ctx.ValueMediaType, stream);
             }
         }
 

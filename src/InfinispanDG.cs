@@ -48,7 +48,7 @@ namespace Infinispan.Hotrod.Core
         {
             if (port == 0)
                 port = 11222;
-            InfinispanHost ispnHost = new InfinispanHost(ssl, DB, host, port);
+            InfinispanHost ispnHost = new InfinispanHost(ssl, this, host, port);
             ispnHost.User=User;
             ispnHost.Password=Password;
             ispnHost.AuthMech=AuthMech;
@@ -85,14 +85,14 @@ namespace Infinispan.Hotrod.Core
                 {
                     return result;
                 }
-                using (var tarck = CodeTrackFactory.Track(cmd.Name, CodeTrackLevel.Module, null, "Redis", client.Host))
+                using (var tarck = CodeTrackFactory.Track(cmd.Name, CodeTrackLevel.Module, null, "Redis", client.Host.Name))
                 {
                     if (tarck.Enabled)
                     {
                         tarck.Activity?.AddTag("tag", "BeetleX Redis");
                     }
                     cmd.Activity = tarck.Activity;
-                    InfinispanRequest request = new InfinispanRequest(cache, host, client, cmd);
+                    InfinispanRequest request = new InfinispanRequest(host, host.Cluster, cache, client, cmd);
                     request.Activity = tarck.Activity;
                     result = await request.Execute();
                     return result;
@@ -159,7 +159,9 @@ namespace Infinispan.Hotrod.Core
         public async ValueTask<Boolean> ContainsKey<K>(Marshaller<K> km, UntypedCache cache, K key)
         {
             Commands.CONTAINSKEY<K> cmd = new Commands.CONTAINSKEY<K>(km, key);
-            cmd.Flags = cache.Flags;
+            if (cache != null) {
+                cmd.Flags = cache.Flags;
+            }
             var result = await Execute(cache, cmd);
             if (result.IsError)
                 throw new InfinispanException(result.Messge);

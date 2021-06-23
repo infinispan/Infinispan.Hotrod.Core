@@ -11,7 +11,7 @@ namespace Infinispan.Hotrod.Core
         protected InfinispanDG Cluster;
         public string Name {get;}
         public byte[] NameAsBytes {get;}
-        public byte Version {get;}
+        public byte Version {get; protected set;}
         public Int64 MessageId {get;}
         public byte ClientIntelligence {get;}
         public Int32 TopologyId {get; set;}
@@ -52,6 +52,7 @@ namespace Infinispan.Hotrod.Core
         public Cache(InfinispanDG ispnCluster, Marshaller<K> keyM, Marshaller<V> valM, string name) : base(ispnCluster, name) {
             KeyMarshaller = keyM;
             ValueMarshaller = valM;
+            Version = ispnCluster.Version;
         }
         Marshaller<K> KeyMarshaller;
         Marshaller<V> ValueMarshaller;
@@ -71,7 +72,7 @@ namespace Infinispan.Hotrod.Core
 
         public async ValueTask<V> Put(K key, V value, ExpirationTime lifespan =null, ExpirationTime maxidle=null)
         {
-            return await Cluster.Put(KeyMarshaller, ValueMarshaller, this, key, value, lifespan, maxidle);
+                return await Cluster.Put(KeyMarshaller, ValueMarshaller, this, key, value, lifespan, maxidle);
         }
         public async ValueTask<Int32> Size()
         {

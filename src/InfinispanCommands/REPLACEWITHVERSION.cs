@@ -35,13 +35,13 @@ namespace Infinispan.Hotrod.Core.Commands
         public Boolean Replaced {get; private set;}
 
 
-        public override void OnExecute(UntypedCache cache)
+        public override void OnExecute(CommandContext ctx)
         {
-            base.OnExecute(cache);
+            base.OnExecute(ctx);
         }
-        public override void Execute(UntypedCache cache, InfinispanClient client, PipeStream stream)
+        public override void Execute(CommandContext ctx, InfinispanClient client, PipeStream stream)
         {
-            base.Execute(cache, client, stream);
+            base.Execute(ctx, client, stream);
             Codec.writeArray(KeyMarshaller.marshall(Key), stream);
             Codec.writeExpirations(Lifespan, MaxIdle, stream);
             Codec.writeLong(Version, stream);
