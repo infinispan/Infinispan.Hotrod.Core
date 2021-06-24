@@ -34,16 +34,47 @@ namespace Infinispan.Hotrod.Core.Commands
 
         public override void Execute(CommandContext ctx, InfinispanClient client, PipeStream stream)
         {
+            switch (this.SaslMechName) {
+                case "DIGEST-MD5":
+                    executeDigestMd5(ctx, client, stream);
+                break;
+                case "PLAIN":
+                    executePlain(ctx, client, stream);
+                break;
+                default:
+                    if (!this.SaslMechName.StartsWith("SCRAM-SHA-")) {
+                        Completed=1;
+                        break;
+                    }
+                    executeScram(ctx, client, stream);
+                break;
+            }
+        }
+        private void executeDigestMd5(CommandContext ctx, InfinispanClient client, PipeStream stream) {
             switch (Step) {
                 case 0:
-                    if (this.SaslMechName.Equals("DIGEST-MD5")) {
                     base.Execute(ctx, client, stream);
                     Codec.writeArray(Encoding.ASCII.GetBytes(SaslMechName), stream);
                     Codec.writeArray(Challenge, stream);
                     stream.Flush();
                     Step++;
                     break;
-                    }
+                case 1:
+                    base.Execute(ctx, client, stream);
+                    Codec.writeArray(Encoding.ASCII.GetBytes(SaslMechName), stream);
+                    var s = Convert.ToBase64String(Challenge);
+                    s = SaslMech.Challenge(s);
+                    Challenge = Convert.FromBase64String(s);
+                    Codec.writeArray(Challenge, stream);
+                    Completed=1;
+                    stream.Flush();
+                    Step++;
+                    break;
+            }            
+        }
+        private void executePlain(CommandContext ctx, InfinispanClient client, PipeStream stream) {
+            switch (Step) {
+                case 0:
                     Step++;
                     goto case 1;
                 case 1:
@@ -60,7 +91,34 @@ namespace Infinispan.Hotrod.Core.Commands
                 default:
                     Completed=1;
                     break;
-
+            }
+        }
+        private void executeScram(CommandContext ctx, InfinispanClient client, PipeStream stream) {
+            switch (Step) {
+                case 0:
+                    base.Execute(ctx, client, stream);
+                    Codec.writeArray(Encoding.ASCII.GetBytes(SaslMechName), stream);
+                    var s1 = Convert.ToBase64String(Challenge);
+                    s1 = SaslMech.Challenge(s1);
+                    Challenge = Convert.FromBase64String(s1);
+                    Codec.writeArray(Challenge, stream);
+                    stream.Flush();
+                    Step++;
+                break;
+                case 1:
+                    base.Execute(ctx, client, stream);
+                    Codec.writeArray(Encoding.ASCII.GetBytes(SaslMechName), stream);
+                    var s = Convert.ToBase64String(Challenge);
+                    s = SaslMech.Challenge(s);
+                    Challenge = Convert.FromBase64String(s);
+                    Codec.writeArray(Challenge, stream);
+                    Completed=1;
+                    stream.Flush();
+                    Step++;
+                    break;
+                default:
+                    Completed=1;
+                    break;
             }
         }
         public override Result OnReceive(InfinispanRequest request, PipeStream stream)
