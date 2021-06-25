@@ -1,4 +1,4 @@
-name: learn-github-actions
+name: infinispan-netcore-tests
 on: [push]
 jobs:
   run-ci-tests:
