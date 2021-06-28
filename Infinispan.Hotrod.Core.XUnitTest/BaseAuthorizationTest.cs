@@ -16,6 +16,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
         }
     }
 
+    [Collection("MainSequence")]
     public abstract class BaseAuthorizationTest : IClassFixture<AuthorizationCacheTestFixture>
     {
         AuthorizationCacheTestFixture fixture;
@@ -116,7 +117,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             // conf.Marshaller(marshaller);
             return cache;
         }
-        public void BeforeClass()
+        private void BeforeClass()
         {
             readerCache = InitCache("reader", "password");
             writerCache = InitCache("writer", "somePassword");
