@@ -54,12 +54,37 @@ namespace Infinispan.Hotrod.Core
                 Codec.writeArray(ctx.NameAsBytes,stream);
                 Codec.writeVInt(Flags,stream);
                 stream.Write(ctx.ClientIntelligence);
-                Codec.writeVInt(ctx.TopologyId, stream);
+                Codec.writeVUInt(ctx.TopologyId, stream);
                 Codec.writeMediaType(ctx.KeyMediaType, stream);
                 Codec.writeMediaType(ctx.ValueMediaType, stream);
             }
         }
 
         public abstract Result OnReceive(InfinispanRequest request, PipeStream stream);
-   }
+
+        internal virtual bool isHashAware()
+        {
+            return false;
+        }
+
+        internal virtual byte[] getKeyAsBytes()
+        {
+            throw new NotImplementedException();
+        }
+    }
+    public abstract class CommandWithKey<K> : Command
+    {
+        public Marshaller<K> KeyMarshaller;
+        public K Key { get; set; }
+        internal override bool isHashAware() {
+            return true;
+        }
+
+        internal override byte[] getKeyAsBytes()
+        {
+            return KeyMarshaller.marshall(this.Key);
+        }
+
+    }
+
 }

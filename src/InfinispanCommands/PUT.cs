@@ -5,7 +5,7 @@ using BeetleX.Buffers;
 
 namespace Infinispan.Hotrod.Core.Commands
 {
-    public class PUT<K,V> : Command
+    public class PUT<K,V> : CommandWithKey<K>
     {
         public PUT(Marshaller<K> km, Marshaller<V> vm, K key, V data)
         {
@@ -16,7 +16,6 @@ namespace Infinispan.Hotrod.Core.Commands
 
             NetworkReceive = OnReceive;
         }
-        public Marshaller<K> KeyMarshaller;
         public Marshaller<V> ValueMarshaller;
         public int TimeOut { get; set; }
 
@@ -26,8 +25,6 @@ namespace Infinispan.Hotrod.Core.Commands
         public override string Name => "PUT";
 
         public override Byte Code => 0x01;
-
-        public K Key { get; set; }
 
         public V Value { get; set; }
         public V PrevValue { get; set; }

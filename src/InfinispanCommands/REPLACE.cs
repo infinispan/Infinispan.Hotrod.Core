@@ -5,7 +5,7 @@ using BeetleX.Buffers;
 
 namespace Infinispan.Hotrod.Core.Commands
 {
-    public class REPLACE<K,V> : Command
+    public class REPLACE<K,V> : CommandWithKey<K>
     {
         public REPLACE(Marshaller<K> km, Marshaller<V> vm, K key, V data)
         {
@@ -16,7 +16,6 @@ namespace Infinispan.Hotrod.Core.Commands
 
             NetworkReceive = OnReceive;
         }
-        public Marshaller<K> KeyMarshaller;
         public Marshaller<V> ValueMarshaller;
         public int TimeOut { get; set; }
 
@@ -24,7 +23,6 @@ namespace Infinispan.Hotrod.Core.Commands
         public ExpirationTime MaxIdle = new ExpirationTime{ Unit = TimeUnit.DEFAULT, Value = 0};
         public override string Name => "REPLACE";
         public override Byte Code => 0x07;
-        public K Key { get; set; }
         public V Value { get; set; }
         public V PrevValue { get; private set;}
         public Boolean Replaced {get; private set;}

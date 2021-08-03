@@ -98,7 +98,8 @@ namespace Infinispan.Hotrod.Core
             ResponseStatus = (byte) stream.ReadByte();
             var topologyChanged = (byte) stream.ReadByte();
             if (topologyChanged!=0) {
-                var topology=readNewTopologyInfo(stream); // TODO: store topology in the righ place and use it to get the owner host for a key
+                var topology=readNewTopologyInfo(stream);
+                Cluster.UpdateTopologyInfo(topology);
             }
             var errMsg = readResponseError(ResponseStatus, stream);
             if (errMsg != null) {
@@ -113,9 +114,9 @@ namespace Infinispan.Hotrod.Core
             OnCompleted(Result.ResultType, Result.Messge);
         }
 
-        private object readNewTopologyInfo(PipeStream stream) {
+        private TopologyInfo readNewTopologyInfo(PipeStream stream) {
             var t = new TopologyInfo();
-            t.TopologyId=Codec.readVInt(stream);
+            t.TopologyId=Codec.readVUInt(stream);
             var serversNum = Codec.readVInt(stream);
             t.servers = new List<Tuple<byte[], ushort>>();
             for (int i=0; i< serversNum; i++) {
@@ -219,7 +220,7 @@ namespace Infinispan.Hotrod.Core
         }
     }
     public class TopologyInfo {
-        public  Int32 TopologyId;
+        public  UInt32 TopologyId;
         public List<Tuple <byte[], UInt16>> servers;
         public byte HashFuncNum;
         public List<List<Int32>> OwnersPerSegment;

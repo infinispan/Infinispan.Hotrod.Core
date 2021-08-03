@@ -13,7 +13,7 @@ namespace Infinispan.Hotrod.Core
         public byte Version { get; internal set; }
         public byte[] NameAsBytes { get; internal set; }
         public byte ClientIntelligence { get; internal set; }
-        public int TopologyId { get; internal set; }
+        public UInt32 TopologyId { get; internal set; }
         public MediaType KeyMediaType { get; internal set; }
         public MediaType ValueMediaType { get; internal set; }
     }

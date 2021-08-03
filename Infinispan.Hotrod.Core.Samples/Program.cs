@@ -12,14 +12,14 @@ namespace Infinispan.Hotrod.Core.Samples
             var ispnCluster = DefaultInfinispan.Instance;
 
             // Configuration section
-            ispnCluster.User="reader";
-            ispnCluster.Password="password";
-            ispnCluster.AuthMech="PLAIN"; // "DIGEST-MD5";
-            ispnCluster.Version = 0x30;
-            ispnCluster.ClientIntelligence = 0x01;
+            // ispnCluster.User="reader";
+            // ispnCluster.Password="password";
+            // ispnCluster.AuthMech="PLAIN"; // "DIGEST-MD5";
+            ispnCluster.Version = 0x1e;
+            ispnCluster.ClientIntelligence = 0x03;
             ispnCluster.ForceReturnValue = false;
 
-            var host = ispnCluster.AddHost("127.0.0.1", 11222, true);
+            var host = ispnCluster.AddHost("127.0.0.1", 11422, false);
             System.Threading.Thread.Sleep(1000);
             using (CodeTrackFactory.TrackReport("Test", CodeTrackLevel.Bussiness, null))
             {
@@ -31,7 +31,7 @@ namespace Infinispan.Hotrod.Core.Samples
         {
             var km = new StringMarshaller();
             var vm = new StringMarshaller();
-            var cache = DefaultInfinispan.Instance.newCache(km, vm, "default");
+            var cache = DefaultInfinispan.Instance.newCache(km, vm, "distributed");
             cache.ForceReturnValue = true;
             string result = await cache.Put("key1", "value1");
             Console.WriteLine("Result is: "+result);

@@ -5,7 +5,7 @@ using BeetleX.Buffers;
 
 namespace Infinispan.Hotrod.Core.Commands
 {
-    public class REMOVE<K,V> : Command
+    public class REMOVE<K,V> : CommandWithKey<K>
     {
         public REMOVE(Marshaller<K> km, Marshaller<V> vm, K key)
         {
@@ -15,7 +15,6 @@ namespace Infinispan.Hotrod.Core.Commands
 
             NetworkReceive = OnReceive;
         }
-        public Marshaller<K> KeyMarshaller;
         public Marshaller<V> ValueMarshaller;
         public int TimeOut { get; set; }
 
@@ -25,8 +24,6 @@ namespace Infinispan.Hotrod.Core.Commands
         public override string Name => "REMOVE";
 
         public override Byte Code => 0x0B;
-
-        public K Key { get; set; }
         public V PrevValue { get; set; }
         public Boolean Removed;
         public override void OnExecute(CommandContext ctx)

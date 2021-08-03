@@ -14,11 +14,11 @@ namespace Infinispan.Hotrod.Core
             DB = db;
             if (hostHandler == null)
             {
-                this.Host = this;
+                this.HostHandler = this;
             }
             else
             {
-                this.Host = hostHandler;
+                this.HostHandler = hostHandler;
             }
         }
 
@@ -28,21 +28,25 @@ namespace Infinispan.Hotrod.Core
         public string User { get; set; }
         public string Password { get; set; }
         public string AuthMech { get; set; }
-        public byte Version {get; set;} = 0x30;
+        public byte Version {get; set;} = 0x1e;
         public byte ClientIntelligence {get; set;} = 0x01;
-        public Int32 TopologyId {get; set;} = 0x01;
+        public UInt32 TopologyId {get; set;} = 0xFFFFFFFFU;
         public bool ForceReturnValue = false;
-        private IHostHandler Host;
-        private List<InfinispanHost> mHosts = new List<InfinispanHost>();
+        public bool UseTLS = false;
+        private IHostHandler HostHandler;
+        private TopologyInfo topologyInfo;
+        private IList<InfinispanHost> mHosts = new List<InfinispanHost>();
         private InfinispanHost[] mActiveHosts = new InfinispanHost[0];
         private bool OnClientPush(InfinispanClient client)
         {
             return true;
         }
         public int DB { get; set; }
+        public ulong MAXHASHVALUE { get; private set; } = 0xFFFFFFFFL;
+
         public InfinispanHost AddHost(string host, int port = 11222)
         {
-            return AddHost(host, port, false);
+            return AddHost(host, port, UseTLS);
         }
         public InfinispanHost AddHost(string host, int port, bool ssl)
         {
@@ -68,9 +72,29 @@ namespace Infinispan.Hotrod.Core
             }
           return null;
         }
+        InfinispanHost IHostHandler.GetHost(uint hash)
+        {
+            var items = mActiveHosts;
+            var index = hashToIndex(hash);
+            foreach(var owner in topologyInfo.OwnersPerSegment[index])
+            {
+            if (items[owner].Available)
+                return items[owner];
+            }
+          return null;
+        }
+        private int hashToIndex(uint hash)
+        {
+            return (int)(((ulong)hash*(ulong)topologyInfo.OwnersPerSegment.Count())/MAXHASHVALUE);
+        }
         public async Task<Result> Execute(UntypedCache cache, Command cmd)
         {
-            var host = Host.GetHost();
+            InfinispanHost host;
+            if (cmd.isHashAware() && topologyInfo!=null) {
+                host = HostHandler.GetHost(this.getIndexFromBytes(cmd.getKeyAsBytes()));
+            } else {
+                host = HostHandler.GetHost();
+            }
             if (host == null)
             {
                 return new Result() { ResultType = ResultType.NetError, Messge = "Infinispan server is not available" };
@@ -104,6 +128,42 @@ namespace Infinispan.Hotrod.Core
                     host.Push(client);
             }
         }
+
+        public static uint getSegmentSize(int numSegments) {
+            return (uint)Math.Ceiling((double)(1L << 31) / numSegments);
+        }
+        private uint getIndexFromBytes(byte[] buf)
+        {
+            Array arr = (Array)buf;
+            Int32 hash = MurmurHash3.hash(((sbyte[])arr));
+            return ((UInt32)hash)/getSegmentSize(topologyInfo.servers.Count);
+        }
+
+        internal void UpdateTopologyInfo(TopologyInfo topology)
+        {
+            this.TopologyId = topology.TopologyId;
+            this.topologyInfo = topology;
+            var newHosts = new List<InfinispanHost>();
+            foreach (var node in topology.servers) {
+                var hostName = Encoding.ASCII.GetString(node.Item1);
+                var port = node.Item2;
+                var added = false;
+                foreach (var oldHost in mHosts) {
+                    // Reuse current working host if available...
+                    if (oldHost.Name == hostName && oldHost.Port == port && oldHost.Available) {
+                        newHosts.Add(oldHost);
+                        added = true;
+                        continue;
+                    }
+                }                
+                // ...or create a new one
+                if (!added) {
+                    newHosts.Add(new InfinispanHost(UseTLS, this, hostName, port));
+                }
+            }
+            mHosts = newHosts; // TODO: concurrency issues?
+            mActiveHosts = mHosts.ToArray(); // TODO: concurrency issues?
+        }
         public async ValueTask<V> Put<K,V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key, V value, ExpirationTime lifespan=null, ExpirationTime maxidle=null)
         {
             Commands.PUT<K,V> cmd = new Commands.PUT<K,V>(km, vm, key, value);
@@ -128,7 +188,6 @@ namespace Infinispan.Hotrod.Core
                 throw new InfinispanException(result.Messge);
             return cmd.Value;
         }
-
         public async ValueTask<ValueWithVersion<V>> GetWithVersion<K,V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key)
         {
             Commands.GETWITHVERSION<K,V> cmd = new Commands.GETWITHVERSION<K,V>(km, vm, key);
@@ -147,7 +206,6 @@ namespace Infinispan.Hotrod.Core
                 throw new InfinispanException(result.Messge);
             return cmd.ValueWithMetadata;
         }
-
         public async ValueTask<Int32> Size(UntypedCache cache) {
             Commands.SIZE cmd = new Commands.SIZE();
             cmd.Flags = cache.Flags;

@@ -5,7 +5,7 @@ using BeetleX.Buffers;
 
 namespace Infinispan.Hotrod.Core.Commands
 {
-    public class REMOVEWITHVERSION<K,V> : Command
+    public class REMOVEWITHVERSION<K,V> : CommandWithKey<K>
     {
         public REMOVEWITHVERSION(Marshaller<K> km, Marshaller<V> vm, K key)
         {
@@ -15,13 +15,11 @@ namespace Infinispan.Hotrod.Core.Commands
 
             NetworkReceive = OnReceive;
         }
-        public Marshaller<K> KeyMarshaller;
         public Marshaller<V> ValueMarshaller;
         public int TimeOut { get; set; }
         public Int64 Version;
         public override string Name => "REPLACEWITHVERSION";
         public override Byte Code => 0x0D;
-        public K Key { get; set; }
         public V PrevValue { get; private set;}
         public Boolean Removed;
         public override void OnExecute(CommandContext ctx)

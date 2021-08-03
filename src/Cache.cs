@@ -14,7 +14,7 @@ namespace Infinispan.Hotrod.Core
         public byte Version {get; protected set;}
         public Int64 MessageId {get;}
         public byte ClientIntelligence {get;}
-        public Int32 TopologyId {get; set;}
+        public UInt32 TopologyId {get; set;}
         public bool ForceReturnValue;
         public bool UseCacheDefaultLifespan;
         public bool UseCacheDefaultMaxIdle;

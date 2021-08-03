@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Infinispan.Hotrod.Core.Commands
 {
-    public class GETWITHMETADATA<K,V> : Command
+    public class GETWITHMETADATA<K,V> : CommandWithKey<K>
     {
         public GETWITHMETADATA(Marshaller<K> km, Marshaller<V> vm, K key)
         {
@@ -14,10 +14,7 @@ namespace Infinispan.Hotrod.Core.Commands
             ValueMarshaller = vm;
             NetworkReceive = OnReceive;
         }
-        public Marshaller<K> KeyMarshaller;
         public Marshaller<V> ValueMarshaller;
-
-        public K Key { get; set; }
         public ValueWithMetadata<V> ValueWithMetadata { get; set; }
         public override string Name => "GETWITHMETADATA";
 

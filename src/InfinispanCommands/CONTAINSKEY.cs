@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Infinispan.Hotrod.Core.Commands
 {
-    public class CONTAINSKEY<K> : Command
+    public class CONTAINSKEY<K> : CommandWithKey<K>
     {
         public CONTAINSKEY(Marshaller<K> km, K key)
         {
@@ -13,8 +13,6 @@ namespace Infinispan.Hotrod.Core.Commands
             KeyMarshaller = km;
             NetworkReceive = OnReceive;
         }
-        public Marshaller<K> KeyMarshaller;
-        public K Key { get; set; }
         public override string Name => "CONTAINSKEY";
 
         public override Byte Code => 0x0F;

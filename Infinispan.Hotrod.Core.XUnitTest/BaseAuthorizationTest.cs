@@ -22,7 +22,6 @@ namespace Infinispan.Hotrod.Core.XUnitTest
         AuthorizationCacheTestFixture fixture;
         public BaseAuthorizationTest(AuthorizationCacheTestFixture fixture) {
             this.fixture = fixture;
-            System.Console.WriteLine("BaseAuthTest construct");
             BeforeClass();
         }
         public const string HOTROD_HOST = "127.0.0.1";

@@ -36,6 +36,16 @@ namespace Infinispan.Hotrod.Core
             return i;
         }
 
+        public static UInt32 readVUInt(PipeStream stream) {
+            byte b = (byte)stream.ReadByte();
+            UInt32 i = (UInt32) (b & 0x7F);
+            for (int shift = 7; (b & 0x80) != 0; shift += 7) {
+                b = (byte)stream.ReadByte();
+                i |= (UInt32)((b & 0x7F) << shift);
+            }
+            return i;
+        }
+
         public static byte[] readArray(PipeStream stream) {
             Int32 size = readVInt(stream);
             byte[] ret = new byte[size];
@@ -80,6 +90,15 @@ namespace Infinispan.Hotrod.Core
             stream.Write((byte)val);
         }
         public static void writeVInt(Int32 val, PipeStream stream) {
+            while (val>0x7f) {
+                byte b = (byte)(val & 0x7fL | 0x80);
+                stream.Write(b);
+                val >>=7;
+            }
+            stream.Write((byte)val);
+        }
+
+        public static void writeVUInt(UInt32 val, PipeStream stream) {
             while (val>0x7f) {
                 byte b = (byte)(val & 0x7fL | 0x80);
                 stream.Write(b);
