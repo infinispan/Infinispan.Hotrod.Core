@@ -25,7 +25,7 @@ jobs:
       - run: dotnet test
       - run: |
              cd Infinispan.Hotrod.Application
-             $JBOSS_HOME/bin/server.sh -c infinispan.xml &
+             $JBOSS_HOME/bin/server.sh -c infinispan-noauth.xml &
              timeout 20  bash -c "while ! sudo lsof -i:11222; do sleep 1; done"
              dotnet run -p Infinispan.Hotrod.Application.CI.csproj
              kill %%
