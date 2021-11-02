@@ -15,7 +15,7 @@ namespace Infinispan.Hotrod.Core.Samples
             // ispnCluster.User="reader";
             // ispnCluster.Password="password";
             // ispnCluster.AuthMech="PLAIN"; // "DIGEST-MD5";
-            ispnCluster.Version = 0x1e;
+            ispnCluster.Version = 0x1f;
             ispnCluster.ClientIntelligence = 0x03;
             ispnCluster.ForceReturnValue = false;
 

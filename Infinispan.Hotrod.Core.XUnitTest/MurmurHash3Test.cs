@@ -181,6 +181,7 @@ public void testHashString(sbyte[][] input, int inputSize, UInt32[] expected) {
 }
 
 [Fact]
+
 public void murmurHash3IntTest() {
     testHashInt(integers, integers.Length, intMurmur3Hashes);
 }

@@ -28,7 +28,7 @@ namespace Infinispan.Hotrod.Core
         public string User { get; set; }
         public string Password { get; set; }
         public string AuthMech { get; set; }
-        public byte Version {get; set;} = 0x1e;
+        public byte Version {get; set;} = 0x1f;
         public byte ClientIntelligence {get; set;} = 0x01;
         public UInt32 TopologyId {get; set;} = 0xFFFFFFFFU;
         public bool ForceReturnValue = false;

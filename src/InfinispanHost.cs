@@ -23,7 +23,7 @@ namespace Infinispan.Hotrod.Core
 
         private int mCount = 0;
 
-        private long messageId = 0;
+        private long messageId = 1;
         public long MessageId {get {return messageId++;} set {messageId=value;}}
         private Queue<TaskCompletionSource<InfinispanClient>> mQueue = new Queue<TaskCompletionSource<InfinispanClient>>();
 

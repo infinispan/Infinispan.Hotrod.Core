@@ -102,7 +102,7 @@ namespace Infinispan.Hotrod.Core.Tests.Util
             }
             Console.WriteLine("Command is:"+hrServer.StartInfo.FileName);
             hrServer.Start();
-
+            hrServer.BeginOutputReadLine();
             if (!IsRunning()) {
                 throw new Exception("Server not listening on the expected ip/port.");
             }
