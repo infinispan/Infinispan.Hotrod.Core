@@ -16,10 +16,10 @@ jobs:
           java-version: '11'
       - uses: wei/wget@v1
         with:
-          args: -q https://downloads.jboss.org/infinispan/${{ ISPN_VER }}/infinispan-server-$(( ISPN_VER }}.zip
+          args: -q https://downloads.jboss.org/infinispan/$ISPN_VER/infinispan-server-$ISPN_VER.zip
       - name: Set env
-        run: echo "JBOSS_HOME=$(echo $PWD/infinispan-server-11.0.9.Final)" >> $GITHUB_ENV
-      - run: pwd && unzip infinispan-server-${{ ISPN_VER }}.zip
+        run: echo "JBOSS_HOME=$(echo $PWD/infinispan-server-$ISPN_VER)" >> $GITHUB_ENV
+      - run: pwd && unzip infinispan-server-$ISPN_VER.zip
       - run: cp -r Infinispan.Hotrod.Core.XUnitTest/resources/conf/* $JBOSS_HOME/server/conf
       - run: dotnet build
       - run: dotnet test
