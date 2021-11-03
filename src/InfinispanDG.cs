@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Org.Infinispan.Query.Remote.Client;
 
 namespace Infinispan.Hotrod.Core
 {
@@ -292,8 +293,15 @@ namespace Infinispan.Hotrod.Core
                 throw new InfinispanException(result.Messge);
             return (cmd.PrevValue, cmd.Removed);
         }
-
-        
+        public async ValueTask<QueryResponse> Query(QueryRequest query, UntypedCache cache) {
+            Commands.QUERY cmd = new Commands.QUERY(query);
+            cmd.Flags = cache.Flags;
+            cmd.Query = query;
+            var result = await Execute(cache, cmd);
+            if (result.IsError)
+                throw new InfinispanException(result.Messge);
+            return cmd.QueryResponse;
+        }
         private bool mIsDisposed = false;
 
         public void Dispose()

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
+using Org.Infinispan.Query.Remote.Client;
 
 namespace Infinispan.Hotrod.Core
 {
@@ -106,13 +107,14 @@ namespace Infinispan.Hotrod.Core
         {
             return await Cluster.ReplaceWithVersion(KeyMarshaller, ValueMarshaller, (UntypedCache)this, key, value, version, lifeSpan, maxIdle);
         }
-
         public async ValueTask<(V V, Boolean Removed)> RemoveWithVersion(K key, Int64 version)
         {
             return await Cluster.RemoveWithVersion(KeyMarshaller, ValueMarshaller, (UntypedCache)this, key, version);
         }
-
-
+        public async ValueTask<QueryResponse> Query(QueryRequest query)
+        {
+            return await Cluster.Query(query, (UntypedCache)this);
+        }
     }
     public class ValueWithVersion<V> {
         public V Value;
