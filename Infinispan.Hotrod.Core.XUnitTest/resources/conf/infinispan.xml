@@ -7,9 +7,9 @@
 
    <cache-container name="default" statistics="true" default-cache="default">
       <transport cluster="${infinispan.cluster.name}" stack="${infinispan.cluster.stack:tcp}"/>
-      <local-cache name="default">
+      <distributed-cache name="default">
          <expiration interval="1000"/>
-      </local-cache>
+      </distributed-cache>
       <local-cache name="namedCache"/>
       <local-cache name="queryCache"/>
       <local-cache name="transcodingCache">
@@ -29,13 +29,11 @@
       <distributed-cache name="distributed">
          <expiration interval="1000"/>
       </distributed-cache>
-      <replicated-cache name="InMemoryNonSharedIndex" mode="SYNC" start="EAGER">
-	 <indexing>
-            <indexed-entities>
-               <indexed-entity>sample_bank_account.User</indexed-entity>
-            </indexed-entities>
-         </indexing>
+      <replicated-cache name="CacheForQueryTest">
       </replicated-cache>
+      <local-cache-configuration name="template">
+         <expiration interval="10000" lifespan="10" max-idle="10"/>
+      </local-cache-configuration>
    </cache-container>
 
    <server xmlns="urn:infinispan:server:13.0">
@@ -50,30 +48,13 @@
          <socket-binding name="memcached" port="11221"/>
       </socket-bindings>
 
-      <security>
-         <credential-stores>
-            <credential-store name="credentials" path="credentials.pfx">
-               <clear-text-credential clear-text="secret"/>
-            </credential-store>
-         </credential-stores>
-         <security-realms>
-            <security-realm name="default">
-               <!-- Uncomment to enable TLS on the realm -->
-               <!-- server-identities>
-                  <ssl>
-                     <keystore path="application.keystore"
-                               password="password" alias="server"
-                               generate-self-signed-certificate-host="localhost"/>
-                  </ssl>
-               </server-identities-->
-               <properties-realm groups-attribute="Roles">
-                  <user-properties path="users.properties"/>
-                  <group-properties path="groups.properties"/>
-               </properties-realm>
-            </security-realm>
-         </security-realms>
-      </security>
-
-      <endpoints socket-binding="default" security-realm="default" />
+      <endpoints socket-binding="default">
+        <endpoint>
+          <hotrod-connector name="hotrod"/>
+          <rest-connector name="rest"/>
+          <!-- Uncomment to enable the memcached connector -->
+          <!-- memcached-connector socket-binding="memcached" / -->
+        </endpoint>
+      </endpoints>
    </server>
 </infinispan>

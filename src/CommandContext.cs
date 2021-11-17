@@ -16,5 +16,9 @@ namespace Infinispan.Hotrod.Core
         public UInt32 TopologyId { get; internal set; }
         public MediaType KeyMediaType { get; internal set; }
         public MediaType ValueMediaType { get; internal set; }
+        public MediaType CmdReqMediaType { get; internal set; }
+        public MediaType CmdResMediaType { get; internal set; }
+        public bool IsReqResCommand { get; internal set; }
+
     }
 }

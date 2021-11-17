@@ -12,7 +12,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             hotRodServer = new HotRodServer("infinispan-noauth.xml");
             hotRodServer.StartHotRodServer();
             DefaultInfinispan.Instance.AddHost("127.0.0.1");
-            DefaultInfinispan.Instance.Version=0x30;
+            DefaultInfinispan.Instance.Version=0x1f;
             DefaultInfinispan.Instance.ForceReturnValue=false;
             DefaultInfinispan.Instance.ClientIntelligence=0x01;
             cache = DefaultInfinispan.Instance.newCache(new StringMarshaller(), new StringMarshaller(), "default");

@@ -141,14 +141,20 @@ namespace Infinispan.Hotrod.Core
                     stream.WriteByte(0x00);
                 break;
                 case 1:
+                    stream.WriteByte(0x01);
                     writeVInt(mt.PredefinedMediaType, stream);
                 break;
                 case 2:
+                    stream.WriteByte(0x02);
                     writeArray(mt.CustomMediaType, stream);
-                    writeVInt((Int32) mt.Params.Count, stream);
-                    foreach  (var par in  mt.Params) {
-                        writeArray(par.Item1, stream); // write parameter key
-                        writeArray(par.Item2, stream); // and par value
+                    if (mt.Params != null) {
+                        writeVInt((Int32) mt.Params.Count, stream);
+                        foreach  (var par in  mt.Params) {
+                            writeArray(par.Item1, stream); // write parameter key
+                            writeArray(par.Item2, stream); // and par value
+                        }
+                    } else {
+                        writeVInt(0, stream);
                     }
                 break;
             }
