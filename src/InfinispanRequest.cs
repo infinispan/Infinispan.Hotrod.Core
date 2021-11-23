@@ -54,26 +54,8 @@ namespace Infinispan.Hotrod.Core
                 OnCompleted(ResultType.DataError, e.Error.Message);
             }
         }
-
         public Type[] Types { get; private set; }
-
-        private int mFreeLength;
-
-        private void FreeLine(PipeStream stream)
-        {
-            if (stream.Length >= 2)
-            {
-                stream.ReadFree(2);
-                mFreeLength = 0;
-            }
-            else
-            {
-                mFreeLength = 2;
-            }
-        }
-
         private CodeTrack mReceiveTrack;
-
         private void OnReceive(IClient c, ClientReceiveArgs reader)
         {
             mReceiveTrack = CodeTrackFactory.Track("Read", CodeTrackLevel.Function, Activity?.Id, "Infinispan", "Protocol");

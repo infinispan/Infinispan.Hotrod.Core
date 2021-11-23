@@ -6,7 +6,6 @@ namespace Infinispan.Hotrod.Core
 {
     public class InfinispanException : Exception
     {
-        static int counter = 0;
         public InfinispanException(string msg) : base(msg)
         {
         }

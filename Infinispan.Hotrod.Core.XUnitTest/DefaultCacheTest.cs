@@ -48,7 +48,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
         [Fact]
         public void VersionTest()
         {
-            Assert.NotNull(_cache.Version);
+            Assert.NotEqual(0, _cache.Version);
         }
 
         // TODO: Verify if GetProtocolVersion method is needed
@@ -283,23 +283,6 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             Assert.Null((await _cache.Remove(key)).PrevValue);
             Assert.Null((await _cache.Replace(key, "v3")).PrevValue);
         }
-
-
-        // public void NameTest()
-        // public void VersionTest()
-        // public void GetTest()
-        // public void PutTest()
-        // public void ContainsKeyTest()
-        // public void RemoveTest()
-        // public void ClearTest()
-        // public void GetVersionedTest()
-        // public void GetWithMetadataTest()
-        // public void GetWithMetadataImmortalTest()
-        // public void StatTest()
-        // public void ReplaceWithVersionTest()
-        // public void RemoveWithVersionTest()
-        // public void DefaultValueForForceReturnValueTest()
-
 
         // [Test]
         // public void GetAllTest()

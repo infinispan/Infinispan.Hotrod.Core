@@ -161,14 +161,14 @@ static UInt32[] intMurmur3Hashes = {
 	0x80C5744F, 0xE8D3C286, 0x25A599D1, 0x9499C573, 0xC2F9FEDB, 0xC6C597B7,
 };
 
-public void testHashString(sbyte[][] input, int inputSize, UInt32[] expected) {
+private void testHashString(sbyte[][] input, int inputSize, UInt32[] expected) {
 	for (var i = 0; i < inputSize; ++i) {
 		Int32 h = MurmurHash3.hash(input[i], i + 1);
 		Assert.True(h == (Int32) expected[i]);
 		}
 }
 
-    public void testHashInt(UInt32[] input, int inputSize, UInt32[] expected) {
+private void testHashInt(UInt32[] input, int inputSize, UInt32[] expected) {
 	for (var i = 0; i < inputSize; ++i) {
 		Int32 h = MurmurHash3.hash(input[i]);
 		Assert.True(h == (Int32) expected[i]);

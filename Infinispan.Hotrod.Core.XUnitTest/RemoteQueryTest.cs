@@ -245,8 +245,6 @@ namespace Infinispan.Hotrod.Core.XUnitTest
 
         private readonly RemoteQueryTestFixture _fixture;
         private Cache<Object, Object> userCache;
-
-        private Cache<Object, Object> _metaCache;
         public RemoteQueryTest(RemoteQueryTestFixture fixture) {
             _fixture = fixture;
             userCache = _fixture.cache;
@@ -277,7 +275,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             QueryResponse result = userCache.Query(qr).Result;
             List<User> listOfUsers = RemoteQueryUtils.unwrapResults<User>(result);
 
-            Assert.Equal(1, listOfUsers.Count);
+            Assert.Single(listOfUsers);
             Assert.Equal("John", listOfUsers.ElementAt(0).Name);
             Assert.Equal("Doe", listOfUsers.ElementAt(0).Surname);
         }
@@ -292,7 +290,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             QueryResponse result = userCache.Query(qr).Result;
             List<User> listOfUsers = RemoteQueryUtils.unwrapResults<User>(result);
 
-            Assert.Equal(0, listOfUsers.Count);
+            Assert.Empty(listOfUsers);
         }
         [Fact]
         public void EqSentenceTest()
@@ -303,7 +301,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             QueryResponse result = userCache.Query(qr).Result;
             List<User> listOfAccounts = RemoteQueryUtils.unwrapResults<User>(result);
 
-            Assert.Equal(1, listOfAccounts.Count);
+            Assert.Single(listOfAccounts);
             Assert.Equal(1, listOfAccounts.ElementAt(0).Id);
         }
         [Fact]
@@ -315,7 +313,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             QueryResponse result = userCache.Query(qr).Result;
             List<User> listOfUsers = RemoteQueryUtils.unwrapResults<User>(result);
 
-            Assert.Equal(1, listOfUsers.Count);
+            Assert.Single(listOfUsers);
             Assert.Equal(1, listOfUsers.ElementAt(0).Id);
         }
 
@@ -336,7 +334,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             QueryResponse result = userCache.Query(qr).Result;
             List<User> listOfUsers = RemoteQueryUtils.unwrapResults<User>(result);
 
-            Assert.Equal(1, listOfUsers.Count);
+            Assert.Single(listOfUsers);
             Assert.Equal(1, listOfUsers.ElementAt(0).Id);
         }
 
@@ -349,7 +347,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             QueryResponse result = userCache.Query(qr).Result;
             List<User> listOfUsers = RemoteQueryUtils.unwrapResults<User>(result);
 
-            Assert.Equal(1, listOfUsers.Count);
+            Assert.Single(listOfUsers);
             Assert.Equal("X1234", listOfUsers.ElementAt(0).Addresses.ElementAt(0).PostCode);
         }
 
@@ -361,7 +359,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             QueryResponse result = userCache.Query(qr).Result;
             List<Transaction> listOfTx = RemoteQueryUtils.unwrapResults<Transaction>(result);
 
-            Assert.Equal(1, listOfTx.Count);
+            Assert.Single(listOfTx);
             Assert.Equal(1, listOfTx.ElementAt(0).AccountId);
             Assert.Equal(1500, listOfTx.ElementAt(0).Amount, 0);
         }
@@ -388,7 +386,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             QueryResponse result = userCache.Query(qr).Result;
             List<Transaction> listOfTx = RemoteQueryUtils.unwrapResults<Transaction>(result);
 
-            Assert.Equal(1, listOfTx.Count);
+            Assert.Single(listOfTx);
             Assert.True(listOfTx.ElementAt(0).Amount > 1500);
         }
 
@@ -417,7 +415,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             QueryResponse result = userCache.Query(qr).Result;
             List<User> listOfUsers = RemoteQueryUtils.unwrapResults<User>(result);
 
-            Assert.Equal(1, listOfUsers.Count);
+            Assert.Single(listOfUsers);
             Assert.Equal("John", listOfUsers.ElementAt(0).Name);
         }
 
@@ -462,7 +460,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             QueryResponse result = userCache.Query(qr).Result;
             List<User> listOfUsers = RemoteQueryUtils.unwrapResults<User>(result);
 
-            Assert.Equal(1, listOfUsers.Count);
+            Assert.Single(listOfUsers);
             Assert.Equal("John", listOfUsers.ElementAt(0).Name);
         }
 
@@ -475,7 +473,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             QueryResponse result = userCache.Query(qr).Result;
             List<User> listOfUsers = RemoteQueryUtils.unwrapResults<User>(result);
 
-            Assert.Equal(1, listOfUsers.Count);
+            Assert.Single(listOfUsers);
             Assert.Equal(1, listOfUsers.ElementAt(0).Id);
         }
 
@@ -488,7 +486,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             QueryResponse result = userCache.Query(qr).Result;
             List<User> listOfUsers = RemoteQueryUtils.unwrapResults<User>(result);
 
-            Assert.Equal(0, listOfUsers.Count);
+            Assert.Empty(listOfUsers);
         }
 
         [Fact]
@@ -500,7 +498,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             QueryResponse result = userCache.Query(qr).Result;
             List<User> listOfUsers = RemoteQueryUtils.unwrapResults<User>(result);
 
-            Assert.Equal(0, listOfUsers.Count);
+            Assert.Empty(listOfUsers);
         }
 
         [Fact]
@@ -526,7 +524,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             QueryResponse result = userCache.Query(qr).Result;
             List<User> listOfUsers = RemoteQueryUtils.unwrapResults<User>(result);
 
-            Assert.Equal(0, listOfUsers.Count);
+            Assert.Empty(listOfUsers);
         }
 
         [Fact]
@@ -550,7 +548,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             QueryResponse result = userCache.Query(qr).Result;
             List<User> listOfUsers = RemoteQueryUtils.unwrapResults<User>(result);
 
-            Assert.Equal(0, listOfUsers.Count);
+            Assert.Empty(listOfUsers);
         }
 
         [Fact]
@@ -562,7 +560,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             QueryResponse result = userCache.Query(qr).Result;
             List<User> listOfAccounts = RemoteQueryUtils.unwrapResults<User>(result);
 
-            Assert.Equal(1, listOfAccounts.Count);
+            Assert.Single(listOfAccounts);
             Assert.Equal(1, listOfAccounts.ElementAt(0).Id);
         }
 
@@ -576,7 +574,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             
             List<Object[]> projections = RemoteQueryUtils.unwrapWithProjection(result);
            
-            Assert.Equal(1, projections.Count);
+            Assert.Single(projections);
             Assert.Equal(1, projections.ElementAt(0)[0]);
             Assert.Equal(3323.0, (double) projections.ElementAt(0)[1], 3);
         }
@@ -591,7 +589,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
 
             List<Object[]> projections = RemoteQueryUtils.unwrapWithProjection(result);
 
-            Assert.Equal(1, projections.Count);
+            Assert.Single(projections);
             Assert.Equal(2, projections.ElementAt(0)[0]);
             Assert.Equal(48.0, (double)projections.ElementAt(0)[1], 3);
         }
@@ -606,7 +604,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
 
             List<Object[]> projections = RemoteQueryUtils.unwrapWithProjection(result);
 
-            Assert.Equal(1, projections.Count);
+            Assert.Single(projections);
             Assert.Equal(2, projections.ElementAt(0)[0]);
             Assert.Equal(4.0, (double)projections.ElementAt(0)[1], 3);
         }
@@ -621,7 +619,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
 
             List<Object[]> projections = RemoteQueryUtils.unwrapWithProjection(result);
 
-            Assert.Equal(1, projections.Count);
+            Assert.Single(projections);
             Assert.Equal(1, projections.ElementAt(0)[0]);
             Assert.Equal(1800.0, (double)projections.ElementAt(0)[1], 3);
         }
@@ -636,7 +634,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
 
             List<Object[]> projections = RemoteQueryUtils.unwrapWithProjection(result);
 
-            Assert.Equal(1, projections.Count);
+            Assert.Single(projections);
             Assert.Equal(3467.0, (double)projections.ElementAt(0)[0], 3);
         }
 
