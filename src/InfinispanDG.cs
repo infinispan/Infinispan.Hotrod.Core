@@ -333,6 +333,17 @@ namespace Infinispan.Hotrod.Core
                 throw new InfinispanException(result.Messge);
             return cmd.QueryResponse;
         }
+        public async ValueTask<ISet<K>> KeySet<K>(Marshaller<K> km, UntypedCache cache)
+        {
+            Commands.KEYSET<K> cmd = new Commands.KEYSET<K>(km);
+            if (cache != null) {
+                cmd.Flags = cache.Flags;
+            }
+            var result = await Execute(cache, cmd);
+            if (result.IsError)
+                throw new InfinispanException(result.Messge);
+            return cmd.keys;
+        }
         private bool mIsDisposed = false;
 
         public void Dispose()

@@ -1,6 +1,8 @@
 using System;
 using Infinispan.Hotrod.Core.Tests.Util;
 using Xunit;
+using System.Collections.Generic;
+
 
 namespace Infinispan.Hotrod.Core.XUnitTest
 {
@@ -375,24 +377,24 @@ namespace Infinispan.Hotrod.Core.XUnitTest
         //     }
         // }
 
-        // [Test]
-        // public void KeySetTest()
-        // {
-        //     String key1 = UniqueKey.NextKey();
-        //     String key2 = UniqueKey.NextKey();
-        //     String key3 = UniqueKey.NextKey();
+        [Fact]
+        public async void KeySetTest()
+        {
+            String key1 = UniqueKey.NextKey();
+            String key2 = UniqueKey.NextKey();
+            String key3 = UniqueKey.NextKey();
 
-        //     cache.Clear();
-        //     cache.Put(key1, "v1");
-        //     cache.Put(key2, "v2");
-        //     cache.Put(key3, "v3");
+            await _cache.Clear();
+            await _cache.Put(key1, "v1");
+            await _cache.Put(key2, "v2");
+            await _cache.Put(key3, "v3");
 
-        //     ISet<String> keys = cache.KeySet();
-        //     Assert.AreEqual(3, keys.Count);
-        //     Assert.IsTrue(keys.Contains(key1));
-        //     Assert.IsTrue(keys.Contains(key2));
-        //     Assert.IsTrue(keys.Contains(key3));
-        // }
+            ISet<String> keys = await _cache.KeySet();
+            Assert.Equal(3, keys.Count);
+            Assert.True(keys.Contains(key1));
+            Assert.True(keys.Contains(key2));
+            Assert.True(keys.Contains(key3));
+        }
 
         // [Test]
         // public void ValuesTest()

@@ -115,6 +115,11 @@ namespace Infinispan.Hotrod.Core
         {
             return await Cluster.Query(query, (UntypedCache)this);
         }
+        public async ValueTask<ISet<K>> KeySet()
+        {
+            return await Cluster.KeySet<K>(KeyMarshaller, (UntypedCache)this);
+        }
+
     }
     public class ValueWithVersion<V> {
         public V Value;
