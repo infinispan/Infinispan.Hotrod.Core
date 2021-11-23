@@ -99,7 +99,7 @@ namespace Infinispan.Hotrod.Core
             var topologyChanged = (byte) stream.ReadByte();
             if (topologyChanged!=0) {
                 var topology=readNewTopologyInfo(stream);
-                Cluster.UpdateTopologyInfo(topology);
+                Cluster.UpdateTopologyInfo(topology, this.Cache);
             }
             var errMsg = readResponseError(ResponseStatus, stream);
             if (errMsg != null) {
@@ -119,6 +119,7 @@ namespace Infinispan.Hotrod.Core
             t.TopologyId=Codec.readVUInt(stream);
             var serversNum = Codec.readVInt(stream);
             t.servers = new List<Tuple<byte[], ushort>>();
+            t.hosts = new InfinispanHost[serversNum];
             for (int i=0; i< serversNum; i++) {
                 var addr = Codec.readArray(stream);
                 var port = Codec.readUnsignedShort(stream);
@@ -222,6 +223,7 @@ namespace Infinispan.Hotrod.Core
     public class TopologyInfo {
         public  UInt32 TopologyId;
         public List<Tuple <byte[], UInt16>> servers;
+        public InfinispanHost []hosts;
         public byte HashFuncNum;
         public List<List<Int32>> OwnersPerSegment;
     }
