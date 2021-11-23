@@ -9,6 +9,7 @@ namespace Infinispan.Hotrod.Core
         InfinispanHost AddHost(string host, int port = 11222);
         InfinispanHost AddHost(string host, int port, bool ssl);
         InfinispanHost GetHost();
-        InfinispanHost GetHost(uint index);
+        InfinispanHost GetHost(int segment, TopologyInfo topologyInfo);
     }
+
 }

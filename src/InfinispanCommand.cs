@@ -89,7 +89,6 @@ namespace Infinispan.Hotrod.Core
         {
             return KeyMarshaller.marshall(this.Key);
         }
-
     }
 
 }

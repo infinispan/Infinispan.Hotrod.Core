@@ -4,6 +4,7 @@ using System.Text;
 using System.Threading.Tasks;
 namespace Infinispan.Hotrod.Core
 {
+    // Describes an Infinispan node
     public class InfinispanHost : IDisposable
     {
         public InfinispanHost(bool ssl, InfinispanDG cluster, string host, int port = 6379)
@@ -47,21 +48,26 @@ namespace Infinispan.Hotrod.Core
 
         public bool SSL { get; set; } = false;
 
+        // Pop a client for usage
         public Task<InfinispanClient> Pop()
         {
             lock (mPool)
             {
                 TaskCompletionSource<InfinispanClient> result = new TaskCompletionSource<InfinispanClient>();
+                // If no client is available...
                 if (!mPool.TryPop(out InfinispanClient client))
                 {
                     mCount++;
+                    //  ...and clients are not too much...
                     if (mCount <= MaxConnections)
                     {
+                        // ... create a new one ...
                         client = new InfinispanClient(SSL, this);
                         result.SetResult(client);
                     }
                     else
                     {
+                        // ... otherwise put the request in queue (see Push below)
                         if (mQueue.Count > QueueMaxLength)
                         {
                             result.SetResult(null);
@@ -79,21 +85,7 @@ namespace Infinispan.Hotrod.Core
                 return result.Task;
             }
         }
-
-        public InfinispanClient Create()
-        {
-            var client = new InfinispanClient(SSL, this);
-            var result = Connect(client);
-            if (result.IsError)
-            {
-                client.TcpClient.DisConnect();
-                throw new InfinispanException(result.Messge);
-            }
-            return client;
-        }
-
         public bool Available { get; set; }
-
         public Result Connect(InfinispanClient client)
         {
             if (!client.TcpClient.IsConnected)
@@ -153,6 +145,7 @@ namespace Infinispan.Hotrod.Core
             return new Result { ResultType = ResultType.Simple, Messge = "Connected" };
         }
 
+        // Return a client for others
         public void Push(InfinispanClient client)
         {
             TaskCompletionSource<InfinispanClient> item = null;
@@ -160,10 +153,13 @@ namespace Infinispan.Hotrod.Core
             {
                 if (mDisposed > 0)
                 {
+                    // If this host has been disposed clean up...
                     client.TcpClient.DisConnect();
                 }
                 else
                 {
+                    // ... otherwise see if someone is in queue waiting for client
+                    // set item to this client
                     if (!mQueue.TryDequeue(out item))
                     {
                         mPool.Push(client);
@@ -177,6 +173,7 @@ namespace Infinispan.Hotrod.Core
             }
         }
 
+        // Disposing this host. Disconnecting the clients
         public void Dispose()
         {
             if (System.Threading.Interlocked.CompareExchange(ref mDisposed, 1, 0) == 0)

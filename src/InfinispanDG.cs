@@ -35,7 +35,7 @@ namespace Infinispan.Hotrod.Core
         public bool ForceReturnValue = false;
         public bool UseTLS = false;
         private IHostHandler HostHandler;
-        private TopologyInfo topologyInfo;
+        private Dictionary<UntypedCache, TopologyInfo> topologyInfoMap = new Dictionary<UntypedCache, TopologyInfo>();
         private IList<InfinispanHost> mHosts = new List<InfinispanHost>();
         private InfinispanHost[] mActiveHosts = new InfinispanHost[0];
         private bool OnClientPush(InfinispanClient client)
@@ -43,7 +43,7 @@ namespace Infinispan.Hotrod.Core
             return true;
         }
         public int DB { get; set; }
-        public ulong MAXHASHVALUE { get; private set; } = 0xFFFFFFFFL;
+        public static Int32 MAXHASHVALUE { get; private set; } = 0x7FFFFFFF;
 
         public InfinispanHost AddHost(string host, int port = 11222)
         {
@@ -73,10 +73,9 @@ namespace Infinispan.Hotrod.Core
             }
           return null;
         }
-        InfinispanHost IHostHandler.GetHost(uint hash)
+        InfinispanHost IHostHandler.GetHost(int index, TopologyInfo topologyInfo)
         {
             var items = mActiveHosts;
-            var index = hashToIndex(hash);
             foreach(var owner in topologyInfo.OwnersPerSegment[index])
             {
             if (items[owner].Available)
@@ -84,86 +83,118 @@ namespace Infinispan.Hotrod.Core
             }
           return null;
         }
-        private int hashToIndex(uint hash)
-        {
-            return (int)(((ulong)hash*(ulong)topologyInfo.OwnersPerSegment.Count())/MAXHASHVALUE);
-        }
         public async Task<Result> Execute(UntypedCache cache, Command cmd)
         {
+            TopologyInfo topologyInfo;
+            // Get the topology info for this cache. Initial hosts list will be used
+            // until a topology record is received for a given cache
+            topologyInfoMap.TryGetValue(cache, out topologyInfo);
+            return await ExecuteWithRetry(cache, cmd, topologyInfo);
+        }
+
+        public async Task<Result> ExecuteWithRetry(UntypedCache cache, Command cmd, TopologyInfo topologyInfo)
+        {
             InfinispanHost host;
-            if (cmd.isHashAware() && topologyInfo!=null) {
-                host = HostHandler.GetHost(this.getIndexFromBytes(cmd.getKeyAsBytes()));
-            } else {
-                host = HostHandler.GetHost();
-            }
-            if (host == null)
-            {
-                return new Result() { ResultType = ResultType.NetError, Messge = "Infinispan server is not available" };
-            }
-            var client = await host.Pop();
-            if (client == null)
-                return new Result() { ResultType = ResultType.NetError, Messge = "exceeding maximum number of connections" };
-            try
-            {
-                var result = host.Connect(client);
-                if (result.IsError)
-                {
-                    return result;
+            var hostHandlerForRetry = new HostHandlerForRetry(this);
+            var cmdResultTask = new TaskCompletionSource<Result>();
+            Result lastResult = new Result();
+            while(true)  {
+                if (cmd.isHashAware() && topologyInfo!=null) {
+                    var keyIdx = this.getIndexFromBytes(cmd.getKeyAsBytes(), topologyInfo);
+                    host = hostHandlerForRetry.GetHost(keyIdx, topologyInfo);
+                } else {
+                    host = hostHandlerForRetry.GetHost();
                 }
-                using (var tarck = CodeTrackFactory.Track(cmd.Name, CodeTrackLevel.Module, null, "Redis", client.Host.Name))
+                if (host == null)
                 {
-                    if (tarck.Enabled)
+                    // No (more) hosts available for the execution
+                    var cmdResult = new Result() { ResultType = ResultType.NetError, Messge = "Infinispan server is not available" };
+                    cmdResultTask.TrySetResult(cmdResult);
+                    return cmdResult;
+                }
+                // First available host will be used even if its clients are all busy
+                // caller will have to wait (TODO: better policy can be implemented)
+                var client = await host.Pop();
+                if (client == null) {
+                    // clients for the host are all busy, go ahead with the next host if
+                    var ret = new Result() { ResultType = ResultType.NetError, Messge = "exceeding maximum number of connections" };
+                    continue;
+                }
+                try
+                {
+                    var result = host.Connect(client);
+                    if (result.IsError)
                     {
-                        tarck.Activity?.AddTag("tag", "BeetleX Redis");
+                        // TODO: save the error and then go ahead with retry
+                        continue;
                     }
-                    cmd.Activity = tarck.Activity;
-                    InfinispanRequest request = new InfinispanRequest(host, host.Cluster, cache, client, cmd);
-                    request.Activity = tarck.Activity;
-                    result = await request.Execute();
-                    return result;
+                    using (var tarck = CodeTrackFactory.Track(cmd.Name, CodeTrackLevel.Module, null, "Redis", client.Host.Name))
+                    {
+                        if (tarck.Enabled)
+                        {
+                            tarck.Activity?.AddTag("tag", "BeetleX Redis");
+                        }
+                        cmd.Activity = tarck.Activity;
+                        InfinispanRequest request = new InfinispanRequest(host, host.Cluster, cache, client, cmd);
+                        request.Activity = tarck.Activity;
+                        result = await request.Execute();
+                        if (result.IsError) {
+                            continue;
+                        }
+                        cmdResultTask.TrySetResult(result);
+                        return result;
+                    }
+                } catch (Exception ) {}
+                finally
+                {
+                    if (client != null)
+                        host.Push(client);
                 }
             }
-            finally
-            {
-                if (client != null)
-                    host.Push(client);
-            }
+
         }
 
         public static uint getSegmentSize(int numSegments) {
-            return (uint)Math.Ceiling((double)(1L << 31) / numSegments);
+            return (uint)( InfinispanDG.MAXHASHVALUE / numSegments );
         }
-        private uint getIndexFromBytes(byte[] buf)
+        private int getIndexFromBytes(byte[] buf, TopologyInfo topologyInfo)
         {
             Array arr = (Array)buf;
             Int32 hash = MurmurHash3.hash(((sbyte[])arr));
-            return ((UInt32)hash)/getSegmentSize(topologyInfo.servers.Count);
+            Int32 normalizedHash= hash & MAXHASHVALUE;
+            return (int)(normalizedHash/getSegmentSize(topologyInfo.servers.Count));
         }
 
-        internal void UpdateTopologyInfo(TopologyInfo topology)
+        /**
+        * UpdatedTopologyInfo adds all the new host provided by the topology info
+        * structure to the cluster host list.
+        * Needs a way to cleanup no more used hosts
+        */
+        internal void UpdateTopologyInfo(TopologyInfo topology, UntypedCache cache)
         {
             this.TopologyId = topology.TopologyId;
-            this.topologyInfo = topology;
+            this.topologyInfoMap[cache] = topology;
             var newHosts = new List<InfinispanHost>();
-            foreach (var node in topology.servers) {
+            for (var i=0; i< topology.servers.Count;  i++) {
+                var node = topology.servers[i];
                 var hostName = Encoding.ASCII.GetString(node.Item1);
                 var port = node.Item2;
-                var added = false;
-                foreach (var oldHost in mHosts) {
-                    // Reuse current working host if available...
-                    if (oldHost.Name == hostName && oldHost.Port == port && oldHost.Available) {
-                        newHosts.Add(oldHost);
-                        added = true;
-                        continue;
+                var hostIsNew = true;
+                foreach (var host in mHosts) {
+                    if (host.Name == hostName && host.Port == port) {
+                        // By design if an host is return in a topology struct
+                        // it is available by default
+                        host.Available = true;
+                        hostIsNew = false;
+                        topology.hosts[i]=host;
+                      break;
                     }
-                }                
-                // ...or create a new one
-                if (!added) {
-                    newHosts.Add(new InfinispanHost(UseTLS, this, hostName, port));
+                }
+                // If host isn't in the list then add it
+                if (hostIsNew) {
+                    topology.hosts[i]=this.AddHost(hostName, port, UseTLS);
                 }
             }
-            mHosts = newHosts; // TODO: concurrency issues?
-            mActiveHosts = mHosts.ToArray(); // TODO: concurrency issues?
         }
         public async ValueTask<V> Put<K,V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key, V value, ExpirationTime lifespan=null, ExpirationTime maxidle=null)
         {
@@ -315,6 +346,62 @@ namespace Infinispan.Hotrod.Core
         }
         public Cache<K,V> newCache<K,V>(Marshaller<K> keyM, Marshaller<V> valM, string name) {
             return new Cache<K,V>(this, keyM, valM, name);
+        }
+
+        private class HostHandlerForRetry: IHostHandler
+        {
+            private InfinispanDG hostHandler;
+            private int indexOnInitialList=0;
+            private int indexOnSegment=0;
+            private int traversedSegments=0;
+            public HostHandlerForRetry(InfinispanDG hostHandler)
+            {
+                this.hostHandler = hostHandler;
+            }
+
+            public InfinispanHost AddHost(string host, int port = 11222)
+            {
+                return this.hostHandler.AddHost(host,port);
+            }
+
+            public InfinispanHost AddHost(string host, int port, bool ssl)
+            {
+                return this.hostHandler.AddHost(host,port,ssl);
+            }
+
+            // return the first host available in the initial list of hosts.
+            // Following calls will start the search from the index of the last host returned in the last call,
+            // this is how the retry policy is implemented here 
+            public InfinispanHost GetHost()
+            {
+                var items = this.hostHandler.mActiveHosts;
+                for (; this.indexOnInitialList < items.Length; this.indexOnInitialList++)
+                {
+                    if (items[this.indexOnInitialList].Available)
+                        return items[this.indexOnInitialList];
+                }
+                return null;
+            }
+
+            // First available host in the owner segment is returned
+            // Following calls try to return an available host using this strategy:
+            // - search in the owner segment
+            // - search in the other segments starting from the segment owner+1
+            public InfinispanHost GetHost(int segment, TopologyInfo topologyInfo)
+            {
+                var items = this.hostHandler.mActiveHosts;
+                while (this.traversedSegments<topologyInfo.OwnersPerSegment.Count) {
+                    var s = (segment+this.traversedSegments)%topologyInfo.OwnersPerSegment.Count;
+                    var owners = topologyInfo.OwnersPerSegment[s];
+                    for (; this.indexOnSegment < owners.Count; this.indexOnSegment++) {
+                        if (topologyInfo.hosts[owners[this.indexOnSegment]].Available)
+                            return topologyInfo.hosts[owners[this.indexOnSegment++]];
+                    }
+                ++this.traversedSegments;
+                this.indexOnSegment=0;
+                }
+                return null;
+            }
         }
     }
 }
