@@ -378,7 +378,7 @@ namespace Infinispan.Hotrod.Core
                 for (; this.indexOnInitialList < items.Length; this.indexOnInitialList++)
                 {
                     if (items[this.indexOnInitialList].Available)
-                        return items[this.indexOnInitialList];
+                        return items[this.indexOnInitialList++];
                 }
                 return null;
             }
