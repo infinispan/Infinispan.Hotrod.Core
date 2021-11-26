@@ -1,7 +1,6 @@
 using BeetleX;
 using BeetleX.Buffers;
 using BeetleX.Clients;
-using BeetleX.Tracks;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -32,7 +31,6 @@ namespace Infinispan.Hotrod.Core
                 context.NameAsBytes = new byte[]{};
             }
         }
-        internal XActivity Activity { get; set; }
         private byte ResponseOpCode;
         public byte ResponseStatus;
 
@@ -55,11 +53,8 @@ namespace Infinispan.Hotrod.Core
             }
         }
         public Type[] Types { get; private set; }
-        private CodeTrack mReceiveTrack;
         private void OnReceive(IClient c, ClientReceiveArgs reader)
         {
-            mReceiveTrack = CodeTrackFactory.Track("Read", CodeTrackLevel.Function, Activity?.Id, "Infinispan", "Protocol");
-
             var stream = reader.Stream.ToPipeStream();
 
             if (stream.ReadByte()!=0xA1) {
@@ -176,8 +171,6 @@ namespace Infinispan.Hotrod.Core
                 Result.ResultType = type;
                 Result.Messge = message;
                 Completed?.Invoke(this);
-                mReceiveTrack?.Dispose();
-                mReceiveTrack = null;
                 // TODO: no SELECT or AUTH command in Infinispan, correct implementation needed here
                 // TaskCompletion();
                 // if (Command.GetType() == typeof(SELECT) || Command.GetType() == typeof(AUTH))

@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Collections.Concurrent;
-using BeetleX.Tracks;
 
 namespace Infinispan.Hotrod.Core
 {
@@ -33,7 +32,6 @@ namespace Infinispan.Hotrod.Core
         {
             Flags = flags;
         }
-        internal XActivity Activity { get; set; }
         public Func<InfinispanRequest, PipeStream, Result> NetworkReceive { get; set; }
         public abstract string Name { get; }
         public abstract Byte Code { get; }
@@ -44,8 +42,6 @@ namespace Infinispan.Hotrod.Core
 
         public virtual void Execute(CommandContext ctx, InfinispanClient client, PipeStream stream)
         {
-            using (var track = CodeTrackFactory.Track("Write", CodeTrackLevel.Function, Activity?.Id, "Infinispan", "Protocol"))
-            {
                 OnExecute(ctx); // Build the message. But there's no need to build anything for hotrod
                 stream.WriteByte(0xA0);
                 Codec.writeVLong(ctx.MessageId, stream);
@@ -62,7 +58,6 @@ namespace Infinispan.Hotrod.Core
                     Codec.writeMediaType(ctx.KeyMediaType, stream);
                     Codec.writeMediaType(ctx.ValueMediaType, stream);
                 }
-            }
         }
 
         public abstract Result OnReceive(InfinispanRequest request, PipeStream stream);

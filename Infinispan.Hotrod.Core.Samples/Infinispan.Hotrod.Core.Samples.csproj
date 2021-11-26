@@ -7,6 +7,7 @@
 
   <ItemGroup>
     <PackageReference Include="Northwind.Data" Version="1.2.0" />
+    <PackageReference Include="BeetleX.Tracks" Version="0.7.5" />
   </ItemGroup>
 
   <ItemGroup>

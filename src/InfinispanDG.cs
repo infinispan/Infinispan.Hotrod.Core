@@ -1,5 +1,4 @@
-﻿using BeetleX.Tracks;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -128,22 +127,13 @@ namespace Infinispan.Hotrod.Core
                         // TODO: save the error and then go ahead with retry
                         continue;
                     }
-                    using (var tarck = CodeTrackFactory.Track(cmd.Name, CodeTrackLevel.Module, null, "Redis", client.Host.Name))
-                    {
-                        if (tarck.Enabled)
-                        {
-                            tarck.Activity?.AddTag("tag", "BeetleX Redis");
-                        }
-                        cmd.Activity = tarck.Activity;
                         InfinispanRequest request = new InfinispanRequest(host, host.Cluster, cache, client, cmd);
-                        request.Activity = tarck.Activity;
                         result = await request.Execute();
                         if (result.IsError) {
                             continue;
                         }
                         cmdResultTask.TrySetResult(result);
                         return result;
-                    }
                 } catch (Exception ) {}
                 finally
                 {
