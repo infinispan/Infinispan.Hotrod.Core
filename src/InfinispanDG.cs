@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using BeetleX.EventArgs;
 using Org.Infinispan.Query.Remote.Client;
 
 namespace Infinispan.Hotrod.Core
 {
-    public class InfinispanDG : IHostHandler, IDisposable
+    public class InfinispanDG : IHostHandler, IDisposable, ILogHandler
     {
-        public InfinispanDG(int db = 0, IDataFormater dataFormater = null, IHostHandler hostHandler = null)
+        public InfinispanDG(int db = 0, IHostHandler hostHandler = null)
         {
             DB = db;
             if (hostHandler == null)
@@ -21,10 +22,6 @@ namespace Infinispan.Hotrod.Core
                 this.HostHandler = hostHandler;
             }
         }
-
-        private static InfinispanDG mDefault = new InfinispanDG();
-        internal static InfinispanDG Default => mDefault;
-        public bool AutoPing { get; set; } = true;
         public string User { get; set; }
         public string Password { get; set; }
         public string AuthMech { get; set; }
@@ -37,13 +34,8 @@ namespace Infinispan.Hotrod.Core
         private Dictionary<UntypedCache, TopologyInfo> topologyInfoMap = new Dictionary<UntypedCache, TopologyInfo>();
         private IList<InfinispanHost> mHosts = new List<InfinispanHost>();
         private InfinispanHost[] mActiveHosts = new InfinispanHost[0];
-        private bool OnClientPush(InfinispanClient client)
-        {
-            return true;
-        }
         public int DB { get; set; }
         public static Int32 MAXHASHVALUE { get; private set; } = 0x7FFFFFFF;
-
         public InfinispanHost AddHost(string host, int port = 11222)
         {
             return AddHost(host, port, UseTLS);
@@ -59,9 +51,7 @@ namespace Infinispan.Hotrod.Core
             mHosts.Add(ispnHost);
             mActiveHosts = mHosts.ToArray();
             return ispnHost;
-        }
-
-  
+        }  
         InfinispanHost IHostHandler.GetHost()
         {
             var items = mActiveHosts;
@@ -347,6 +337,42 @@ namespace Infinispan.Hotrod.Core
         }
         public Cache<K,V> newCache<K,V>(Marshaller<K> keyM, Marshaller<V> valM, string name) {
             return new Cache<K,V>(this, keyM, valM, name);
+        }
+        private object mLockConsole = new object();
+        private LogType enabledType = LogType.Error;
+        public void EnableLog(LogType type) {
+            enabledType=type;
+        }
+        public void Log(LogType type, string message)
+        {
+            if (type < enabledType) {
+                return;
+            }
+            lock (mLockConsole)
+            {
+                Console.Write($"[{ DateTime.Now.ToString("HH:mmm:ss")}] ");
+                switch (type)
+                {
+                    case LogType.Error:
+                        Console.ForegroundColor = ConsoleColor.DarkRed;
+                        break;
+                    case LogType.Warring:
+                        Console.ForegroundColor = ConsoleColor.Yellow;
+                        break;
+                    case LogType.Fatal:
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        break;
+                    case LogType.Info:
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        break;
+                    default:
+                        Console.ForegroundColor = ConsoleColor.White;
+                        break;
+                }
+                Console.Write($"[{type.ToString()}] ");
+                Console.ForegroundColor = ConsoleColor.Gray;
+                Console.WriteLine(message);
+            }
         }
 
         private class HostHandlerForRetry: IHostHandler

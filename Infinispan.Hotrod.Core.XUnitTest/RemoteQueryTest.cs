@@ -38,12 +38,13 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             }
             hotRodServer = new HotRodServer("infinispan.xml");
             hotRodServer.StartHotRodServer();
-            DefaultInfinispan.Instance.AddHost("127.0.0.1");
-            DefaultInfinispan.Instance.Version=0x1f;
-            DefaultInfinispan.Instance.ForceReturnValue=false;
-            DefaultInfinispan.Instance.ClientIntelligence=0x01;
+            var infinispan = new InfinispanDG();
+            infinispan.AddHost("127.0.0.1");
+            infinispan.Version=0x1f;
+            infinispan.ForceReturnValue=false;
+            infinispan.ClientIntelligence=0x01;
 
-            metaCache = DefaultInfinispan.Instance.newCache(new  StringMarshaller(), new  StringMarshaller(), PROTOBUF_METADATA_CACHE_NAME);
+            metaCache = infinispan.newCache(new  StringMarshaller(), new  StringMarshaller(), PROTOBUF_METADATA_CACHE_NAME);
             // TODO: fix syntax below
             MediaType kvMediaType = new MediaType();
             kvMediaType.CustomMediaType= Encoding.ASCII.GetBytes("text/plain");
@@ -58,7 +59,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
                 Assert.True(false, "fail: error in registering .proto model");
             }
 
-            cache = DefaultInfinispan.Instance.newCache(new BasicTypesProtoStreamMarshaller(), new BasicTypesProtoStreamMarshaller(), NAMED_CACHE);
+            cache = infinispan.newCache(new BasicTypesProtoStreamMarshaller(), new BasicTypesProtoStreamMarshaller(), NAMED_CACHE);
 
             MediaType kvMT = new MediaType();
             kvMT.CustomMediaType= Encoding.ASCII.GetBytes("application/x-protostream");

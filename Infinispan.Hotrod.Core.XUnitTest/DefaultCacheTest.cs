@@ -13,11 +13,12 @@ namespace Infinispan.Hotrod.Core.XUnitTest
         public DefaultCacheTestFixture() {
             hotRodServer = new HotRodServer("infinispan-noauth.xml");
             hotRodServer.StartHotRodServer();
-            DefaultInfinispan.Instance.AddHost("127.0.0.1");
-            DefaultInfinispan.Instance.Version=0x1f;
-            DefaultInfinispan.Instance.ForceReturnValue=false;
-            DefaultInfinispan.Instance.ClientIntelligence=0x01;
-            cache = DefaultInfinispan.Instance.newCache(new StringMarshaller(), new StringMarshaller(), "default");
+            var infinispan = new InfinispanDG();
+            infinispan.AddHost("127.0.0.1");
+            infinispan.Version=0x1f;
+            infinispan.ForceReturnValue=false;
+            infinispan.ClientIntelligence=0x01;
+            cache = infinispan.newCache(new StringMarshaller(), new StringMarshaller(), "default");
         }
          
         public void Dispose()   

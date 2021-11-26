@@ -9,7 +9,7 @@ namespace Infinispan.Hotrod.Core.Samples
         static async Task Main(string[] args)
         {
             CodeTrackFactory.Level = CodeTrackLevel.Code;
-            var ispnCluster = DefaultInfinispan.Instance;
+            var ispnCluster = new InfinispanDG();
 
             // Configuration section
             // ispnCluster.User="reader";
@@ -31,7 +31,7 @@ namespace Infinispan.Hotrod.Core.Samples
         {
             var km = new StringMarshaller();
             var vm = new StringMarshaller();
-            var cache = DefaultInfinispan.Instance.newCache(km, vm, "distributed");
+            var cache = new InfinispanDG().newCache(km, vm, "distributed");
             cache.ForceReturnValue = true;
             string result = await cache.Put("key1", "value1");
             Console.WriteLine("Result is: "+result);
