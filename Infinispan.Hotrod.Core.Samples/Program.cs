@@ -23,20 +23,20 @@ namespace Infinispan.Hotrod.Core.Samples
             System.Threading.Thread.Sleep(1000);
             using (CodeTrackFactory.TrackReport("Test", CodeTrackLevel.Bussiness, null))
             {
-                await Test();
+                await Test(ispnCluster);
             }
             Console.WriteLine(CodeTrackFactory.Activity?.GetReport());
         }
-        static async Task Test()
+        static async Task Test(InfinispanDG ispnCluster)
         {
             var km = new StringMarshaller();
             var vm = new StringMarshaller();
-            var cache = new InfinispanDG().newCache(km, vm, "distributed");
+            var cache = ispnCluster.newCache(km, vm, "distributed");
             cache.ForceReturnValue = true;
             string result = await cache.Put("key1", "value1");
-            Console.WriteLine("Result is: "+result);
+            Console.WriteLine("Result is: " + result);
             string getResult = await cache.Get("key1");
-            Console.WriteLine("Get Result is: "+getResult);
+            Console.WriteLine("Get Result is: " + getResult);
         }
     }
 }
