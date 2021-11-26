@@ -8,33 +8,31 @@ using Org.Infinispan.Query.Remote.Client;
 
 namespace Infinispan.Hotrod.Core
 {
+    /// <summary>
+    /// InfinispanDG class describes an Infinispan Cluster
+    /// </summary>
     public class InfinispanDG : IHostHandler, IDisposable, ILogHandler
     {
-        public InfinispanDG(int db = 0, IHostHandler hostHandler = null)
+        /// <summary>
+        /// Construct a cluster
+        /// </summary>
+        public InfinispanDG()
         {
-            DB = db;
-            if (hostHandler == null)
-            {
-                this.HostHandler = this;
-            }
-            else
-            {
-                this.HostHandler = hostHandler;
-            }
+            // Default HostHandler is this
+            this.HostHandler = this;
         }
         public string User { get; set; }
         public string Password { get; set; }
         public string AuthMech { get; set; }
-        public byte Version {get; set;} = 0x1f;
-        public byte ClientIntelligence {get; set;} = 0x01;
-        public UInt32 TopologyId {get; set;} = 0xFFFFFFFFU;
+        public byte Version { get; set; } = 0x1f;
+        public byte ClientIntelligence { get; set; } = 0x01;
+        public UInt32 TopologyId { get; set; } = 0xFFFFFFFFU;
         public bool ForceReturnValue = false;
         public bool UseTLS = false;
         private IHostHandler HostHandler;
         private Dictionary<UntypedCache, TopologyInfo> topologyInfoMap = new Dictionary<UntypedCache, TopologyInfo>();
         private IList<InfinispanHost> mHosts = new List<InfinispanHost>();
         private InfinispanHost[] mActiveHosts = new InfinispanHost[0];
-        public int DB { get; set; }
         public static Int32 MAXHASHVALUE { get; private set; } = 0x7FFFFFFF;
         public InfinispanHost AddHost(string host, int port = 11222)
         {
@@ -45,13 +43,13 @@ namespace Infinispan.Hotrod.Core
             if (port == 0)
                 port = 11222;
             InfinispanHost ispnHost = new InfinispanHost(ssl, this, host, port);
-            ispnHost.User=User;
-            ispnHost.Password=Password;
-            ispnHost.AuthMech=AuthMech;
+            ispnHost.User = User;
+            ispnHost.Password = Password;
+            ispnHost.AuthMech = AuthMech;
             mHosts.Add(ispnHost);
             mActiveHosts = mHosts.ToArray();
             return ispnHost;
-        }  
+        }
         InfinispanHost IHostHandler.GetHost()
         {
             var items = mActiveHosts;
@@ -60,17 +58,17 @@ namespace Infinispan.Hotrod.Core
                 if (items[i].Available)
                     return items[i];
             }
-          return null;
+            return null;
         }
         InfinispanHost IHostHandler.GetHost(int index, TopologyInfo topologyInfo)
         {
             var items = mActiveHosts;
-            foreach(var owner in topologyInfo.OwnersPerSegment[index])
+            foreach (var owner in topologyInfo.OwnersPerSegment[index])
             {
-            if (items[owner].Available)
-                return items[owner];
+                if (items[owner].Available)
+                    return items[owner];
             }
-          return null;
+            return null;
         }
         public async Task<Result> Execute(UntypedCache cache, Command cmd)
         {
@@ -87,11 +85,15 @@ namespace Infinispan.Hotrod.Core
             var hostHandlerForRetry = new HostHandlerForRetry(this);
             var cmdResultTask = new TaskCompletionSource<Result>();
             Result lastResult = new Result();
-            while(true)  {
-                if (cmd.isHashAware() && topologyInfo!=null) {
+            while (true)
+            {
+                if (cmd.isHashAware() && topologyInfo != null)
+                {
                     var keyIdx = this.getIndexFromBytes(cmd.getKeyAsBytes(), topologyInfo);
                     host = hostHandlerForRetry.GetHost(keyIdx, topologyInfo);
-                } else {
+                }
+                else
+                {
                     host = hostHandlerForRetry.GetHost();
                 }
                 if (host == null)
@@ -104,7 +106,8 @@ namespace Infinispan.Hotrod.Core
                 // First available host will be used even if its clients are all busy
                 // caller will have to wait (TODO: better policy can be implemented)
                 var client = await host.Pop();
-                if (client == null) {
+                if (client == null)
+                {
                     // clients for the host are all busy, go ahead with the next host if
                     var ret = new Result() { ResultType = ResultType.NetError, Messge = "exceeding maximum number of connections" };
                     continue;
@@ -117,14 +120,16 @@ namespace Infinispan.Hotrod.Core
                         // TODO: save the error and then go ahead with retry
                         continue;
                     }
-                        InfinispanRequest request = new InfinispanRequest(host, host.Cluster, cache, client, cmd);
-                        result = await request.Execute();
-                        if (result.IsError) {
-                            continue;
-                        }
-                        cmdResultTask.TrySetResult(result);
-                        return result;
-                } catch (Exception ) {}
+                    InfinispanRequest request = new InfinispanRequest(host, host.Cluster, cache, client, cmd);
+                    result = await request.Execute();
+                    if (result.IsError)
+                    {
+                        continue;
+                    }
+                    cmdResultTask.TrySetResult(result);
+                    return result;
+                }
+                catch (Exception) { }
                 finally
                 {
                     if (client != null)
@@ -134,15 +139,16 @@ namespace Infinispan.Hotrod.Core
 
         }
 
-        public static uint getSegmentSize(int numSegments) {
-            return (uint)( InfinispanDG.MAXHASHVALUE / numSegments );
+        public static uint getSegmentSize(int numSegments)
+        {
+            return (uint)(InfinispanDG.MAXHASHVALUE / numSegments);
         }
         private int getIndexFromBytes(byte[] buf, TopologyInfo topologyInfo)
         {
             Array arr = (Array)buf;
             Int32 hash = MurmurHash3.hash(((sbyte[])arr));
-            Int32 normalizedHash= hash & MAXHASHVALUE;
-            return (int)(normalizedHash/getSegmentSize(topologyInfo.servers.Count));
+            Int32 normalizedHash = hash & MAXHASHVALUE;
+            return (int)(normalizedHash / getSegmentSize(topologyInfo.servers.Count));
         }
 
         /**
@@ -155,35 +161,41 @@ namespace Infinispan.Hotrod.Core
             this.TopologyId = topology.TopologyId;
             this.topologyInfoMap[cache] = topology;
             var newHosts = new List<InfinispanHost>();
-            for (var i=0; i< topology.servers.Count;  i++) {
+            for (var i = 0; i < topology.servers.Count; i++)
+            {
                 var node = topology.servers[i];
                 var hostName = Encoding.ASCII.GetString(node.Item1);
                 var port = node.Item2;
                 var hostIsNew = true;
-                foreach (var host in mHosts) {
-                    if (host.Name == hostName && host.Port == port) {
+                foreach (var host in mHosts)
+                {
+                    if (host.Name == hostName && host.Port == port)
+                    {
                         // By design if an host is return in a topology struct
                         // it is available by default
                         host.Available = true;
                         hostIsNew = false;
-                        topology.hosts[i]=host;
-                      break;
+                        topology.hosts[i] = host;
+                        break;
                     }
                 }
                 // If host isn't in the list then add it
-                if (hostIsNew) {
-                    topology.hosts[i]=this.AddHost(hostName, port, UseTLS);
+                if (hostIsNew)
+                {
+                    topology.hosts[i] = this.AddHost(hostName, port, UseTLS);
                 }
             }
         }
-        public async ValueTask<V> Put<K,V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key, V value, ExpirationTime lifespan=null, ExpirationTime maxidle=null)
+        public async ValueTask<V> Put<K, V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key, V value, ExpirationTime lifespan = null, ExpirationTime maxidle = null)
         {
-            Commands.PUT<K,V> cmd = new Commands.PUT<K,V>(km, vm, key, value);
+            Commands.PUT<K, V> cmd = new Commands.PUT<K, V>(km, vm, key, value);
             cmd.Flags = cache.Flags;
-            if (lifespan!=null){
+            if (lifespan != null)
+            {
                 cmd.Lifespan = lifespan;
             }
-            if (maxidle!=null) {
+            if (maxidle != null)
+            {
                 cmd.MaxIdle = maxidle;
             }
             var result = await Execute(cache, cmd);
@@ -191,34 +203,35 @@ namespace Infinispan.Hotrod.Core
                 throw new InfinispanException(result.Messge);
             return cmd.PrevValue;
         }
-        public async ValueTask<V> Get<K,V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key)
+        public async ValueTask<V> Get<K, V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key)
         {
-            Commands.GET<K,V> cmd = new Commands.GET<K,V>(km, vm, key);
+            Commands.GET<K, V> cmd = new Commands.GET<K, V>(km, vm, key);
             cmd.Flags = cache.Flags;
             var result = await Execute(cache, cmd);
             if (result.IsError)
                 throw new InfinispanException(result.Messge);
             return cmd.Value;
         }
-        public async ValueTask<ValueWithVersion<V>> GetWithVersion<K,V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key)
+        public async ValueTask<ValueWithVersion<V>> GetWithVersion<K, V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key)
         {
-            Commands.GETWITHVERSION<K,V> cmd = new Commands.GETWITHVERSION<K,V>(km, vm, key);
+            Commands.GETWITHVERSION<K, V> cmd = new Commands.GETWITHVERSION<K, V>(km, vm, key);
             cmd.Flags = cache.Flags;
             var result = await Execute(cache, cmd);
             if (result.IsError)
                 throw new InfinispanException(result.Messge);
             return cmd.ValueWithVersion;
         }
-        public async ValueTask<ValueWithMetadata<V>> GetWithMetadata<K,V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key)
+        public async ValueTask<ValueWithMetadata<V>> GetWithMetadata<K, V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key)
         {
-            Commands.GETWITHMETADATA<K,V> cmd = new Commands.GETWITHMETADATA<K,V>(km, vm, key);
+            Commands.GETWITHMETADATA<K, V> cmd = new Commands.GETWITHMETADATA<K, V>(km, vm, key);
             cmd.Flags = cache.Flags;
             var result = await Execute(cache, cmd);
             if (result.IsError)
                 throw new InfinispanException(result.Messge);
             return cmd.ValueWithMetadata;
         }
-        public async ValueTask<Int32> Size(UntypedCache cache) {
+        public async ValueTask<Int32> Size(UntypedCache cache)
+        {
             Commands.SIZE cmd = new Commands.SIZE();
             cmd.Flags = cache.Flags;
             var result = await Execute(cache, cmd);
@@ -229,7 +242,8 @@ namespace Infinispan.Hotrod.Core
         public async ValueTask<Boolean> ContainsKey<K>(Marshaller<K> km, UntypedCache cache, K key)
         {
             Commands.CONTAINSKEY<K> cmd = new Commands.CONTAINSKEY<K>(km, key);
-            if (cache != null) {
+            if (cache != null)
+            {
                 cmd.Flags = cache.Flags;
             }
             var result = await Execute(cache, cmd);
@@ -237,16 +251,17 @@ namespace Infinispan.Hotrod.Core
                 throw new InfinispanException(result.Messge);
             return cmd.IsContained;
         }
-        public async ValueTask<(V V, Boolean Removed)> Remove<K,V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key)
+        public async ValueTask<(V V, Boolean Removed)> Remove<K, V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key)
         {
-            Commands.REMOVE<K,V> cmd = new Commands.REMOVE<K,V>(km, vm, key);
+            Commands.REMOVE<K, V> cmd = new Commands.REMOVE<K, V>(km, vm, key);
             cmd.Flags = cache.Flags;
             var result = await Execute(cache, cmd);
             if (result.IsError)
                 throw new InfinispanException(result.Messge);
             return (cmd.PrevValue, cmd.Removed);
         }
-        public async ValueTask Clear(UntypedCache cache) {
+        public async ValueTask Clear(UntypedCache cache)
+        {
             Commands.CLEAR cmd = new Commands.CLEAR();
             cmd.Flags = cache.Flags;
             var result = await Execute(cache, cmd);
@@ -255,7 +270,8 @@ namespace Infinispan.Hotrod.Core
             return;
         }
 
-        public async ValueTask<ServerStatistics> Stats(UntypedCache cache) {
+        public async ValueTask<ServerStatistics> Stats(UntypedCache cache)
+        {
             Commands.STATS cmd = new Commands.STATS();
             cmd.Flags = cache.Flags;
             var result = await Execute(cache, cmd);
@@ -263,14 +279,16 @@ namespace Infinispan.Hotrod.Core
                 throw new InfinispanException(result.Messge);
             return cmd.Stats;
         }
-        public async ValueTask<(V V, Boolean Replaced)> Replace<K,V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key, V value, ExpirationTime lifespan=null, ExpirationTime maxidle=null)
+        public async ValueTask<(V V, Boolean Replaced)> Replace<K, V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key, V value, ExpirationTime lifespan = null, ExpirationTime maxidle = null)
         {
-            Commands.REPLACE<K,V> cmd = new Commands.REPLACE<K,V>(km, vm, key, value);
+            Commands.REPLACE<K, V> cmd = new Commands.REPLACE<K, V>(km, vm, key, value);
             cmd.Flags = cache.Flags;
-            if (lifespan!=null){
+            if (lifespan != null)
+            {
                 cmd.Lifespan = lifespan;
             }
-            if (maxidle!=null) {
+            if (maxidle != null)
+            {
                 cmd.MaxIdle = maxidle;
             }
             var result = await Execute(cache, cmd);
@@ -278,14 +296,16 @@ namespace Infinispan.Hotrod.Core
                 throw new InfinispanException(result.Messge);
             return (cmd.PrevValue, cmd.Replaced);
         }
-        public async ValueTask<Boolean> ReplaceWithVersion<K,V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key, V value, Int64 version, ExpirationTime lifespan=null, ExpirationTime maxidle=null)
+        public async ValueTask<Boolean> ReplaceWithVersion<K, V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key, V value, Int64 version, ExpirationTime lifespan = null, ExpirationTime maxidle = null)
         {
-            Commands.REPLACEWITHVERSION<K,V> cmd = new Commands.REPLACEWITHVERSION<K,V>(km, vm, key, value);
+            Commands.REPLACEWITHVERSION<K, V> cmd = new Commands.REPLACEWITHVERSION<K, V>(km, vm, key, value);
             cmd.Flags = cache.Flags;
-            if (lifespan!=null){
+            if (lifespan != null)
+            {
                 cmd.Lifespan = lifespan;
             }
-            if (maxidle!=null) {
+            if (maxidle != null)
+            {
                 cmd.MaxIdle = maxidle;
             }
             cmd.Version = version;
@@ -294,9 +314,9 @@ namespace Infinispan.Hotrod.Core
                 throw new InfinispanException(result.Messge);
             return cmd.Replaced;
         }
-        public async ValueTask<(V V, Boolean Removed)> RemoveWithVersion<K,V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key, Int64 version)
+        public async ValueTask<(V V, Boolean Removed)> RemoveWithVersion<K, V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key, Int64 version)
         {
-            Commands.REMOVEWITHVERSION<K,V> cmd = new Commands.REMOVEWITHVERSION<K,V>(km, vm, key);
+            Commands.REMOVEWITHVERSION<K, V> cmd = new Commands.REMOVEWITHVERSION<K, V>(km, vm, key);
             cmd.Flags = cache.Flags;
             cmd.Version = version;
             var result = await Execute(cache, cmd);
@@ -304,7 +324,8 @@ namespace Infinispan.Hotrod.Core
                 throw new InfinispanException(result.Messge);
             return (cmd.PrevValue, cmd.Removed);
         }
-        public async ValueTask<QueryResponse> Query(QueryRequest query, UntypedCache cache) {
+        public async ValueTask<QueryResponse> Query(QueryRequest query, UntypedCache cache)
+        {
             Commands.QUERY cmd = new Commands.QUERY(query);
             cmd.Flags = cache.Flags;
             cmd.Query = query;
@@ -316,7 +337,8 @@ namespace Infinispan.Hotrod.Core
         public async ValueTask<ISet<K>> KeySet<K>(Marshaller<K> km, UntypedCache cache)
         {
             Commands.KEYSET<K> cmd = new Commands.KEYSET<K>(km);
-            if (cache != null) {
+            if (cache != null)
+            {
                 cmd.Flags = cache.Flags;
             }
             var result = await Execute(cache, cmd);
@@ -335,17 +357,29 @@ namespace Infinispan.Hotrod.Core
                     item.Dispose();
             }
         }
-        public Cache<K,V> newCache<K,V>(Marshaller<K> keyM, Marshaller<V> valM, string name) {
-            return new Cache<K,V>(this, keyM, valM, name);
+        /// <summary>
+        /// Returns a proxy to a remote cache on the server
+        /// </summary>
+        /// <typeparam name="K">Type of the key</typeparam>
+        /// <typeparam name="V">Type of the value</typeparam>
+        /// <param name="keyM">A marshaller for K. <see>Infinispan.Hotrod.Core.Marshaller</see></param>
+        /// <param name="valM">A marshaller for V</param>
+        /// <param name="name">Name of the cache</param>
+        /// <returns></returns>
+        public Cache<K, V> newCache<K, V>(Marshaller<K> keyM, Marshaller<V> valM, string name)
+        {
+            return new Cache<K, V>(this, keyM, valM, name);
         }
         private object mLockConsole = new object();
         private LogType enabledType = LogType.Error;
-        public void EnableLog(LogType type) {
-            enabledType=type;
+        public void EnableLog(LogType type)
+        {
+            enabledType = type;
         }
         public void Log(LogType type, string message)
         {
-            if (type < enabledType) {
+            if (type < enabledType)
+            {
                 return;
             }
             lock (mLockConsole)
@@ -375,12 +409,12 @@ namespace Infinispan.Hotrod.Core
             }
         }
 
-        private class HostHandlerForRetry: IHostHandler
+        private class HostHandlerForRetry : IHostHandler
         {
             private InfinispanDG hostHandler;
-            private int indexOnInitialList=0;
-            private int indexOnSegment=0;
-            private int traversedSegments=0;
+            private int indexOnInitialList = 0;
+            private int indexOnSegment = 0;
+            private int traversedSegments = 0;
             public HostHandlerForRetry(InfinispanDG hostHandler)
             {
                 this.hostHandler = hostHandler;
@@ -388,12 +422,12 @@ namespace Infinispan.Hotrod.Core
 
             public InfinispanHost AddHost(string host, int port = 11222)
             {
-                return this.hostHandler.AddHost(host,port);
+                return this.hostHandler.AddHost(host, port);
             }
 
             public InfinispanHost AddHost(string host, int port, bool ssl)
             {
-                return this.hostHandler.AddHost(host,port,ssl);
+                return this.hostHandler.AddHost(host, port, ssl);
             }
 
             // return the first host available in the initial list of hosts.
@@ -417,15 +451,17 @@ namespace Infinispan.Hotrod.Core
             public InfinispanHost GetHost(int segment, TopologyInfo topologyInfo)
             {
                 var items = this.hostHandler.mActiveHosts;
-                while (this.traversedSegments<topologyInfo.OwnersPerSegment.Count) {
-                    var s = (segment+this.traversedSegments)%topologyInfo.OwnersPerSegment.Count;
+                while (this.traversedSegments < topologyInfo.OwnersPerSegment.Count)
+                {
+                    var s = (segment + this.traversedSegments) % topologyInfo.OwnersPerSegment.Count;
                     var owners = topologyInfo.OwnersPerSegment[s];
-                    for (; this.indexOnSegment < owners.Count; this.indexOnSegment++) {
+                    for (; this.indexOnSegment < owners.Count; this.indexOnSegment++)
+                    {
                         if (topologyInfo.hosts[owners[this.indexOnSegment]].Available)
                             return topologyInfo.hosts[owners[this.indexOnSegment++]];
                     }
-                ++this.traversedSegments;
-                this.indexOnSegment=0;
+                    ++this.traversedSegments;
+                    this.indexOnSegment = 0;
                 }
                 return null;
             }
