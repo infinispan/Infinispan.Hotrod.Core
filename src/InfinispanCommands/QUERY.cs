@@ -41,8 +41,8 @@ namespace Infinispan.Hotrod.Core.Commands
             {
                 return new Result { Status = ResultStatus.Completed, ResultType = ResultType.Null };
             }
-            var task = Codec.readArray(stream, ref request.ras);
-            var buf = task.Result;
+            Codec.readArray(stream, ref request.ras);
+            var buf = request.ras.Result;
             QueryResponse = Org.Infinispan.Query.Remote.Client.QueryResponse.Parser.ParseFrom(buf);
             return new Result { Status = ResultStatus.Completed, ResultType = ResultType.Object };
             // var buf = Codec.readArray(stream, ref size);

@@ -5,7 +5,7 @@ using BeetleX.Buffers;
 
 namespace Infinispan.Hotrod.Core.Commands
 {
-    public class REMOVEWITHVERSION<K,V> : CommandWithKey<K>
+    public class REMOVEWITHVERSION<K, V> : CommandWithKey<K>
     {
         public REMOVEWITHVERSION(Marshaller<K> km, Marshaller<V> vm, K key)
         {
@@ -20,7 +20,7 @@ namespace Infinispan.Hotrod.Core.Commands
         public Int64 Version;
         public override string Name => "REPLACEWITHVERSION";
         public override Byte Code => 0x0D;
-        public V PrevValue { get; private set;}
+        public V PrevValue { get; private set; }
         public Boolean Removed;
         public override void OnExecute(CommandContext ctx)
         {
@@ -35,16 +35,18 @@ namespace Infinispan.Hotrod.Core.Commands
         }
         public override Result OnReceive(InfinispanRequest request, PipeStream stream)
         {
-            Removed=Codec30.isSuccess(request.ResponseStatus);
+            Removed = Codec30.isSuccess(request.ResponseStatus);
             if ((request.Command.Flags & 0x01) == 1 && Codec30.hasPrevious(request.ResponseStatus))
             {
-                var retValAsArray = Codec.readArray(stream);
-                if (retValAsArray.Length>0) {
+                Codec.readArray(stream, ref request.ras);
+                var retValAsArray = request.ras.Result;
+                if (retValAsArray.Length > 0)
+                {
                     PrevValue = ValueMarshaller.unmarshall(retValAsArray);
-                    return new Result{ Status =  ResultStatus.Completed, ResultType = ResultType.Object };
+                    return new Result { Status = ResultStatus.Completed, ResultType = ResultType.Object };
                 }
             }
-            return new Result{ Status =  ResultStatus.Completed, ResultType = ResultType.Null };
+            return new Result { Status = ResultStatus.Completed, ResultType = ResultType.Null };
         }
     }
 }

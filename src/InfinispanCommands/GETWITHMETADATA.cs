@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Infinispan.Hotrod.Core.Commands
 {
-    public class GETWITHMETADATA<K,V> : CommandWithKey<K>
+    public class GETWITHMETADATA<K, V> : CommandWithKey<K>
     {
         public GETWITHMETADATA(Marshaller<K> km, Marshaller<V> vm, K key)
         {
@@ -34,22 +34,26 @@ namespace Infinispan.Hotrod.Core.Commands
 
         public override Result OnReceive(InfinispanRequest request, PipeStream stream)
         {
-            if (request.ResponseStatus == Codec30.KEY_DOES_NOT_EXIST_STATUS) {
-                return new Result{ Status =  ResultStatus.Completed, ResultType = ResultType.Null };
+            if (request.ResponseStatus == Codec30.KEY_DOES_NOT_EXIST_STATUS)
+            {
+                return new Result { Status = ResultStatus.Completed, ResultType = ResultType.Null };
             }
             ValueWithMetadata = new ValueWithMetadata<V>();
             var expirationInfoFlags = (byte)stream.ReadByte();
-            if ((expirationInfoFlags & 0x01) == 0)  { // no infinite lifespan
+            if ((expirationInfoFlags & 0x01) == 0)
+            { // no infinite lifespan
                 ValueWithMetadata.Created = (Int64)Codec.readLong(stream);
                 ValueWithMetadata.Lifespan = (Int32)Codec.readVInt(stream);
             }
-            if ((expirationInfoFlags & 0x02) == 0)  { // no infinite maxidle
+            if ((expirationInfoFlags & 0x02) == 0)
+            { // no infinite maxidle
                 ValueWithMetadata.LastUsed = (Int64)Codec.readLong(stream);
                 ValueWithMetadata.MaxIdle = (Int32)Codec.readVInt(stream);
             }
             ValueWithMetadata.Version = Codec.readLong(stream);
-            ValueWithMetadata.Value = ValueMarshaller.unmarshall(Codec.readArray(stream));
-            return new Result{ Status =  ResultStatus.Completed, ResultType = ResultType.Object };
+            Codec.readArray(stream, ref request.ras);
+            ValueWithMetadata.Value = ValueMarshaller.unmarshall(request.ras.Result);
+            return new Result { Status = ResultStatus.Completed, ResultType = ResultType.Object };
         }
     }
 }

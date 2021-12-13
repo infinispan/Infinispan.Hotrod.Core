@@ -55,59 +55,25 @@ namespace Infinispan.Hotrod.Core
             }
             return i;
         }
-        public static Task<byte[]> readArray(PipeStream stream, ref ReadArraySession ras)
+        public static void readArray(PipeStream stream, ref ReadArraySession ras)
         {
-            if (ras == null || ras.CompleteSource.Task.IsCompleted)
-            {
-                ras = new ReadArraySession(readVInt(stream));
-            }
+            ras = new ReadArraySession(readVInt(stream));
             if (stream.Length >= ras.Size)
             {
                 byte[] ret = new byte[ras.Size];
                 stream.Read(ret, 0, ras.Size);
-                ras.CompleteSource.SetResult(ret);
+                ras.Result = ret;
             }
-            return ras.CompleteSource.Task;
         }
 
         public static void continueReadArray(PipeStream stream, ref ReadArraySession ras)
         {
-            if (ras != null && !ras.CompleteSource.Task.IsCompleted && ras.HasEnoughBytes(stream))
+            if (ras != null && !ras.IsCompleted() && ras.HasEnoughBytes(stream))
             {  // There's a task not completed and we have enoungh bytes to complete
                 byte[] ret = new byte[ras.Size];
                 stream.Read(ret, 0, ras.Size);
-                ras.CompleteSource.SetResult(ret);
+                ras.Result = ret;
             }
-        }
-
-        public static byte[] readArray(PipeStream stream, ref int size)
-        {
-            if (size == 0)
-            {
-                size = readVInt(stream);
-            }
-            if (stream.Length < size)
-            {
-                return null;
-            }
-            else
-            {
-                byte[] ret = new byte[size];
-                stream.Read(ret, 0, size);
-                return ret;
-            }
-        }
-
-        public static byte[] readArray(PipeStream stream)
-        {
-            var size = readVInt(stream);
-            if (stream.Length >= size)
-            {
-                byte[] ret = new byte[size];
-                stream.Read(ret, 0, size);
-                return ret;
-            }
-            return null;
         }
         public static Int16 readShort(PipeStream stream)
         {
@@ -258,11 +224,24 @@ namespace Infinispan.Hotrod.Core
             CompleteSource = new TaskCompletionSource<byte[]>();
         }
         public int Size;
-        public TaskCompletionSource<byte[]> CompleteSource;
+        private TaskCompletionSource<byte[]> CompleteSource;
 
         public bool HasEnoughBytes(PipeStream stream)
         {
             return stream.Length >= this.Size;
+        }
+
+        public bool IsCompleted() { return CompleteSource.Task.IsCompleted; }
+        public byte[] Result
+        {
+            get
+            {
+                return CompleteSource.Task.Result;
+            }
+            set
+            {
+                CompleteSource.SetResult(value);
+            }
         }
     }
 

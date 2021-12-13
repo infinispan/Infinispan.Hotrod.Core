@@ -31,7 +31,8 @@ namespace Infinispan.Hotrod.Core.Commands
             availableMechs = new string[count];
             for (int i = 0; i < count; i++)
             {
-                availableMechs[i] = Encoding.ASCII.GetString(Codec.readArray(stream));
+                Codec.readArray(stream, ref request.ras);
+                availableMechs[i] = Encoding.ASCII.GetString(request.ras.Result);
             }
             return new Result { Status = ResultStatus.Completed, ResultType = ResultType.Object };
         }

@@ -28,18 +28,22 @@ namespace Infinispan.Hotrod.Core.Commands
 
         public override Result OnReceive(InfinispanRequest request, PipeStream stream)
         {
-            if (request.ResponseStatus == Codec30.NO_ERROR_STATUS) {
-                var d = new Dictionary<string,string>();
+            if (request.ResponseStatus == Codec30.NO_ERROR_STATUS)
+            {
+                var d = new Dictionary<string, string>();
                 var statsNum = Codec.readVInt(stream);
-                for (int i=0; i<statsNum; i++) {
-                    var name = Encoding.ASCII.GetString(Codec.readArray(stream));
-                    var value = Encoding.ASCII.GetString(Codec.readArray(stream));
-                    d.Add(name,value);
+                for (int i = 0; i < statsNum; i++)
+                {
+                    Codec.readArray(stream, ref request.ras);
+                    var name = Encoding.ASCII.GetString(request.ras.Result);
+                    Codec.readArray(stream, ref request.ras);
+                    var value = Encoding.ASCII.GetString(request.ras.Result);
+                    d.Add(name, value);
                 }
                 this.Stats = new ServerStatistics(d);
-                return new Result{ Status =  ResultStatus.Completed, ResultType = ResultType.Object };
+                return new Result { Status = ResultStatus.Completed, ResultType = ResultType.Object };
             }
-            return new Result{ Status =  ResultStatus.Completed, ResultType = ResultType.Error };
+            return new Result { Status = ResultStatus.Completed, ResultType = ResultType.Error };
         }
     }
 }

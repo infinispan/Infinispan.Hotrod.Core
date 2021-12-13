@@ -70,7 +70,7 @@ namespace Infinispan.Hotrod.Core
             }
             else
             {
-                if (ras != null && !ras.CompleteSource.Task.IsCompleted)
+                if (ras != null && !ras.IsCompleted())
                 {
                     Codec.continueReadArray(stream, ref ras);
                 }
@@ -133,7 +133,8 @@ namespace Infinispan.Hotrod.Core
             t.hosts = new InfinispanHost[serversNum];
             for (int i = 0; i < serversNum; i++)
             {
-                var addr = Codec.readArray(stream);
+                Codec.readArray(stream, ref ras);
+                var addr = ras.Result;
                 var port = Codec.readUnsignedShort(stream);
                 t.servers.Add(Tuple.Create(addr, port));
             }
@@ -160,7 +161,8 @@ namespace Infinispan.Hotrod.Core
         {
             if (Codec30.hasError(status))
             {
-                return Codec.readArray(stream);
+                Codec.readArray(stream, ref ras);
+                return ras.Result;
             }
             return null;
         }

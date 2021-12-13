@@ -5,7 +5,7 @@ using BeetleX.Buffers;
 
 namespace Infinispan.Hotrod.Core.Commands
 {
-    public class REMOVE<K,V> : CommandWithKey<K>
+    public class REMOVE<K, V> : CommandWithKey<K>
     {
         public REMOVE(Marshaller<K> km, Marshaller<V> vm, K key)
         {
@@ -18,8 +18,8 @@ namespace Infinispan.Hotrod.Core.Commands
         public Marshaller<V> ValueMarshaller;
         public int TimeOut { get; set; }
 
-        public ExpirationTime Lifespan = new ExpirationTime{ Unit = TimeUnit.DEFAULT, Value = 0};
-        public ExpirationTime MaxIdle = new ExpirationTime{ Unit = TimeUnit.DEFAULT, Value = 0};
+        public ExpirationTime Lifespan = new ExpirationTime { Unit = TimeUnit.DEFAULT, Value = 0 };
+        public ExpirationTime MaxIdle = new ExpirationTime { Unit = TimeUnit.DEFAULT, Value = 0 };
 
         public override string Name => "REMOVE";
 
@@ -38,12 +38,14 @@ namespace Infinispan.Hotrod.Core.Commands
         }
         public override Result OnReceive(InfinispanRequest request, PipeStream stream)
         {
-            Removed=!Codec30.isNotExecuted(request.ResponseStatus);
-            if ((request.Command.Flags & 0x01) == 1 && request.ResponseStatus!=Codec30.KEY_DOES_NOT_EXIST_STATUS) {
-                PrevValue = ValueMarshaller.unmarshall(Codec.readArray(stream));
-                return new Result{ Status =  ResultStatus.Completed, ResultType = ResultType.Object };
+            Removed = !Codec30.isNotExecuted(request.ResponseStatus);
+            if ((request.Command.Flags & 0x01) == 1 && request.ResponseStatus != Codec30.KEY_DOES_NOT_EXIST_STATUS)
+            {
+                Codec.readArray(stream, ref request.ras);
+                PrevValue = ValueMarshaller.unmarshall(request.ras.Result);
+                return new Result { Status = ResultStatus.Completed, ResultType = ResultType.Object };
             }
-            return new Result{ Status =  ResultStatus.Completed, ResultType = ResultType.Null };
+            return new Result { Status = ResultStatus.Completed, ResultType = ResultType.Null };
         }
     }
 }
