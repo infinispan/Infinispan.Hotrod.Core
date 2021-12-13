@@ -2,44 +2,48 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
+using Org.Infinispan.Protostream;
 using Org.Infinispan.Query.Remote.Client;
 
 namespace Infinispan.Hotrod.Core
 {
 
-    public class UntypedCache {
+    public class UntypedCache
+    {
         public static UntypedCache NullCache = new UntypedCache(null, "");
         protected InfinispanDG Cluster;
-        public string Name {get;}
-        public byte[] NameAsBytes {get;}
-        public byte Version {get; protected set;}
-        public Int64 MessageId {get;}
-        public byte ClientIntelligence {get;}
-        public UInt32 TopologyId {get; set;}
+        public string Name { get; }
+        public byte[] NameAsBytes { get; }
+        public byte Version { get; protected set; }
+        public Int64 MessageId { get; }
+        public byte ClientIntelligence { get; }
+        public UInt32 TopologyId { get; set; }
         public bool ForceReturnValue;
         public bool UseCacheDefaultLifespan;
         public bool UseCacheDefaultMaxIdle;
 
-        public Int32 Flags {get {return getFlags();}}
+        public Int32 Flags { get { return getFlags(); } }
 
         private int getFlags()
         {
-            int retVal=0;
-            if (ForceReturnValue) retVal+=1;
-            if (UseCacheDefaultLifespan) retVal+=2;
-            if (UseCacheDefaultMaxIdle) retVal+=4;
+            int retVal = 0;
+            if (ForceReturnValue) retVal += 1;
+            if (UseCacheDefaultLifespan) retVal += 2;
+            if (UseCacheDefaultMaxIdle) retVal += 4;
             return retVal;
         }
 
-        public MediaType KeyMediaType {get; set;}
-        public MediaType ValueMediaType {get; set;}
+        public MediaType KeyMediaType { get; set; }
+        public MediaType ValueMediaType { get; set; }
         public Codec30 codec;
-        public UntypedCache(InfinispanDG ispnCluster, string name) {
+        public UntypedCache(InfinispanDG ispnCluster, string name)
+        {
             Cluster = ispnCluster;
             Name = name;
-            MessageId=1;
+            MessageId = 1;
             NameAsBytes = Encoding.ASCII.GetBytes(Name);
-            if (Cluster!=null) {
+            if (Cluster != null)
+            {
                 Version = Cluster.Version;
                 ClientIntelligence = Cluster.ClientIntelligence;
                 TopologyId = Cluster.TopologyId;
@@ -49,8 +53,10 @@ namespace Infinispan.Hotrod.Core
         }
 
     }
-    public class Cache<K,V> : UntypedCache {
-        public Cache(InfinispanDG ispnCluster, Marshaller<K> keyM, Marshaller<V> valM, string name) : base(ispnCluster, name) {
+    public class Cache<K, V> : UntypedCache
+    {
+        public Cache(InfinispanDG ispnCluster, Marshaller<K> keyM, Marshaller<V> valM, string name) : base(ispnCluster, name)
+        {
             KeyMarshaller = keyM;
             ValueMarshaller = valM;
             Version = ispnCluster.Version;
@@ -71,9 +77,9 @@ namespace Infinispan.Hotrod.Core
             return await Cluster.GetWithMetadata(KeyMarshaller, ValueMarshaller, (UntypedCache)this, key);
         }
 
-        public async ValueTask<V> Put(K key, V value, ExpirationTime lifespan =null, ExpirationTime maxidle=null)
+        public async ValueTask<V> Put(K key, V value, ExpirationTime lifespan = null, ExpirationTime maxidle = null)
         {
-                return await Cluster.Put(KeyMarshaller, ValueMarshaller, this, key, value, lifespan, maxidle);
+            return await Cluster.Put(KeyMarshaller, ValueMarshaller, this, key, value, lifespan, maxidle);
         }
         public async ValueTask<Int32> Size()
         {
@@ -85,7 +91,7 @@ namespace Infinispan.Hotrod.Core
         }
         public async ValueTask<(V PrevValue, Boolean Removed)> Remove(K key)
         {
-            return await Cluster.Remove(KeyMarshaller,  ValueMarshaller, (UntypedCache)this, key);
+            return await Cluster.Remove(KeyMarshaller, ValueMarshaller, (UntypedCache)this, key);
         }
         public async ValueTask Clear()
         {
@@ -93,13 +99,13 @@ namespace Infinispan.Hotrod.Core
         }
         public async ValueTask<Boolean> IsEmpty()
         {
-            return await Cluster.Size(this)==0;
+            return await Cluster.Size(this) == 0;
         }
         public async ValueTask<ServerStatistics> Stats()
         {
             return await Cluster.Stats(this);
         }
-        public async ValueTask<(V PrevValue, Boolean Replaced)> Replace(K key, V value, ExpirationTime lifespan =null, ExpirationTime maxidle=null)
+        public async ValueTask<(V PrevValue, Boolean Replaced)> Replace(K key, V value, ExpirationTime lifespan = null, ExpirationTime maxidle = null)
         {
             return await Cluster.Replace(KeyMarshaller, ValueMarshaller, this, key, value, lifespan, maxidle);
         }
@@ -115,29 +121,126 @@ namespace Infinispan.Hotrod.Core
         {
             return await Cluster.Query(query, (UntypedCache)this);
         }
+        public async ValueTask<List<Object>> Query(String query)
+        {
+            var qr = new QueryRequest();
+            qr.QueryString = query;
+            var queryResponse = await Cluster.Query(qr, (UntypedCache)this);
+            List<Object> result = new List<Object>();
+            if (queryResponse.ProjectionSize > 0)
+            {  // Query has select
+                return (List<object>)unwrapWithProjection(queryResponse);
+            }
+            for (int i = 0; i < queryResponse.NumResults; i++)
+            {
+                WrappedMessage wm = queryResponse.Results[i];
+
+                if (wm.WrappedBytes != null)
+                {
+                    Object u = ValueMarshaller.unmarshall(wm.WrappedBytes.ToByteArray());
+                    result.Add(u);
+                }
+            }
+            return result;
+        }
         public async ValueTask<ISet<K>> KeySet()
         {
             return await Cluster.KeySet<K>(KeyMarshaller, (UntypedCache)this);
         }
-
+        private static List<Object> unwrapWithProjection(QueryResponse resp)
+        {
+            List<Object> result = new List<Object>();
+            if (resp.ProjectionSize == 0)
+            {
+                return result;
+            }
+            for (int i = 0; i < resp.NumResults; i++)
+            {
+                Object[] projection = new Object[resp.ProjectionSize];
+                for (int j = 0; j < resp.ProjectionSize; j++)
+                {
+                    WrappedMessage wm = resp.Results[i * resp.ProjectionSize + j];
+                    switch (wm.ScalarOrMessageCase)
+                    {
+                        case WrappedMessage.ScalarOrMessageOneofCase.WrappedDouble:
+                            projection[j] = wm.WrappedDouble;
+                            break;
+                        case WrappedMessage.ScalarOrMessageOneofCase.WrappedFloat:
+                            projection[j] = wm.WrappedFloat;
+                            break;
+                        case WrappedMessage.ScalarOrMessageOneofCase.WrappedInt64:
+                            projection[j] = wm.WrappedInt64;
+                            break;
+                        case WrappedMessage.ScalarOrMessageOneofCase.WrappedUInt64:
+                            projection[j] = wm.WrappedUInt64;
+                            break;
+                        case WrappedMessage.ScalarOrMessageOneofCase.WrappedInt32:
+                            projection[j] = wm.WrappedInt32;
+                            break;
+                        case WrappedMessage.ScalarOrMessageOneofCase.WrappedFixed64:
+                            projection[j] = wm.WrappedFixed64;
+                            break;
+                        case WrappedMessage.ScalarOrMessageOneofCase.WrappedFixed32:
+                            projection[j] = wm.WrappedFixed32;
+                            break;
+                        case WrappedMessage.ScalarOrMessageOneofCase.WrappedBool:
+                            projection[j] = wm.WrappedBool;
+                            break;
+                        case WrappedMessage.ScalarOrMessageOneofCase.WrappedString:
+                            projection[j] = wm.WrappedString;
+                            break;
+                        case WrappedMessage.ScalarOrMessageOneofCase.WrappedBytes:
+                            projection[j] = wm.WrappedBytes;
+                            break;
+                        case WrappedMessage.ScalarOrMessageOneofCase.WrappedUInt32:
+                            projection[j] = wm.WrappedUInt32;
+                            break;
+                        case WrappedMessage.ScalarOrMessageOneofCase.WrappedSFixed32:
+                            projection[j] = wm.WrappedSFixed32;
+                            break;
+                        case WrappedMessage.ScalarOrMessageOneofCase.WrappedSFixed64:
+                            projection[j] = wm.WrappedSFixed64;
+                            break;
+                        case WrappedMessage.ScalarOrMessageOneofCase.WrappedSInt32:
+                            projection[j] = wm.WrappedSInt32;
+                            break;
+                        case WrappedMessage.ScalarOrMessageOneofCase.WrappedSInt64:
+                            projection[j] = wm.WrappedSInt64;
+                            break;
+                        case WrappedMessage.ScalarOrMessageOneofCase.WrappedDescriptorFullName:
+                            projection[j] = wm.WrappedDescriptorFullName;
+                            break;
+                        case WrappedMessage.ScalarOrMessageOneofCase.WrappedMessageBytes:
+                            projection[j] = wm.WrappedMessageBytes;
+                            break;
+                    }
+                }
+                result.Add(projection);
+            }
+            return result;
+        }
     }
-    public class ValueWithVersion<V> {
+    public class ValueWithVersion<V>
+    {
         public V Value;
         public Int64 Version;
     }
 
-    public class ValueWithMetadata<V> : ValueWithVersion<V> {
+    public class ValueWithMetadata<V> : ValueWithVersion<V>
+    {
         public Int64 Created = -1;
         public Int32 Lifespan = -1;
         public Int64 LastUsed = -1;
         public Int32 MaxIdle = -1;
     }
-    public class VersionedResponse<V> {
+    public class VersionedResponse<V>
+    {
     }
 
     public class ServerStatistics
     {
-        public ServerStatistics(Dictionary<string,string> stats) {
+        public ServerStatistics(Dictionary<string, string> stats)
+        {
             this.stats = stats;
         }
         /// <summary>
@@ -217,7 +320,7 @@ namespace Infinispan.Hotrod.Core
             String value = GetStatistic(statsName);
             return value == null ? -1 : int.Parse(value);
         }
-        private IDictionary<String, String> stats;        
-   }
+        private IDictionary<String, String> stats;
+    }
 
 }
