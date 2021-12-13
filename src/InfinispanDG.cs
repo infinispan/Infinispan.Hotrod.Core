@@ -412,7 +412,10 @@ namespace Infinispan.Hotrod.Core
                 Console.WriteLine(message);
             }
         }
-
+        public async Task shutdown()
+        {  // TODO: is this a correct shutdown?
+            await mHosts[0].shutdown();
+        }
         private class HostHandlerForRetry : IHostHandler
         {
             private InfinispanDG hostHandler;

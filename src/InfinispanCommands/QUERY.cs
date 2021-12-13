@@ -35,9 +35,6 @@ namespace Infinispan.Hotrod.Core.Commands
             Codec.writeArray(Query.ToByteArray(), stream);
             stream.Flush();
         }
-
-        int size = 0;
-
         public override Result OnReceive(InfinispanRequest request, PipeStream stream)
         {
             if (request.ResponseStatus == Codec30.KEY_DOES_NOT_EXIST_STATUS)

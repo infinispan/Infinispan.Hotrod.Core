@@ -14,7 +14,7 @@
     <PackageReleaseNotes />
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="BeetleX" Version="1.6.5.41" />
+    <PackageReference Include="BeetleX" Version="1.6.8" />
     <PackageReference Include="Google.Protobuf" Version="3.19.1" />
     <PackageReference Include="Grpc.Tools" Version="2.41.1">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
