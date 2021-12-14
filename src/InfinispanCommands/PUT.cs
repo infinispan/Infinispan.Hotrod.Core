@@ -5,7 +5,7 @@ using BeetleX.Buffers;
 
 namespace Infinispan.Hotrod.Core.Commands
 {
-    public class PUT<K,V> : CommandWithKey<K>
+    public class PUT<K, V> : CommandWithKey<K>
     {
         public PUT(Marshaller<K> km, Marshaller<V> vm, K key, V data)
         {
@@ -19,8 +19,8 @@ namespace Infinispan.Hotrod.Core.Commands
         public Marshaller<V> ValueMarshaller;
         public int TimeOut { get; set; }
 
-        public ExpirationTime Lifespan = new ExpirationTime{ Unit = TimeUnit.DEFAULT, Value = 0};
-        public ExpirationTime MaxIdle = new ExpirationTime{ Unit = TimeUnit.DEFAULT, Value = 0};
+        public ExpirationTime Lifespan = new ExpirationTime { Unit = TimeUnit.DEFAULT, Value = 0 };
+        public ExpirationTime MaxIdle = new ExpirationTime { Unit = TimeUnit.DEFAULT, Value = 0 };
 
         public override string Name => "PUT";
 
@@ -44,11 +44,13 @@ namespace Infinispan.Hotrod.Core.Commands
         }
         public override Result OnReceive(InfinispanRequest request, PipeStream stream)
         {
-            if ((request.Command.Flags & 0x01) == 1) {
-                PrevValue = ValueMarshaller.unmarshall(Codec.readArray(stream));
-                return new Result{ Status =  ResultStatus.Completed, ResultType = ResultType.Object };
+            if ((request.Command.Flags & 0x01) == 1)
+            {
+                Codec.readArray(stream, ref request.ras);
+                PrevValue = ValueMarshaller.unmarshall(request.ras.Result);
+                return new Result { Status = ResultStatus.Completed, ResultType = ResultType.Object };
             }
-            return new Result{ Status =  ResultStatus.Completed, ResultType = ResultType.Null };
+            return new Result { Status = ResultStatus.Completed, ResultType = ResultType.Null };
         }
     }
 }

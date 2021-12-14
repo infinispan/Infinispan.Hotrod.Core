@@ -34,11 +34,12 @@ namespace Infinispan.Hotrod.Core.Commands
         public override Result OnReceive(InfinispanRequest request, PipeStream stream)
         {
             keys = new HashSet<K>();
-            while(stream.ReadByte()==1) {
-                var bytes = Codec.readArray(stream);
-                keys.Add(this.KeyMarshaller.unmarshall(bytes));
+            while (stream.ReadByte() == 1)
+            {
+                Codec.readArray(stream, ref request.ras);
+                keys.Add(this.KeyMarshaller.unmarshall(request.ras.Result));
             }
-            return new Result{ Status =  ResultStatus.Completed, ResultType = ResultType.Object };
+            return new Result { Status = ResultStatus.Completed, ResultType = ResultType.Object };
         }
     }
 }

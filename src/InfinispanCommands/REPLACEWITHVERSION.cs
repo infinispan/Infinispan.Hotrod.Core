@@ -5,7 +5,7 @@ using BeetleX.Buffers;
 
 namespace Infinispan.Hotrod.Core.Commands
 {
-    public class REPLACEWITHVERSION<K,V> : CommandWithKey<K>
+    public class REPLACEWITHVERSION<K, V> : CommandWithKey<K>
     {
         public REPLACEWITHVERSION(Marshaller<K> km, Marshaller<V> vm, K key, V data)
         {
@@ -19,16 +19,16 @@ namespace Infinispan.Hotrod.Core.Commands
         public Marshaller<V> ValueMarshaller;
         public int TimeOut { get; set; }
 
-        public ExpirationTime Lifespan = new ExpirationTime{ Unit = TimeUnit.DEFAULT, Value = 0};
-        public ExpirationTime MaxIdle = new ExpirationTime{ Unit = TimeUnit.DEFAULT, Value = 0};
+        public ExpirationTime Lifespan = new ExpirationTime { Unit = TimeUnit.DEFAULT, Value = 0 };
+        public ExpirationTime MaxIdle = new ExpirationTime { Unit = TimeUnit.DEFAULT, Value = 0 };
 
         public Int64 Version;
         public override string Name => "REPLACEWITHVERSION";
 
         public override Byte Code => 0x09;
         public V Value { get; set; }
-        public V PrevValue { get; private set;}
-        public Boolean Replaced {get; private set;}
+        public V PrevValue { get; private set; }
+        public Boolean Replaced { get; private set; }
 
 
         public override void OnExecute(CommandContext ctx)
@@ -46,16 +46,18 @@ namespace Infinispan.Hotrod.Core.Commands
         }
         public override Result OnReceive(InfinispanRequest request, PipeStream stream)
         {
-            Replaced=Codec30.isSuccess(request.ResponseStatus);
+            Replaced = Codec30.isSuccess(request.ResponseStatus);
             if ((request.Command.Flags & 0x01) == 1 && Codec30.hasPrevious(request.ResponseStatus))
             {
-                var retValAsArray = Codec.readArray(stream);
-                if (retValAsArray.Length>0) {
+                Codec.readArray(stream, ref request.ras);
+                var retValAsArray = request.ras.Result;
+                if (retValAsArray.Length > 0)
+                {
                     PrevValue = ValueMarshaller.unmarshall(retValAsArray);
-                    return new Result{ Status =  ResultStatus.Completed, ResultType = ResultType.Object };
+                    return new Result { Status = ResultStatus.Completed, ResultType = ResultType.Object };
                 }
             }
-            return new Result{ Status =  ResultStatus.Completed, ResultType = ResultType.Null };
+            return new Result { Status = ResultStatus.Completed, ResultType = ResultType.Null };
         }
     }
 }

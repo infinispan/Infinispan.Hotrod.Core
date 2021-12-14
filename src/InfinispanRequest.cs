@@ -9,7 +9,8 @@ namespace Infinispan.Hotrod.Core
 {
     public class InfinispanRequest
     {
-        public InfinispanRequest(InfinispanHost host, InfinispanDG cluster, UntypedCache cache, InfinispanClient client, Command cmd, params Type[] types) {
+        public InfinispanRequest(InfinispanHost host, InfinispanDG cluster, UntypedCache cache, InfinispanClient client, Command cmd, params Type[] types)
+        {
             Client = client;
             Client.TcpClient.DataReceive = OnReceive;
             Client.TcpClient.ClientError = OnError;
@@ -23,12 +24,15 @@ namespace Infinispan.Hotrod.Core
             context.ClientIntelligence = Cluster.ClientIntelligence;
             context.Version = Cluster.Version;
             context.TopologyId = Cluster.TopologyId;
-            if (cache != null) {
+            if (cache != null)
+            {
                 context.NameAsBytes = cache.NameAsBytes;
                 context.KeyMediaType = cache.KeyMediaType;
                 context.ValueMediaType = cache.ValueMediaType;
-            } else {
-                context.NameAsBytes = new byte[]{};
+            }
+            else
+            {
+                context.NameAsBytes = new byte[] { };
             }
         }
         private byte ResponseOpCode;
@@ -38,7 +42,7 @@ namespace Infinispan.Hotrod.Core
         public InfinispanHost Host { get; set; }
         public InfinispanDG Cluster { get; set; }
 
-        public UntypedCache Cache {get; set;}
+        public UntypedCache Cache { get; set; }
         private void OnError(IClient c, ClientErrorArgs e)
         {
             if (e.Error is BeetleX.BXException || e.Error is System.Net.Sockets.SocketException ||
@@ -53,74 +57,112 @@ namespace Infinispan.Hotrod.Core
             }
         }
         public Type[] Types { get; private set; }
+
+        Task Execution;
+        public ReadArraySession ras;
+
         private void OnReceive(IClient c, ClientReceiveArgs reader)
         {
             var stream = reader.Stream.ToPipeStream();
-
-            if (stream.ReadByte()!=0xA1) {
-                Result.ResultType=ResultType.Error;  // TODO: needed some design for errors
-                Result.Messge="Bad Magic NUmber";
-                OnCompleted(Result.ResultType, Result.Messge);
-                return;
+            if (Execution == null)
+            {
+                Execution = Task.Run(() => { execution(c, reader); });
             }
-
-            if (Codec.readVLong(stream)!=context.MessageId) {
-                Result.ResultType=ResultType.Error;  // TODO: needed some design for errors
-                Result.Messge="Message ID mistmatch";
-                OnCompleted(Result.ResultType, Result.Messge);
-                return;
+            else
+            {
+                if (ras != null && !ras.IsCompleted())
+                {
+                    Codec.continueReadArray(stream, ref ras);
+                }
             }
-
-            ResponseOpCode = (byte) stream.ReadByte();
-            ResponseStatus = (byte) stream.ReadByte();
-            var topologyChanged = (byte) stream.ReadByte();
-            if (topologyChanged!=0) {
-                var topology=readNewTopologyInfo(stream);
-                Cluster.UpdateTopologyInfo(topology, this.Cache);
-            }
-            var errMsg = readResponseError(ResponseStatus, stream);
-            if (errMsg != null) {
-                Result.ResultType=ResultType.Error;  // TODO: needed some design for errors
-                Result.Messge=Encoding.ASCII.GetString(errMsg);
-                OnCompleted(Result.ResultType, Result.Messge);
-                return;
-            }
-            // Here ends the processing of the response header
-            // commmand specific data processed below
-            Result = Command.OnReceive(this, stream);
-            OnCompleted(Result.ResultType, Result.Messge);
         }
 
-        private TopologyInfo readNewTopologyInfo(PipeStream stream) {
+        private void execution(IClient c, ClientReceiveArgs reader)
+        {
+            var stream = reader.Stream.ToPipeStream();
+            if (Result.Status != ResultStatus.Loading)
+            {
+                if (stream.ReadByte() != 0xA1)
+                {
+                    Result.ResultType = ResultType.Error;  // TODO: needed some design for errors
+                    Result.Messge = "Bad Magic NUmber";
+                    OnCompleted(Result.ResultType, Result.Messge);
+                    return;
+                }
+
+                if (Codec.readVLong(stream) != context.MessageId)
+                {
+                    Result.ResultType = ResultType.Error;  // TODO: needed some design for errors
+                    Result.Messge = "Message ID mistmatch";
+                    OnCompleted(Result.ResultType, Result.Messge);
+                    return;
+                }
+
+                ResponseOpCode = (byte)stream.ReadByte();
+                ResponseStatus = (byte)stream.ReadByte();
+                var topologyChanged = (byte)stream.ReadByte();
+                if (topologyChanged != 0)
+                {
+                    var topology = readNewTopologyInfo(stream);
+                    Cluster.UpdateTopologyInfo(topology, this.Cache);
+                }
+                var errMsg = readResponseError(ResponseStatus, stream);
+                if (errMsg != null)
+                {
+                    Result.ResultType = ResultType.Error;  // TODO: needed some design for errors
+                    Result.Messge = Encoding.ASCII.GetString(errMsg);
+                    OnCompleted(Result.ResultType, Result.Messge);
+                    return;
+                }
+                // Here ends the processing of the response header
+                // commmand specific data processed below
+            }
+            Result = Command.OnReceive(this, stream);
+            if (Result.Status == ResultStatus.Completed)
+            {
+                OnCompleted(Result.ResultType, Result.Messge);
+            }
+        }
+
+        private TopologyInfo readNewTopologyInfo(PipeStream stream)
+        {
             var t = new TopologyInfo();
-            t.TopologyId=Codec.readVUInt(stream);
+            t.TopologyId = Codec.readVUInt(stream);
             var serversNum = Codec.readVInt(stream);
             t.servers = new List<Tuple<byte[], ushort>>();
             t.hosts = new InfinispanHost[serversNum];
-            for (int i=0; i< serversNum; i++) {
-                var addr = Codec.readArray(stream);
+            for (int i = 0; i < serversNum; i++)
+            {
+                Codec.readArray(stream, ref ras);
+                var addr = ras.Result;
                 var port = Codec.readUnsignedShort(stream);
-                t.servers.Add(Tuple.Create(addr,port));
+                t.servers.Add(Tuple.Create(addr, port));
             }
             //  TODO: check if   clientIntelligence==CLIENT_INTELLIGENCE_HASH_DISTRIBUTION_AWARE
-            t.HashFuncNum = (byte) stream.ReadByte();
-            if (t.HashFuncNum > 0) {
+            t.HashFuncNum = (byte)stream.ReadByte();
+            if (t.HashFuncNum > 0)
+            {
                 var segmentsNum = Codec.readVInt(stream);
                 t.OwnersPerSegment = new List<List<Int32>>();
-                for (int i=0; i < segmentsNum; i++) {
-                    var ownerNumPerSeg = (byte) stream.ReadByte();
+                for (int i = 0; i < segmentsNum; i++)
+                {
+                    var ownerNumPerSeg = (byte)stream.ReadByte();
                     var owners = new List<Int32>();
-                    for (int j=0; j < ownerNumPerSeg; j++) {
+                    for (int j = 0; j < ownerNumPerSeg; j++)
+                    {
                         owners.Add(Codec.readVInt(stream));
                     }
-                    t.OwnersPerSegment.Add(owners);                    
+                    t.OwnersPerSegment.Add(owners);
                 }
             }
             return t;
         }
-        private byte[] readResponseError(byte status, PipeStream stream) {
-            if (Codec30.hasError(status)) {
-                return Codec.readArray(stream);
+        private byte[] readResponseError(byte status, PipeStream stream)
+        {
+            if (Codec30.hasError(status))
+            {
+                Codec.readArray(stream, ref ras);
+                return ras.Result;
             }
             return null;
         }
@@ -183,7 +225,7 @@ namespace Infinispan.Hotrod.Core
                     // if (ResultDispatch.UseDispatch)
                     //     ResultDispatch.DispatchCenter.Enqueue(this, 3);
                     // else
-                        TaskCompletion();
+                    TaskCompletion();
                 }
 
             }
@@ -195,10 +237,11 @@ namespace Infinispan.Hotrod.Core
             TaskCompletionSource.TrySetResult(Result);
         }
     }
-    public class TopologyInfo {
-        public  UInt32 TopologyId;
-        public List<Tuple <byte[], UInt16>> servers;
-        public InfinispanHost []hosts;
+    public class TopologyInfo
+    {
+        public UInt32 TopologyId;
+        public List<Tuple<byte[], UInt16>> servers;
+        public InfinispanHost[] hosts;
         public byte HashFuncNum;
         public List<List<Int32>> OwnersPerSegment;
     }

@@ -11,7 +11,7 @@ namespace Infinispan.Hotrod.Core.Commands
     {
         public QUERY(QueryRequest query)
         {
-            Query=query;
+            Query = query;
             NetworkReceive = OnReceive;
         }
         public QueryRequest Query;
@@ -25,25 +25,33 @@ namespace Infinispan.Hotrod.Core.Commands
 
         public override void Execute(CommandContext ctx, InfinispanClient client, PipeStream stream)
         {
-            ctx.IsReqResCommand=true;
+            ctx.IsReqResCommand = true;
             ctx.CmdReqMediaType = new MediaType();
-            ctx.CmdReqMediaType.InfoType=2;
-            ctx.CmdReqMediaType.CustomMediaType= Encoding.ASCII.GetBytes("application/x-protostream");
-            ctx.CmdResMediaType=ctx.CmdReqMediaType;
+            ctx.CmdReqMediaType.InfoType = 2;
+            ctx.CmdReqMediaType.CustomMediaType = Encoding.ASCII.GetBytes("application/x-protostream");
+            ctx.CmdResMediaType = ctx.CmdReqMediaType;
             base.Execute(ctx, client, stream);
 
             Codec.writeArray(Query.ToByteArray(), stream);
             stream.Flush();
         }
-
         public override Result OnReceive(InfinispanRequest request, PipeStream stream)
         {
-            if (request.ResponseStatus == Codec30.KEY_DOES_NOT_EXIST_STATUS) {
-                return new Result{ Status =  ResultStatus.Completed, ResultType = ResultType.Null };
+            if (request.ResponseStatus == Codec30.KEY_DOES_NOT_EXIST_STATUS)
+            {
+                return new Result { Status = ResultStatus.Completed, ResultType = ResultType.Null };
             }
-            var buf = Codec.readArray(stream);
+            Codec.readArray(stream, ref request.ras);
+            var buf = request.ras.Result;
             QueryResponse = Org.Infinispan.Query.Remote.Client.QueryResponse.Parser.ParseFrom(buf);
-            return new Result{ Status =  ResultStatus.Completed, ResultType = ResultType.Object };
+            return new Result { Status = ResultStatus.Completed, ResultType = ResultType.Object };
+            // var buf = Codec.readArray(stream, ref size);
+            // if (buf != null)
+            // {
+            //     QueryResponse = Org.Infinispan.Query.Remote.Client.QueryResponse.Parser.ParseFrom(buf);
+            //     return new Result { Status = ResultStatus.Completed, ResultType = ResultType.Object };
+            // }
+            // return new Result { Status = ResultStatus.Loading, ResultType = ResultType.Object };
         }
 
     }

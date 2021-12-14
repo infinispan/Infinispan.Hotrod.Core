@@ -33,6 +33,7 @@ namespace Infinispan.Hotrod.Core
         private Dictionary<UntypedCache, TopologyInfo> topologyInfoMap = new Dictionary<UntypedCache, TopologyInfo>();
         private IList<InfinispanHost> mHosts = new List<InfinispanHost>();
         private InfinispanHost[] mActiveHosts = new InfinispanHost[0];
+        public int reqFailed = 0;
         public static Int32 MAXHASHVALUE { get; private set; } = 0x7FFFFFFF;
         public InfinispanHost AddHost(string host, int port = 11222)
         {
@@ -78,7 +79,6 @@ namespace Infinispan.Hotrod.Core
             topologyInfoMap.TryGetValue(cache, out topologyInfo);
             return await ExecuteWithRetry(cache, cmd, topologyInfo);
         }
-
         public async Task<Result> ExecuteWithRetry(UntypedCache cache, Command cmd, TopologyInfo topologyInfo)
         {
             InfinispanHost host;
@@ -101,6 +101,7 @@ namespace Infinispan.Hotrod.Core
                     // No (more) hosts available for the execution
                     var cmdResult = new Result() { ResultType = ResultType.NetError, Messge = "Infinispan server is not available" };
                     cmdResultTask.TrySetResult(cmdResult);
+                    ++reqFailed;
                     return cmdResult;
                 }
                 // First available host will be used even if its clients are all busy
@@ -117,6 +118,7 @@ namespace Infinispan.Hotrod.Core
                     var result = host.Connect(client);
                     if (result.IsError)
                     {
+                        Console.WriteLine("errCon");
                         // TODO: save the error and then go ahead with retry
                         continue;
                     }
@@ -133,7 +135,9 @@ namespace Infinispan.Hotrod.Core
                 finally
                 {
                     if (client != null)
+                    {
                         host.Push(client);
+                    }
                 }
             }
 
@@ -408,7 +412,10 @@ namespace Infinispan.Hotrod.Core
                 Console.WriteLine(message);
             }
         }
-
+        public async Task shutdown()
+        {  // TODO: is this a correct shutdown?
+            await mHosts[0].shutdown();
+        }
         private class HostHandlerForRetry : IHostHandler
         {
             private InfinispanDG hostHandler;

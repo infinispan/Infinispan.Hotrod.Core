@@ -11,7 +11,7 @@ namespace Infinispan.Hotrod.Core
 {
     public class InfinispanClient
     {
-        public long MessageId {get {return Host.MessageId;}}
+        public long MessageId { get { return Host.MessageId; } }
         public InfinispanClient(bool ssl, InfinispanHost host)
         {
             Host = host;

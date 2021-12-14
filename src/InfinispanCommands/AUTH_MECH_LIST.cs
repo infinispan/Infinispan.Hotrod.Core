@@ -29,10 +29,12 @@ namespace Infinispan.Hotrod.Core.Commands
         {
             var count = Codec.readVInt(stream);
             availableMechs = new string[count];
-            for (int i=0; i<count; i++) {
-                availableMechs[i]= Encoding.ASCII.GetString(Codec.readArray(stream));
+            for (int i = 0; i < count; i++)
+            {
+                Codec.readArray(stream, ref request.ras);
+                availableMechs[i] = Encoding.ASCII.GetString(request.ras.Result);
             }
-            return new Result{ Status =  ResultStatus.Completed, ResultType = ResultType.Object };
+            return new Result { Status = ResultStatus.Completed, ResultType = ResultType.Object };
         }
     }
 }

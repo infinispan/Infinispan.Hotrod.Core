@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Infinispan.Hotrod.Core.Commands
 {
-    public class GETWITHVERSION<K,V> : CommandWithKey<K>
+    public class GETWITHVERSION<K, V> : CommandWithKey<K>
     {
         public GETWITHVERSION(Marshaller<K> km, Marshaller<V> vm, K key)
         {
@@ -34,13 +34,15 @@ namespace Infinispan.Hotrod.Core.Commands
 
         public override Result OnReceive(InfinispanRequest request, PipeStream stream)
         {
-            if (request.ResponseStatus == Codec30.KEY_DOES_NOT_EXIST_STATUS) {
-                return new Result{ Status =  ResultStatus.Completed, ResultType = ResultType.Null };
+            if (request.ResponseStatus == Codec30.KEY_DOES_NOT_EXIST_STATUS)
+            {
+                return new Result { Status = ResultStatus.Completed, ResultType = ResultType.Null };
             }
             ValueWithVersion = new ValueWithVersion<V>();
             ValueWithVersion.Version = Codec.readLong(stream);
-            ValueWithVersion.Value = ValueMarshaller.unmarshall(Codec.readArray(stream));
-            return new Result{ Status =  ResultStatus.Completed, ResultType = ResultType.Object };
+            Codec.readArray(stream, ref request.ras);
+            ValueWithVersion.Value = ValueMarshaller.unmarshall(request.ras.Result);
+            return new Result { Status = ResultStatus.Completed, ResultType = ResultType.Object };
         }
     }
 }

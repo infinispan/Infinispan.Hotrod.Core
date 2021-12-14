@@ -1,6 +1,6 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
 namespace Infinispan.Hotrod.Core
 {
@@ -23,9 +23,31 @@ namespace Infinispan.Hotrod.Core
         private int mDisposed = 0;
 
         private int mCount = 0;
+        public int getMCount()
+        {
+            return mCount;
+        }
+        private int mServed = 0;
+        public int getMServed()
+        {
+            return mServed;
+        }
+        private int mRequest = 0;
+        public int getMRequest()
+        {
+            return mRequest;
+        }
+        public int getQueueSize()
+        {
+            return mQueue.Count;
+        }
 
+        public int getPoolSize()
+        {
+            return mPool.Count;
+        }
         private long messageId = 1;
-        public long MessageId {get {return messageId++;} set {messageId=value;}}
+        public long MessageId { get { return messageId++; } set { messageId = value; } }
         private Queue<TaskCompletionSource<InfinispanClient>> mQueue = new Queue<TaskCompletionSource<InfinispanClient>>();
 
         private Stack<InfinispanClient> mPool = new Stack<InfinispanClient>();
@@ -54,6 +76,7 @@ namespace Infinispan.Hotrod.Core
             lock (mPool)
             {
                 TaskCompletionSource<InfinispanClient> result = new TaskCompletionSource<InfinispanClient>();
+                mRequest++;
                 // If no client is available...
                 if (!mPool.TryPop(out InfinispanClient client))
                 {
@@ -90,8 +113,7 @@ namespace Infinispan.Hotrod.Core
         {
             if (!client.TcpClient.IsConnected)
             {
-                bool isNew;
-                if (client.TcpClient.Connect(out isNew))
+                if (client.TcpClient.Connect().Result.Connected)
                 {
                     this.Available = true;
                     if (!string.IsNullOrEmpty(Password))
@@ -102,32 +124,39 @@ namespace Infinispan.Hotrod.Core
                         task.Wait();
                         if (task.Result.ResultType == ResultType.DataError ||
                             task.Result.ResultType == ResultType.Error
-                            || task.Result.ResultType == ResultType.NetError) {
+                            || task.Result.ResultType == ResultType.NetError)
+                        {
                             return task.Result;
                         }
                         bool found = false;
-                        if (this.AuthMech!=null) {
-                            for (int i=0; i<authMechList.availableMechs.Length; i++) {
-                                if (this.AuthMech.Equals(authMechList.availableMechs[i])) {
-                                    found=true;
+                        if (this.AuthMech != null)
+                        {
+                            for (int i = 0; i < authMechList.availableMechs.Length; i++)
+                            {
+                                if (this.AuthMech.Equals(authMechList.availableMechs[i]))
+                                {
+                                    found = true;
                                     break;
                                 }
                             }
                         }
-                        if (!found) {
+                        if (!found)
+                        {
                             // TODO: check if error is handled correctly
-                            task.Result.Messge="SASL mech: "+this.AuthMech+" not available server side";
+                            task.Result.Messge = "SASL mech: " + this.AuthMech + " not available server side";
                             task.Result.ResultType = ResultType.NetError;
                             return task.Result;
                         }
                         Commands.AUTH auth = new Commands.AUTH(this.AuthMech, new System.Net.NetworkCredential(User, Password));
-                        while (auth.Completed==0) {
+                        while (auth.Completed == 0)
+                        {
                             request = new InfinispanRequest(this, this.Cluster, null, client, auth, typeof(string));
                             task = request.Execute();
                             task.Wait();
                             if (task.Result.ResultType == ResultType.DataError ||
                                 task.Result.ResultType == ResultType.Error
-                                || task.Result.ResultType == ResultType.NetError) {
+                                || task.Result.ResultType == ResultType.NetError)
+                            {
                                 return task.Result;
                             }
                         }
@@ -151,6 +180,7 @@ namespace Infinispan.Hotrod.Core
             TaskCompletionSource<InfinispanClient> item = null;
             lock (mPool)
             {
+                mServed++;
                 if (mDisposed > 0)
                 {
                     // If this host has been disposed clean up...
@@ -172,7 +202,15 @@ namespace Infinispan.Hotrod.Core
                 Task.Run(() => item.SetResult(client));
             }
         }
-
+        public async Task shutdown()
+        {
+            var tasks = new List<Task>();
+            foreach (var tcs in mQueue)
+            {
+                tasks.Add(tcs.Task);
+            }
+            await Task.WhenAll(tasks.ToArray());
+        }
         // Disposing this host. Disconnecting the clients
         public void Dispose()
         {
