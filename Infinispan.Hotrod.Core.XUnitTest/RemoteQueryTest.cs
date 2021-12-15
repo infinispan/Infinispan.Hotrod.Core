@@ -428,7 +428,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             QueryRequest qr = new QueryRequest();
             qr.QueryString = "select u.addresses from sample_bank_account.User u";
 
-            Assert.Throws<InfinispanException>(() => userCache.Query(qr).Result);
+            Assert.ThrowsAsync<InfinispanException>(() => userCache.Query(qr));
         }
         [Fact]
         public void RejectProjectionOfRepeatedPropertyTest()
@@ -438,7 +438,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             // qr.JpqlString = "select u.addresses.postcode from sample_bank_account.User u";
             qr.QueryString = "select u.addresses.postcode from sample_bank_account.User u";
 
-            Assert.Throws<InfinispanException>(() => userCache.Query(qr).Result);
+            Assert.ThrowsAsync<InfinispanException>(() => userCache.Query(qr));
         }
         [Fact]
         public void ProjectionTest()
