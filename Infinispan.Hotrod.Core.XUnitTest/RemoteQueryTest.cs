@@ -19,16 +19,17 @@ namespace Infinispan.Hotrod.Core.XUnitTest
 {
     public class RemoteQueryTestFixture : IDisposable
     {
-        public HotRodServer hotRodServer {get; private set;}
+        public HotRodServer hotRodServer { get; private set; }
         public const String NAMED_CACHE = "CacheForQueryTest";
         public const String ERRORS_KEY_SUFFIX = ".errors";
         public const String PROTOBUF_METADATA_CACHE_NAME = "___protobuf_metadata";
         public Cache<Object, Object> cache;
-        public Cache<String,String> metaCache;
-        public RemoteQueryTestFixture() {
-                        var assembly = Assembly.GetExecutingAssembly();
-                        var arr = assembly.GetManifestResourceNames();
-                        Console.WriteLine("arr"+arr);
+        public Cache<String, String> metaCache;
+        public RemoteQueryTestFixture()
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+            var arr = assembly.GetManifestResourceNames();
+            Console.WriteLine("arr" + arr);
             var resourceName = "Infinispan.Hotrod.Core.XUnitTest.resources.proto2.bank.proto";
             string protoDef;
             using (Stream stream = assembly.GetManifestResourceStream(resourceName))
@@ -40,20 +41,20 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             hotRodServer.StartHotRodServer();
             var infinispan = new InfinispanDG();
             infinispan.AddHost("127.0.0.1");
-            infinispan.Version=0x1f;
-            infinispan.ForceReturnValue=false;
-            infinispan.ClientIntelligence=0x01;
+            infinispan.Version = 0x1f;
+            infinispan.ForceReturnValue = false;
+            infinispan.ClientIntelligence = 0x01;
 
-            metaCache = infinispan.newCache(new  StringMarshaller(), new  StringMarshaller(), PROTOBUF_METADATA_CACHE_NAME);
+            metaCache = infinispan.newCache(new StringMarshaller(), new StringMarshaller(), PROTOBUF_METADATA_CACHE_NAME);
             // TODO: fix syntax below
             MediaType kvMediaType = new MediaType();
-            kvMediaType.CustomMediaType= Encoding.ASCII.GetBytes("text/plain");
-            kvMediaType.InfoType=2;
-            metaCache.KeyMediaType=kvMediaType;
-            metaCache.ValueMediaType=kvMediaType;
-            metaCache.Remove(ERRORS_KEY_SUFFIX).AsTask().Wait();
+            kvMediaType.CustomMediaType = Encoding.ASCII.GetBytes("text/plain");
+            kvMediaType.InfoType = 2;
+            metaCache.KeyMediaType = kvMediaType;
+            metaCache.ValueMediaType = kvMediaType;
+            metaCache.Remove(ERRORS_KEY_SUFFIX).Wait();
 
-            metaCache.Put("sample_bank_account/bank.proto", protoDef).AsTask().Wait();
+            metaCache.Put("sample_bank_account/bank.proto", protoDef).Wait();
             if (metaCache.ContainsKey(ERRORS_KEY_SUFFIX).Result)
             {
                 Assert.True(false, "fail: error in registering .proto model");
@@ -62,19 +63,19 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             cache = infinispan.newCache(new BasicTypesProtoStreamMarshaller(), new BasicTypesProtoStreamMarshaller(), NAMED_CACHE);
 
             MediaType kvMT = new MediaType();
-            kvMT.CustomMediaType= Encoding.ASCII.GetBytes("application/x-protostream");
-            kvMT.InfoType=2;
-            cache.KeyMediaType=kvMT;
-            cache.ValueMediaType=kvMT;
+            kvMT.CustomMediaType = Encoding.ASCII.GetBytes("application/x-protostream");
+            kvMT.InfoType = 2;
+            cache.KeyMediaType = kvMT;
+            cache.ValueMediaType = kvMT;
 
-            cache.Clear().AsTask().Wait();
+            cache.Clear().Wait();
             PutUsers(cache);
             PutAccounts(cache);
             PutTransactions(cache);
 
         }
-         
-        public void Dispose()   
+
+        public void Dispose()
         {
             hotRodServer.Dispose();
         }
@@ -135,7 +136,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             user3.AccountIds.Add(accountIds);
         }
 
-        private void PutAccounts(Cache<Object,Object> remoteCache)
+        private void PutAccounts(Cache<Object, Object> remoteCache)
         {
             Account account1 = new Account();
             account1.Id = 1;
@@ -158,7 +159,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             _ = remoteCache.Put(6, account3);
         }
 
-        private void PutTransactions(Cache<Object,Object> remoteCache)
+        private void PutTransactions(Cache<Object, Object> remoteCache)
         {
             Transaction transaction0 = new Transaction();
             transaction0.Id = 0;
@@ -234,19 +235,20 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             //in this example.
             DateTime inception = new DateTime(1970, 1, 1, 0, 0, 0);
             DateTime current = DateTime.Parse(date);
-            return (ulong) current.Subtract(inception).TotalMilliseconds;
-        } 
+            return (ulong)current.Subtract(inception).TotalMilliseconds;
+        }
 
     }
 
 
-     [Collection("MainSequence")]
+    [Collection("MainSequence")]
     public class RemoteQueryTest : IClassFixture<RemoteQueryTestFixture>
     {
 
         private readonly RemoteQueryTestFixture _fixture;
         private Cache<Object, Object> userCache;
-        public RemoteQueryTest(RemoteQueryTestFixture fixture) {
+        public RemoteQueryTest(RemoteQueryTestFixture fixture)
+        {
             _fixture = fixture;
             userCache = _fixture.cache;
         }
@@ -285,7 +287,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
         {
             QueryRequest qr = new QueryRequest();
             // JpqlString will be deprecated please use QueryString
-	    // qr.JpqlString = "from sample_bank_account.User u where u.name = \"\"";
+            // qr.JpqlString = "from sample_bank_account.User u where u.name = \"\"";
             qr.QueryString = "from sample_bank_account.User u where u.name = \"\"";
 
             QueryResponse result = userCache.Query(qr).Result;
@@ -321,7 +323,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
         [Fact]
         public void EqHybridQueryWithParamTest()
         {
-            
+
             QueryRequest.Types.NamedParameter param = new QueryRequest.Types.NamedParameter();
             WrappedMessage wm = new WrappedMessage();
             wm.WrappedString = "Doe";
@@ -369,7 +371,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
         public void BetweenTest()
         {
             QueryRequest qr = new QueryRequest();
-            qr.QueryString = "from sample_bank_account.Transaction t where t.date between \""+ _fixture.MakeDate("2013-01-01") +"\" and \"" + _fixture.MakeDate("2013-01-31") + "\"";
+            qr.QueryString = "from sample_bank_account.Transaction t where t.date between \"" + _fixture.MakeDate("2013-01-01") + "\" and \"" + _fixture.MakeDate("2013-01-31") + "\"";
             QueryResponse result = userCache.Query(qr).Result;
             List<Transaction> listOfTx = RemoteQueryUtils.unwrapResults<Transaction>(result);
 
@@ -433,7 +435,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
         {
             QueryRequest qr = new QueryRequest();
             // JpqlString will be deprecated please use QueryString
-	    // qr.JpqlString = "select u.addresses.postcode from sample_bank_account.User u";
+            // qr.JpqlString = "select u.addresses.postcode from sample_bank_account.User u";
             qr.QueryString = "select u.addresses.postcode from sample_bank_account.User u";
 
             Assert.Throws<InfinispanException>(() => userCache.Query(qr).Result);
@@ -469,7 +471,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
         public void ContainsAllTest()
         {
             QueryRequest qr = new QueryRequest();
-            qr.QueryString = "from sample_bank_account.User u where u.accountIds = 1 and u.accountIds = 2" ;
+            qr.QueryString = "from sample_bank_account.User u where u.accountIds = 1 and u.accountIds = 2";
 
             QueryResponse result = userCache.Query(qr).Result;
             List<User> listOfUsers = RemoteQueryUtils.unwrapResults<User>(result);
@@ -572,12 +574,12 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             qr.QueryString = "select t.accountId, sum(t.amount) from sample_bank_account.Transaction t group by t.accountId having sum(t.amount) > 3300";
 
             QueryResponse result = userCache.Query(qr).Result;
-            
+
             List<Object[]> projections = RemoteQueryUtils.unwrapWithProjection(result);
-           
+
             Assert.Single(projections);
             Assert.Equal(1, projections.ElementAt(0)[0]);
-            Assert.Equal(3323.0, (double) projections.ElementAt(0)[1], 3);
+            Assert.Equal(3323.0, (double)projections.ElementAt(0)[1], 3);
         }
 
         [Fact]
@@ -650,7 +652,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             List<Object[]> projections = RemoteQueryUtils.unwrapWithProjection(result);
 
             Assert.Equal(2, projections.Count);
-            Assert.Equal("John" ,projections.ElementAt(0)[0]);
+            Assert.Equal("John", projections.ElementAt(0)[0]);
             Assert.Equal(1, (Int64)projections.ElementAt(0)[1]);
             Assert.Equal("Spider", projections.ElementAt(1)[0]);
         }
@@ -666,7 +668,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             List<Object[]> projections = RemoteQueryUtils.unwrapWithProjection(result);
 
             Assert.Equal(2, projections.Count);
-            Assert.Equal("John" ,projections.ElementAt(0)[0]);
+            Assert.Equal("John", projections.ElementAt(0)[0]);
             Assert.Equal(1, (Int64)projections.ElementAt(0)[1]);
             Assert.Equal("Spider", projections.ElementAt(1)[0]);
             Assert.Equal(0, (Int64)projections.ElementAt(1)[1]);
