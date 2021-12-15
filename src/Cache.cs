@@ -64,64 +64,64 @@ namespace Infinispan.Hotrod.Core
         Marshaller<K> KeyMarshaller;
         Marshaller<V> ValueMarshaller;
 
-        public async ValueTask<V> Get(K key)
+        public async Task<V> Get(K key)
         {
             return await Cluster.Get(KeyMarshaller, ValueMarshaller, (UntypedCache)this, key);
         }
-        public async ValueTask<ValueWithVersion<V>> GetWithVersion(K key)
+        public async Task<ValueWithVersion<V>> GetWithVersion(K key)
         {
             return await Cluster.GetWithVersion(KeyMarshaller, ValueMarshaller, (UntypedCache)this, key);
         }
-        public async ValueTask<ValueWithMetadata<V>> GetWithMetadata(K key)
+        public async Task<ValueWithMetadata<V>> GetWithMetadata(K key)
         {
             return await Cluster.GetWithMetadata(KeyMarshaller, ValueMarshaller, (UntypedCache)this, key);
         }
 
-        public async ValueTask<V> Put(K key, V value, ExpirationTime lifespan = null, ExpirationTime maxidle = null)
+        public async Task<V> Put(K key, V value, ExpirationTime lifespan = null, ExpirationTime maxidle = null)
         {
             return await Cluster.Put(KeyMarshaller, ValueMarshaller, this, key, value, lifespan, maxidle);
         }
-        public async ValueTask<Int32> Size()
+        public async Task<Int32> Size()
         {
             return await Cluster.Size(this);
         }
-        public async ValueTask<Boolean> ContainsKey(K key)
+        public async Task<Boolean> ContainsKey(K key)
         {
             return await Cluster.ContainsKey(KeyMarshaller, (UntypedCache)this, key);
         }
-        public async ValueTask<(V PrevValue, Boolean Removed)> Remove(K key)
+        public async Task<(V PrevValue, Boolean Removed)> Remove(K key)
         {
             return await Cluster.Remove(KeyMarshaller, ValueMarshaller, (UntypedCache)this, key);
         }
-        public async ValueTask Clear()
+        public async Task Clear()
         {
             await Cluster.Clear(this);
         }
-        public async ValueTask<Boolean> IsEmpty()
+        public async Task<Boolean> IsEmpty()
         {
             return await Cluster.Size(this) == 0;
         }
-        public async ValueTask<ServerStatistics> Stats()
+        public async Task<ServerStatistics> Stats()
         {
             return await Cluster.Stats(this);
         }
-        public async ValueTask<(V PrevValue, Boolean Replaced)> Replace(K key, V value, ExpirationTime lifespan = null, ExpirationTime maxidle = null)
+        public async Task<(V PrevValue, Boolean Replaced)> Replace(K key, V value, ExpirationTime lifespan = null, ExpirationTime maxidle = null)
         {
             return await Cluster.Replace(KeyMarshaller, ValueMarshaller, this, key, value, lifespan, maxidle);
         }
-        public async ValueTask<Boolean> ReplaceWithVersion(K key, V value, Int64 version, ExpirationTime lifeSpan = null, ExpirationTime maxIdle = null)
+        public async Task<Boolean> ReplaceWithVersion(K key, V value, Int64 version, ExpirationTime lifeSpan = null, ExpirationTime maxIdle = null)
         {
             return await Cluster.ReplaceWithVersion(KeyMarshaller, ValueMarshaller, (UntypedCache)this, key, value, version, lifeSpan, maxIdle);
         }
-        public async ValueTask<(V V, Boolean Removed)> RemoveWithVersion(K key, Int64 version)
+        public async Task<(V V, Boolean Removed)> RemoveWithVersion(K key, Int64 version)
         {
             return await Cluster.RemoveWithVersion(KeyMarshaller, ValueMarshaller, (UntypedCache)this, key, version);
         }
-        public async ValueTask<QueryResponse> Query(QueryRequest query)
+        public async Task<QueryResponse> Query(QueryRequest query)
         {
             return await Cluster.Query(query, (UntypedCache)this);
         }
-        public async ValueTask<List<Object>> Query(String query)
+        public async Task<List<Object>> Query(String query)
         {
             var qr = new QueryRequest();
             qr.QueryString = query;
@@ -143,7 +143,7 @@ namespace Infinispan.Hotrod.Core
             }
             return result;
         }
-        public async ValueTask<ISet<K>> KeySet()
+        public async Task<ISet<K>> KeySet()
         {
             return await Cluster.KeySet<K>(KeyMarshaller, (UntypedCache)this);
         }

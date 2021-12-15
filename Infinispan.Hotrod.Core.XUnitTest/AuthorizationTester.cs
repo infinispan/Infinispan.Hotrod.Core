@@ -24,8 +24,8 @@ namespace Infinispan.Hotrod.Core.XUnitTest
         public void TestReaderPerformsWrites(Cache<String, String> hotrodCache)
         {
             Assert.Throws<InfinispanException>(() => TestPut(hotrodCache));
-            Assert.ThrowsAsync<InfinispanException>(() => TestPutAsync(hotrodCache).AsTask());
-            Assert.ThrowsAsync<InfinispanException>(() => TestRemoveAsyncNonExistent(hotrodCache).AsTask());
+            Assert.ThrowsAsync<InfinispanException>(() => TestPutAsync(hotrodCache));
+            Assert.ThrowsAsync<InfinispanException>(() => TestRemoveAsyncNonExistent(hotrodCache));
             Assert.Throws<InfinispanException>(() => TestRemoveNonExistent(hotrodCache));
         }
 
@@ -39,10 +39,10 @@ namespace Infinispan.Hotrod.Core.XUnitTest
 
         public void TestWriterPerformsReads(Cache<String, String> hotrodCache)
         {
-            Assert.Throws<InfinispanException>(() =>  TestContainsKey(hotrodCache));
-            Assert.Throws<InfinispanException>(() =>  TestGetNonExistent(hotrodCache));
-            Assert.Throws<InfinispanException>(() =>  TestGetVersioned(hotrodCache));
-            Assert.Throws<InfinispanException>(() =>  TestGetWithMetadata(hotrodCache));
+            Assert.Throws<InfinispanException>(() => TestContainsKey(hotrodCache));
+            Assert.Throws<InfinispanException>(() => TestGetNonExistent(hotrodCache));
+            Assert.Throws<InfinispanException>(() => TestGetVersioned(hotrodCache));
+            Assert.Throws<InfinispanException>(() => TestGetWithMetadata(hotrodCache));
             // AssertError(hotrodCache, cache => TestGetNonExistent(cache));
             // AssertError(hotrodCache, cache => TestGetVersioned(cache));
             // AssertError(hotrodCache, cache => TestGetWithMetadata(cache));
@@ -50,18 +50,18 @@ namespace Infinispan.Hotrod.Core.XUnitTest
 
         public void TestWriterPerformsSupervisorOps(Cache<String, String> hotrodCache, Cache<String, String> scriptCache)// , Marshaller marshaller)
         {
-            Assert.Throws<InfinispanException>(() =>  TestPutClear(hotrodCache));
-            Assert.Throws<InfinispanException>(() =>  TestPutContains(hotrodCache));
+            Assert.Throws<InfinispanException>(() => TestPutClear(hotrodCache));
+            Assert.Throws<InfinispanException>(() => TestPutContains(hotrodCache));
             // AssertError(hotrodCache, cache => TestPutGetBulk(cache));
-            Assert.Throws<InfinispanException>(() =>  TestPutGetVersioned(hotrodCache));
-            Assert.Throws<InfinispanException>(() =>  TestPutGetWithMetadata(hotrodCache));
+            Assert.Throws<InfinispanException>(() => TestPutGetVersioned(hotrodCache));
+            Assert.Throws<InfinispanException>(() => TestPutGetWithMetadata(hotrodCache));
             // AssertError(hotrodCache, cache => TestPutAll(cache));
             // AssertError(hotrodCache, cache => TestPutIfAbsent(cache));
-            Assert.Throws<InfinispanException>(() =>  TestPutRemoveContains(hotrodCache));
-            Assert.Throws<InfinispanException>(() =>  TestPutRemoveWithVersion(hotrodCache));
+            Assert.Throws<InfinispanException>(() => TestPutRemoveContains(hotrodCache));
+            Assert.Throws<InfinispanException>(() => TestPutRemoveWithVersion(hotrodCache));
             // AssertError(hotrodCache, cache => TestPutReplaceWithFlag(cache));
-            Assert.Throws<InfinispanException>(() =>  TestPutReplaceWithVersion(hotrodCache));
-            Assert.Throws<InfinispanException>(() =>  TestPutSize(hotrodCache));
+            Assert.Throws<InfinispanException>(() => TestPutReplaceWithVersion(hotrodCache));
+            Assert.Throws<InfinispanException>(() => TestPutSize(hotrodCache));
             // AssertError(hotrodCache, cache => TestRemoteTaskExec(cache, scriptCache, marshaller));
         }
 
@@ -118,11 +118,14 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             //TestPutKeySet(cache);
         }
 
-        protected T executeSync<T>(ValueTask<T> vt) {
-            var task = vt.AsTask();
-            try {
+        protected T executeSync<T>(Task<T> task)
+        {
+            try
+            {
                 task.Wait();
-            } catch (AggregateException ag) {
+            }
+            catch (AggregateException ag)
+            {
                 foreach (Exception ex in ag.InnerExceptions)
                 {
                     throw ex;
@@ -131,11 +134,14 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             return task.Result;
         }
 
-        protected void executeSync(ValueTask vt) {
-            var task = vt.AsTask();
-            try {
+        protected void executeSync(Task task)
+        {
+            try
+            {
                 task.Wait();
-            } catch (AggregateException ag) {
+            }
+            catch (AggregateException ag)
+            {
                 foreach (Exception ex in ag.InnerExceptions)
                 {
                     throw ex;
@@ -165,38 +171,46 @@ namespace Infinispan.Hotrod.Core.XUnitTest
 
         protected void TestPut(Cache<string, string> cache)
         {
-            var res = cache.Put(K1, V1).AsTask();
-            try {
-            res.Wait();
-            } catch (AggregateException exs) {
-              foreach (var e in exs.InnerExceptions) {
-                  throw e;
-              }
+            var res = cache.Put(K1, V1);
+            try
+            {
+                res.Wait();
+            }
+            catch (AggregateException exs)
+            {
+                foreach (var e in exs.InnerExceptions)
+                {
+                    throw e;
+                }
             }
             Assert.Null(res.Result);
         }
 
-        protected ValueTask<string> TestPutAsync(Cache<string, string> cache)
+        protected Task<string> TestPutAsync(Cache<string, string> cache)
         {
             return cache.Put(K1, V1);
         }
 
         protected void TestRemoveNonExistent(Cache<string, string> cache)
         {
-            var res = cache.Remove(NON_EXISTENT_KEY).AsTask();
-            try {
-            res.Wait();
-            } catch (AggregateException exs) {
-              foreach (var e in exs.InnerExceptions) {
-                  throw e;
-              }
+            var res = cache.Remove(NON_EXISTENT_KEY);
+            try
+            {
+                res.Wait();
+            }
+            catch (AggregateException exs)
+            {
+                foreach (var e in exs.InnerExceptions)
+                {
+                    throw e;
+                }
             }
             Assert.Null(res.Result.PrevValue);
         }
 
-        protected ValueTask<(string,bool)> TestRemoveAsyncNonExistent(Cache<string, string> cache)
+        protected Task<(string, bool)> TestRemoveAsyncNonExistent(Cache<string, string> cache)
         {
-            ValueTask<(string,bool)> removeAsync = cache.Remove(NON_EXISTENT_KEY);
+            Task<(string, bool)> removeAsync = cache.Remove(NON_EXISTENT_KEY);
             return removeAsync;
         }
 
@@ -212,7 +226,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
         {
             await cache.Put(K1, V1);
             await cache.Put(K2, V2);
-            ValueTask task = cache.Clear();
+            Task task = cache.Clear();
             await task;
             Assert.True(await cache.IsEmpty());
         }
@@ -311,7 +325,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
         {
             executeSync<string>(cache.Put(K1, V1));
             Assert.True(executeSync<bool>(cache.ContainsKey(K1)));
-            executeSync<(string,bool)>(cache.Remove(K1));
+            executeSync<(string, bool)>(cache.Remove(K1));
             Assert.False(executeSync<bool>(cache.ContainsKey(K1)));
         }
 
@@ -319,8 +333,8 @@ namespace Infinispan.Hotrod.Core.XUnitTest
         {
             await cache.Put(K1, V1);
             Assert.True(await cache.ContainsKey(K1));
-            ValueTask<(string,bool)> result = cache.Remove(K1);
-            result.AsTask().Wait(5000);
+            Task<(string, bool)> result = cache.Remove(K1);
+            result.Wait(5000);
             Assert.False(await cache.ContainsKey(K1));
         }
 
@@ -329,7 +343,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             executeSync<string>(cache.Put(K1, V1));
             ValueWithVersion<string> value = executeSync<ValueWithVersion<string>>(cache.GetWithVersion(K1));
             long version = value.Version;
-            executeSync<(string,bool)>(cache.RemoveWithVersion(K1, version));
+            executeSync<(string, bool)>(cache.RemoveWithVersion(K1, version));
             value = executeSync<ValueWithVersion<string>>(cache.GetWithVersion(K1));
             if (value != null)
             {
@@ -342,8 +356,8 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             await cache.Put(K1, V1);
             ValueWithVersion<string> value = await cache.GetWithVersion(K1);
             long version = value.Version;
-            ValueTask<(string,bool)> result = cache.RemoveWithVersion(K1, version);
-            result.AsTask().Wait(5000);
+            Task<(string, bool)> result = cache.RemoveWithVersion(K1, version);
+            result.Wait(5000);
             value = await cache.GetWithVersion(K1);
             if (value != null)
             {
@@ -375,8 +389,8 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             await cache.Put(K1, V1);
             ValueWithVersion<string> value = await cache.GetWithVersion(K1);
             long version = value.Version;
-            ValueTask<bool> result = cache.ReplaceWithVersion(K1, V2, version);
-            result.AsTask().Wait(5000);
+            Task<bool> result = cache.ReplaceWithVersion(K1, V2, version);
+            result.Wait(5000);
             value = await cache.GetWithVersion(K1);
             Assert.Equal(V2, value.Value);
             Assert.True(value.Version != version);
@@ -385,7 +399,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
         protected void TestPutSize(Cache<string, string> cache)
         {
             executeSync<string>(cache.Put(K1, V1));
-            Assert.NotEqual(0,executeSync<int>(cache.Size()));
+            Assert.NotEqual(0, executeSync<int>(cache.Size()));
         }
 
         // TODO: implement PutKeySet
@@ -402,13 +416,17 @@ namespace Infinispan.Hotrod.Core.XUnitTest
 
         protected void TestStats(Cache<string, string> cache)
         {
-            var task = cache.Stats().AsTask();
-            try {
-            task.Wait();
-            } catch (AggregateException exs) {
-              foreach (var e in exs.InnerExceptions) {
-                  throw e;
-              }
+            var task = cache.Stats();
+            try
+            {
+                task.Wait();
+            }
+            catch (AggregateException exs)
+            {
+                foreach (var e in exs.InnerExceptions)
+                {
+                    throw e;
+                }
             }
             ServerStatistics stats = task.Result;
             Assert.NotNull(stats);
@@ -445,7 +463,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
         // {
         //     string scriptName = "script.js";
         //     string script = "//mode=local,language=javascript\n "
-		//             + "var cache = cacheManager.getCache(\"default\");\n "
+        //             + "var cache = cacheManager.getCache(\"default\");\n "
         //                     + "cache.put(\"k1\", value);\n"
         //                     + "cache.get(\"k1\");\n";
         //     DataFormat df = new DataFormat();
