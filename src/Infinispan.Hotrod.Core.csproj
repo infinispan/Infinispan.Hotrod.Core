@@ -1,16 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFrameworks>netcoreapp3.1</TargetFrameworks>
-    <Version>0.0.1-alpha</Version>
+    <Version>0.0.2-alpha</Version>
     <Company>infinispan.org</Company>
     <Authors>rigazilla</Authors>
     <Description>An Infinispan client components for dotnet core</Description>
     <PackageLicenseUrl></PackageLicenseUrl>
     <PackageProjectUrl></PackageProjectUrl>
-    <PackageIconUrl />
+    <PackageIcon>icon.png</PackageIcon>
     <SignAssembly>false</SignAssembly>
-    <!--AssemblyOriginatorKeyFile></AssemblyOriginatorKeyFile-->
-    <!--PackageIcon>beetlex200.png</PackageIcon-->
     <PackageReleaseNotes />
   </PropertyGroup>
   <ItemGroup>
@@ -28,11 +26,13 @@
   </ItemGroup>
   <ItemGroup>
     <Protobuf Include="Protos/query.proto"></Protobuf>
-  </ItemGroup>
-  <ItemGroup>
     <Protobuf Include="Protos/message-wrapping.proto"></Protobuf>
+    <Protobuf Include="Protos/base_types.proto"></Protobuf>
   </ItemGroup>
   <ItemGroup>
-    <Protobuf Include="Protos/base_types.proto"></Protobuf>
+    <None Include="../infinispan_icon_rgb_lightbluewhite_64px.png">
+      <Pack>True</Pack>
+      <PackagePath>icon.png</PackagePath>
+    </None>
   </ItemGroup>
 </Project>
