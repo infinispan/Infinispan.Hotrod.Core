@@ -52,7 +52,7 @@ namespace Infinispan.Hotrod.Core
 
         private Stack<InfinispanClient> mPool = new Stack<InfinispanClient>();
 
-        public int QueueMaxLength { get; set; } = 256;
+        public int QueueMaxLength { get; set; } = 8192;
 
         public int MaxConnections { get; set; } = 30;
 
