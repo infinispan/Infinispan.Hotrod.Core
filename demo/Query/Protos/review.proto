@@ -1,0 +1,14 @@
+syntax = "proto2";
+package AppDB;
+/**
+ * @Indexed
+ * @TypeId(1000042)
+ */
+message Review {
+  // App,TranslatedReview,Sentiment,SentimentPolarity,SentimentSubjectivity
+  optional string App = 1;
+  optional string TranslatedReview = 2;
+  optional string Sentiment = 3;
+  optional string SentimentPolarity = 4;
+  optional string SentimentSubjectivity = 5;
+}

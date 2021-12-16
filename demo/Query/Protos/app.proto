@@ -1,0 +1,23 @@
+syntax = "proto2";
+package AppDB;
+/**
+ * @Indexed
+ * @TypeId(1000043)
+ */
+message Application {
+  // App,Category,Rating,Reviews,Size,Installs,Type,Price,Content
+  // Rating,Genres,Last Updated,Current Ver,Android Ver
+  optional string App = 1;
+  optional string Category = 2;
+  optional string Rating = 3;
+  optional string Reviews = 4;
+  optional string Size = 5;
+  optional string Installs = 6;
+  optional string Type = 7;
+  optional string Price = 8;
+  optional string ContentRating = 9;
+  optional string Genres = 10;
+  optional string LastUpdated = 11;
+  optional string CurrentVer = 12;
+  optional string AndroidVer = 13;
+}
