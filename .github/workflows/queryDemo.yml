@@ -1,0 +1,30 @@
+name: infinispan-netcore-tests
+env:
+  ISPN_VER: '13.0.3.Final'
+on: [push, pull_request]
+jobs:
+  run-ci-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: '3.1.x' # SDK Version to use; x will use the latest version of the 3.1 channel
+      - uses: actions/setup-java@v2
+        with:
+          distribution: 'adopt' # See 'Supported distributions' for available options
+          java-version: '11'
+      - uses: wei/wget@v1
+        with:
+          args: -q https://downloads.jboss.org/infinispan/$ISPN_VER/infinispan-server-$ISPN_VER.zip
+      - name: Set env
+        run: echo "JBOSS_HOME=$(echo $PWD/infinispan-server-$ISPN_VER)" >> $GITHUB_ENV
+      - run: pwd && unzip infinispan-server-$ISPN_VER.zip
+      - run: cp -r demo/Query/conf/* $JBOSS_HOME/server/conf
+      - run: |
+             cd demo/Query
+             $JBOSS_HOME/bin/server.sh -c infinispan-app.xml &
+             timeout 20  bash -c "while ! sudo lsof -i:11222; do sleep 1; done"
+             dotnet run -p Query.csproj
+             kill %%
+

@@ -62,14 +62,6 @@ namespace Query
             {
                 return null;
             }
-            if (obj is String)
-            {
-                return StringToByteBuffer((String)obj);
-            }
-            if (obj is int)
-            {
-                return IntToByteBuffer((int)obj);
-            }
             if (obj is Application)
             {
                 return ObjectToByteBuffer(1000043, obj);
@@ -86,22 +78,12 @@ namespace Query
             var w = WrappedMessage.Parser.ParseFrom(buff);
             switch (w.WrappedDescriptorId)
             {
+                case 1000042:
+                    return Review.Parser.ParseFrom(w.WrappedMessageBytes.ToByteArray());
                 case 1000043:
-                default:
                     return Application.Parser.ParseFrom(w.WrappedMessageBytes.ToByteArray());
             }
-
-            // base_types bt = base_types.Parser.ParseFrom(buff);
-            // if (bt.I32 != 0)
-            // {
-            //     return bt.I32;
-            // }
-            // else if (bt.I64 != 0)
-            // {
-            //     return bt.I64;
-            // }
-            // else return bt.Str;
-
+            throw new NotSupportedException("Unsupported DescriptionId: " + w.WrappedDescriptorId);
         }
     }
 }

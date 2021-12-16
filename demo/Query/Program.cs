@@ -23,8 +23,6 @@ namespace Query
         {
             // Setup the cluster
             var ispnCluster = new InfinispanDG();
-            var mv = new BasicTypesProtoStreamMarshaller();
-            var mk = new StringMarshaller();
             // Settings for the client
             ispnCluster.Version = 0x1f;
             ispnCluster.ClientIntelligence = 0x03;
@@ -34,6 +32,8 @@ namespace Query
             // Install the proto definition of the application objects
             installProto(ispnCluster, "Query.Protos.app.proto");
             installProto(ispnCluster, "Query.Protos.review.proto");
+            var mv = new BasicTypesProtoStreamMarshaller();
+            var mk = new StringMarshaller();
             // Create a cache proxy for the remote cache named "market"
             var cache = ispnCluster.newCache<string, Object>(mk, mv, "market");
             // Populate the cache
@@ -48,9 +48,8 @@ namespace Query
             Console.WriteLine("ResultSet");
             foreach (var a in apps)
             {
-                Console.WriteLine("Result: " + a);
+                Console.WriteLine("Result: " + JsonConvert.SerializeObject(a));
             }
-
             // Query 2: select projection
             List<Object> projection = cache.Query("select a.App, a.Installs, a.Price from AppDB.Application a where a.Rating=\"4.6\"").Result;
             Console.WriteLine("ResultSet");
@@ -59,27 +58,26 @@ namespace Query
             {
                 Console.Write("Result: ");
                 object[] values = (Object[])item;
-                for (int i = 0; i < values.Length; ++i)
-                {
-                    Console.Write(values[i] + ", ");
-                }
-                Console.WriteLine("");
+                Console.WriteLine(JsonConvert.SerializeObject(values));
             }
 
             // Query 3: select aggregate value
             List<Object> count = cache.Query("select count(a.App) from AppDB.Application a where a.Rating=\"4.6\"").Result;
             Object[] values1 = (Object[])count[0];
-            Console.WriteLine("ResultSet length: " + values1[0]);
+            Console.WriteLine("ResultSet count: " + values1[0]);
         }
         private static void installProto(InfinispanDG ispnCluster, string resourceName)
         {
+            // Setup __protobuf_metadata cache
+            // <string,string> cache with text/plain media type
             var metaCache = ispnCluster.newCache(new StringMarshaller(), new StringMarshaller(), PROTOBUF_METADATA_CACHE_NAME);
-            // TODO: fix syntax below
             MediaType kvMediaType = new MediaType();
             kvMediaType.CustomMediaType = Encoding.ASCII.GetBytes("text/plain");
             kvMediaType.InfoType = 2;
             metaCache.KeyMediaType = kvMediaType;
             metaCache.ValueMediaType = kvMediaType;
+
+            // Cleanup previous errors
             metaCache.Remove(ERRORS_KEY_SUFFIX).Wait();
 
             var assembly = Assembly.GetExecutingAssembly();
@@ -150,9 +148,9 @@ namespace Query
                             if (!Google.Protobuf.WireFormat.Equals(a, c))
                             {
                                 Console.WriteLine("------------------------------------------");
-                                Console.WriteLine(a);
+                                Console.WriteLine(JsonConvert.SerializeObject(a));
                                 Console.WriteLine("--");
-                                Console.WriteLine(c);
+                                Console.WriteLine(JsonConvert.SerializeObject(c));
                             }
                         }
                     }
