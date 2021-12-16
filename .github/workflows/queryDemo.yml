@@ -20,9 +20,8 @@ jobs:
       - name: Set env
         run: echo "JBOSS_HOME=$(echo $PWD/infinispan-server-$ISPN_VER)" >> $GITHUB_ENV
       - run: pwd && unzip infinispan-server-$ISPN_VER.zip
-      - run: cp -r demo/Query/conf/* $JBOSS_HOME/server/conf
+      - run: cp -r conf/* $JBOSS_HOME/server/conf
       - run: |
-             cd demo/Query
              $JBOSS_HOME/bin/server.sh -c infinispan-app.xml &
              timeout 20  bash -c "while ! sudo lsof -i:11222; do sleep 1; done"
              dotnet run -p Query.csproj
