@@ -34,7 +34,7 @@ This demo does the following:
 #### How to run it
 It should be easy as:
 - on the machine `dotnet run`
-- on the container `podman run -it --mount type=bind,src=$PWD/demo-container/container-data,dst=/home/host-data quay.io/rigazilla/netcore-demo:1.0 /bin/bash -c "cd home/host-data && . ./setup.sh && dotnet run"`
+- on the container `podman run -it --mount type=bind,src=$PWD,dst=/home/host-data quay.io/rigazilla/netcore-demo:1.0 /bin/bash -c "cd home/host-data && scripts/container-setup.sh && dotnet run"`
 #### Some lovely facts
 - The user application can work with plain C# data type. Once the cache is configured with a suitable marshaller, protobuf details are handled by the client. ([link](https://github.com/infinispan/Infinispan.Hotrod.Core/blob/e2efac6591741d23ff92c6253bf1257a60ea8879/demo/Query/Program.cs#L35-L38))
 - client API is asynchronous by default and concurrency is well supported. This demo runs all the PUT commands in one shot. ([link](https://github.com/infinispan/Infinispan.Hotrod.Core/blob/e2efac6591741d23ff92c6253bf1257a60ea8879/demo/Query/Program.cs#L111-L122))
