@@ -7,10 +7,22 @@ For more info related to the client itself please go to the [main branch](https:
 ### Prerequisites
 - .Net
 - Java 11
-### Setup
+
+or
+- docker/podman
+
+### On PC
 A running Infinispan server is needed, you can:
 - run `scripts/setup.sh` to download and setup the server;
 - run (in a different windows) `scripts/run-ispn.sh`.
+
+### In container
+
+- `cd demo-container`
+- `podman run -it --mount type=bind,src=$PWD/container-data,dst=/home/host-data quay.io/rigazilla/netcore-demo:1.0 /bin/bash -c "cd home/host-data && ./setup-run.sh"`
+
+Alternatively you can build the image using the provided `Dockerfile`
+
 ### The demo
 #### What does
 This demo does the following:
