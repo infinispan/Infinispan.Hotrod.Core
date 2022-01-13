@@ -21,6 +21,8 @@ A running Infinispan server is needed, you can:
 An OCI image is available at `quay.io/rigazilla/netcore-demo:1.0`. Alternatively you can build the image using the provided `Dockerfile`.
 Run the image:
 - `podman run --name query_demo -it --mount type=bind,src=$PWD,dst=/home/hostfs quay.io/rigazilla/netcore-demo:1.0 /bin/bash -c "cd home/hostfs && scripts/container-setup.sh"`
+To stop the container at the end:
+- `podman stop query_demo`
 
 ### The demo
 #### What does
@@ -40,7 +42,8 @@ It should be easy as:
   - `podman exec -it query_demo /bin/bash`
   - `cd home/hostfs && dotnet run`
 
-#### Some lovely facts
+
+#### Some highlights
 - The user application can work with plain C# data type. Once the cache is configured with a suitable marshaller, protobuf details are handled by the client. ([link](https://github.com/infinispan/Infinispan.Hotrod.Core/blob/e2efac6591741d23ff92c6253bf1257a60ea8879/demo/Query/Program.cs#L35-L38))
 - client API is asynchronous by default and concurrency is well supported. This demo runs all the PUT commands in one shot. ([link](https://github.com/infinispan/Infinispan.Hotrod.Core/blob/e2efac6591741d23ff92c6253bf1257a60ea8879/demo/Query/Program.cs#L111-L122))
 ### The tutorial
