@@ -37,7 +37,7 @@ This demo does the following:
 It should be easy as:
 - on the machine `dotnet run`
 - on the container:
-  - `podman exec -it query-demo /bin/bash`
+  - `podman exec -it query_demo /bin/bash`
   - `cd home/hostfs && dotnet run`
 
 #### Some lovely facts
