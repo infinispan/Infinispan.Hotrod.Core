@@ -21,7 +21,7 @@ To run this demo you need:
 
 Alternatively you can run the demo in a container image using [Podman](https://podman.io/) or Docker.
 
-### Running the demo with .NET Core
+### Running the demo with .NET
 
 If you install .NET you can run the demo as follows:
 
