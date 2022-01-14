@@ -16,7 +16,7 @@ This demonstration shows you how to you use the .NET Core client to store and qu
 
 To run this demo you need:
 
-- [.NET Core](https://docs.microsoft.com/it-it/dotnet/core/install)
+- [.NET](https://docs.microsoft.com/dotnet/core/install/)
 - Java 11 or later
 
 Alternatively you can run the demo in a container image using [Podman](https://podman.io/) or Docker.
