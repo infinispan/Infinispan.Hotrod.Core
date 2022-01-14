@@ -16,7 +16,7 @@ This demonstration shows you how to you use the .NET Core client to store and qu
 
 To run this demo you need:
 
-- [.NET](https://docs.microsoft.com/en-us/dotnet/core/install/)
+- [.NET](https://docs.microsoft.com/dotnet/core/install/)
 - Java 11 or later
 
 Alternatively you can run the demo in a container image using [Podman](https://podman.io/) or Docker.
@@ -44,7 +44,7 @@ If you want to run the demo with Podman or Docker, do the following:
 
 1. Start the container image.
 ```bash
-podman run --name query_demo -it --mount type=bind,src=$PWD,dst=/home/hostfs quay.io/rigazilla/netcore-demo:1.0 /bin/bash -c "cd home/hostfs && scripts/container-setup.sh"
+podman run --network=host --name query_demo -it --mount type=bind,src=$PWD,dst=/home/hostfs quay.io/rigazilla/netcore-demo:1.0 /bin/bash -c "cd home/hostfs && scripts/container-setup.sh"
 ```
 2. Connect to the container image in a new terminal window.
 ```bash
