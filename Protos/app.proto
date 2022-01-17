@@ -4,7 +4,7 @@ package AppDB;
  * @Indexed
  * @TypeId(1000043)
  */
-message Application {
+message AppEntry {
   // App,Category,Rating,Reviews,Size,Installs,Type,Price,Content
   // Rating,Genres,Last Updated,Current Ver,Android Ver
   optional string App = 1;

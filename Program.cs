@@ -29,7 +29,7 @@ namespace Query
             ispnCluster.ForceReturnValue = false;
             // Add the server endpoint address
             host = ispnCluster.AddHost("127.0.0.1", 11222, false);
-            // Install the proto definition of the application objects
+            // Install the proto definition of the AppEntry objects
             installProto(ispnCluster, "Query.Protos.app.proto");
             installProto(ispnCluster, "Query.Protos.review.proto");
             var mv = new BasicTypesProtoStreamMarshaller();
@@ -43,15 +43,16 @@ namespace Query
 
             // Now play with queries
             // Query 1: select object
-            List<Object> apps = cache.Query("from AppDB.Application a where a.Rating=\"4.6\"").Result;
+            List<Object> apps = cache.Query("from AppDB.AppEntry a where a.Rating=\"4.6\"").Result;
             Console.WriteLine("ResultSet size: " + apps.Count);
             Console.WriteLine("ResultSet");
             foreach (var a in apps)
             {
-                Console.WriteLine("Result: " + JsonConvert.SerializeObject(a));
+                AppEntry entry = (AppEntry)a;
+                Console.WriteLine("Result: " + JsonConvert.SerializeObject(entry));
             }
             // Query 2: select projection
-            List<Object> projection = cache.Query("select a.App, a.Installs, a.Price from AppDB.Application a where a.Rating=\"4.6\"").Result;
+            List<Object> projection = cache.Query("select a.App, a.Installs, a.Price from AppDB.AppEntry a where a.Rating=\"4.6\"").Result;
             Console.WriteLine("ResultSet");
             Console.WriteLine("ResultSet size: " + projection.Count);
             foreach (var item in projection)
@@ -62,7 +63,7 @@ namespace Query
             }
 
             // Query 3: select aggregate value
-            List<Object> count = cache.Query("select count(a.App) from AppDB.Application a where a.Rating=\"4.6\"").Result;
+            List<Object> count = cache.Query("select count(a.App) from AppDB.AppEntry a where a.Rating=\"4.6\"").Result;
             Object[] values1 = (Object[])count[0];
             Console.WriteLine("ResultSet count: " + values1[0]);
         }
@@ -113,7 +114,7 @@ namespace Query
                     {
                         if (jReader.TokenType == JsonToken.StartObject)
                         {
-                            Application a = serializer.Deserialize<Application>(jReader);
+                            AppEntry a = serializer.Deserialize<AppEntry>(jReader);
                             var res = cache.Put(a.App, a);
                             // Uncomment this to slowdown the storm
                             // System.Threading.Thread.Sleep(5);
@@ -141,7 +142,7 @@ namespace Query
                     {
                         if (jReader.TokenType == JsonToken.StartObject)
                         {
-                            Application a = serializer.Deserialize<Application>(jReader);
+                            AppEntry a = serializer.Deserialize<AppEntry>(jReader);
                             var c = cache.Get(a.App).Result;
                             var ab = mv.marshall(a);
                             var cb = mv.marshall(c);
