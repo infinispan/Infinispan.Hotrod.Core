@@ -1,13 +1,18 @@
 # Infinispan Hot Rod .NET Core Demo
 
 This branch provides a demonstration of the Hot Rod .NET Core client with remote caches on an Infinispan Server instance.
+### Goal
+This demo aims to show:
+- the current maturity level of the new .NET Core client library;
+- how to include it in your application;
+- how to store and query entries in remote cache;
+- how the client handles Protobuf serialization.
 
 For the latest client code, use the [main branch](https://github.com/infinispan/Infinispan.Hotrod.Core/tree/main).
 
 ## Querying Infinispan caches with the .NET Core client
 
-This demonstration shows you how to you use the .NET Core client to store and query entries in remote caches on Infinispan Server instance by:
-
+The demo shows a typical use case with queries by:
 1. Taking a list of more than 9k applications in JSON format (`data/app.json`) and creates a C# Application object for each entry.
 2. Storing all the entries in the `market` cache on Infinispan Server and then checking the entries against the `data/app.json` file.
 3. Queries the `market` cache to select a list of Application objects, a list of projections, and an aggregate value.
@@ -61,20 +66,32 @@ podman stop query_demo
 
 ### Some highlights
 
-- .NET applications can use plain C# data types. By configuring Infinispan caches with the ProtoStream marshaller the Hot Rod .NET Core client handles all the Protobuf to C# conversion ([link](https://github.com/infinispan/Infinispan.Hotrod.Core/blob/e2efac6591741d23ff92c6253bf1257a60ea8879/demo/Query/Program.cs#L35-L38)).
-- The Hot Rod client API is asynchronous by default and concurrency is supported. This demo runs all PUT commands in a single call ([link](https://github.com/infinispan/Infinispan.Hotrod.Core/blob/e2efac6591741d23ff92c6253bf1257a60ea8879/demo/Query/Program.cs#L111-L122)).
+- Concurrency: the Hot Rod client API is asynchronous by default and concurrency is supported. To show that, this demo runs all PUT commands in a single call ([link](https://github.com/infinispan/Infinispan.Hotrod.Core/blob/e2efac6591741d23ff92c6253bf1257a60ea8879/demo/Query/Program.cs#L111-L122)).
 
-### Protobuf and remote cache queries
+- Simplicity: the client is shipped as a .nuget package and can be easily imported ([link](https://github.com/infinispan/Infinispan.Hotrod.Core/blob/234362df176512f23d0eaef171a26b6f5ccf9489/Query.csproj#L7)).
+- Protobuf support: using the default Protobuf/Grpc tools ([link](https://github.com/infinispan/Infinispan.Hotrod.Core/blob/234362df176512f23d0eaef171a26b6f5ccf9489/Query.csproj#L8-L9)), the C# data types hierarchy can be generated and used in the application.
 
-To query remote caches you need to provide Infinispan Server with Protobuf schema that describe your data model ([link](https://github.com/infinispan/Infinispan.Hotrod.Core/blob/e2efac6591741d23ff92c6253bf1257a60ea8879/demo/Query/Program.cs#L69)).
 
-You also need to implement a marshaller for your data model.
-That sounds scary but Protobuf gives you some parsers that really simplify the entire process.
-The main thing in the marshaller is the logic that selects the right parser for the type.
+### Infinispan Query
 
-- In the Protobuf schema, a unique `TypeId` is assigned to each Protobuf message ([link](https://github.com/infinispan/Infinispan.Hotrod.Core/blob/a648993db9cd97ebff2186a6f3f5ef64b37517da/demo/Query/Protos/app.proto#L5)) and ([link](https://github.com/infinispan/Infinispan.Hotrod.Core/blob/a648993db9cd97ebff2186a6f3f5ef64b37517da/demo/Query/Protos/review.proto#L5)).
-- In the marshaller, the `TypeId` identifies which parser to select ([link](https://github.com/infinispan/Infinispan.Hotrod.Core/blob/a648993db9cd97ebff2186a6f3f5ef64b37517da/demo/Query/Marshaller.cs#L87)).
+#### Server setup
+To run queries the Infinispan server needs a `.proto` description of the queriable data types. This demo takes care of uploading the `.proto` file onto the server. ([link](https://github.com/infinispan/Infinispan.Hotrod.Core/blob/e2efac6591741d23ff92c6253bf1257a60ea8879/demo/Query/Program.cs#L69))
+
+#### Client Marshaller
+Infinispan uses `application/x-protostream` media type to serialize remote query. [Protostream](https://github.com/infinispan/protostream) is a Protobuf based protocol that allows multiple types of object to be serialized onto the same data stream. Simplifying a little bit: client and server share a map that assigns an integer number to each queriable object type; this is usually done defining the `TypeId` in the `.proto` file. (see [link](https://github.com/infinispan/Infinispan.Hotrod.Core/blob/a648993db9cd97ebff2186a6f3f5ef64b37517da/demo/Query/Protos/app.proto#L5) and [link](https://github.com/infinispan/Infinispan.Hotrod.Core/blob/a648993db9cd97ebff2186a6f3f5ef64b37517da/demo/Query/Protos/review.proto#L5)). This typeId is sent in front of each Protobuf message sent on the wire.
+
+On the client side the application must provide a Protostream marshaller for its own data types. That could sound scary, but Protobuf can do most of the hard work for this.
+A protostream essentially must:
+- set the correct `typeId` in the protostream message when marshalling data to the server ([see](https://github.com/infinispan/Infinispan.Hotrod.Core/blob/234362df176512f23d0eaef171a26b6f5ccf9489/Marshaller.cs#L17-L24));
+- use the correct Protobuf parser when unmarshalling from the server ([see](https://github.com/infinispan/Infinispan.Hotrod.Core/blob/234362df176512f23d0eaef171a26b6f5ccf9489/Marshaller.cs#L31-L37)).
+Once the marshaller has been implemented, the plain C# classes generated by the Protobuf framework can be used in the application development.
+
+Maybe it worth to highlight that using protostream the data format is independent from the specific programming language, this means that data store in the cache can be accessed by C#, Java, C++ clients. Actually the the demo shows a round trip interoperability between different data representation:
+- [json->C#](https://github.com/infinispan/Infinispan.Hotrod.Core/blob/234362df176512f23d0eaef171a26b6f5ccf9489/Program.cs#L117) marshalling;
+- [C#->protostream](https://github.com/infinispan/Infinispan.Hotrod.Core/blob/234362df176512f23d0eaef171a26b6f5ccf9489/Program.cs#L118) marshalling;
+- [protostream->C#](https://github.com/infinispan/Infinispan.Hotrod.Core/blob/234362df176512f23d0eaef171a26b6f5ccf9489/Program.cs#L46-L51) unmarshalling;
+- [C#->json](https://github.com/infinispan/Infinispan.Hotrod.Core/blob/234362df176512f23d0eaef171a26b6f5ccf9489/Program.cs#L52) marshalling.
 
 ### Conclusion
 
-With the Infinispan Hot Rod .NET Core client it's easy for .NET applications to store and query remote caches while working with C# data types.
+With the Infinispan Hot Rod .NET Core client it's easy for .NET applications to store and query remote caches, in an language independent format, while working with native C# data types.

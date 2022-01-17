@@ -7,6 +7,37 @@ namespace Query
 {
     class BasicTypesProtoStreamMarshaller : Marshaller<Object>
     {
+
+        public override byte[] marshall(Object obj)
+        {
+            if (obj == null)
+            {
+                return null;
+            }
+            if (obj is AppEntry)
+            {
+                return ObjectToByteBuffer(1000043, obj);
+            }
+            if (obj is Review)
+            {
+                return ObjectToByteBuffer(1000042, obj);
+            }
+            throw new NotImplementedException(obj.ToString());
+        }
+
+        public override Object unmarshall(byte[] buff)
+        {
+            var w = WrappedMessage.Parser.ParseFrom(buff);
+            switch (w.WrappedDescriptorId)
+            {
+                case 1000042:
+                    return Review.Parser.ParseFrom(w.WrappedMessageBytes.ToByteArray());
+                case 1000043:
+                    return AppEntry.Parser.ParseFrom(w.WrappedMessageBytes.ToByteArray());
+            }
+            throw new NotSupportedException("Unsupported DescriptionId: " + w.WrappedDescriptorId);
+        }
+
         private byte[] ObjectToByteBuffer(int descriptorId, object obj)
         {
             IMessage u = (IMessage)obj;
@@ -55,35 +86,6 @@ namespace Query
             cos.Flush();
             return bytes;
         }
-
-        public override byte[] marshall(Object obj)
-        {
-            if (obj == null)
-            {
-                return null;
-            }
-            if (obj is Application)
-            {
-                return ObjectToByteBuffer(1000043, obj);
-            }
-            if (obj is Review)
-            {
-                return ObjectToByteBuffer(1000042, obj);
-            }
-            throw new NotImplementedException(obj.ToString());
-        }
-
-        public override Object unmarshall(byte[] buff)
-        {
-            var w = WrappedMessage.Parser.ParseFrom(buff);
-            switch (w.WrappedDescriptorId)
-            {
-                case 1000042:
-                    return Review.Parser.ParseFrom(w.WrappedMessageBytes.ToByteArray());
-                case 1000043:
-                    return Application.Parser.ParseFrom(w.WrappedMessageBytes.ToByteArray());
-            }
-            throw new NotSupportedException("Unsupported DescriptionId: " + w.WrappedDescriptorId);
-        }
     }
+
 }
