@@ -2,11 +2,11 @@
 
 This branch provides a demonstration of the Hot Rod .NET Core client with remote caches on an Infinispan Server instance.
 ### Goal
-This demo aims to show:
-- the current maturity level of the new .NET Core client library;
-- how to include it in your application;
-- how to store and query entries in remote cache;
-- how the client handles Protobuf serialization.
+This demo aims to show you the current maturity level of the Hot Rod .NET Core client as well as how to:
+
+- Include ithe client in your application.
+- Store and query entries in a remote cache.
+- Handle Protobuf serialization of C# data types.
 
 For the latest client code, use the [main branch](https://github.com/infinispan/Infinispan.Hotrod.Core/tree/main).
 
