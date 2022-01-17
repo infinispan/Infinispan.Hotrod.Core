@@ -94,4 +94,4 @@ It is worth highlighting that, using ProtoStream, the data format is independent
 
 ### Conclusion
 
-With the Infinispan Hot Rod .NET Core client it's easy for .NET applications to store and query remote caches, in an language independent format, while working with native C# data types.
+With the Infinispan Hot Rod .NET Core client it's easy for .NET applications to store and query remote caches, in an language neutral format, while working with native C# data types.
