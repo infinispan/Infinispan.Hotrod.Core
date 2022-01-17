@@ -68,7 +68,7 @@ podman stop query_demo
 
 - Concurrency: The Hot Rod client API is asynchronous by default and supports concurrency. To show these capabilites the demo runs all PUT commands asynchronously ([link](https://github.com/infinispan/Infinispan.Hotrod.Core/blob/e2efac6591741d23ff92c6253bf1257a60ea8879/demo/Query/Program.cs#L111-L122)).
 
-- Simplicity: the client is shipped as a .nuget package and can be easily imported ([link](https://github.com/infinispan/Infinispan.Hotrod.Core/blob/234362df176512f23d0eaef171a26b6f5ccf9489/Query.csproj#L7)).
+- Simplicity: The client is shipped as a `.nuget` package that you can easily import ([link](https://github.com/infinispan/Infinispan.Hotrod.Core/blob/234362df176512f23d0eaef171a26b6f5ccf9489/Query.csproj#L7)).
 - Protobuf support: using the default Protobuf/Grpc tools ([link](https://github.com/infinispan/Infinispan.Hotrod.Core/blob/234362df176512f23d0eaef171a26b6f5ccf9489/Query.csproj#L8-L9)), the C# data types hierarchy can be generated and used in the application.
 
 
