@@ -90,7 +90,7 @@ It is worth highlighting that, using ProtoStream, the data format is independent
 - [JSON->C#](https://github.com/infinispan/Infinispan.Hotrod.Core/blob/234362df176512f23d0eaef171a26b6f5ccf9489/Program.cs#L117) marshalling.
 - [C#->ProtoStream](https://github.com/infinispan/Infinispan.Hotrod.Core/blob/234362df176512f23d0eaef171a26b6f5ccf9489/Program.cs#L118) marshalling.
 - [ProtoStream->C#](https://github.com/infinispan/Infinispan.Hotrod.Core/blob/234362df176512f23d0eaef171a26b6f5ccf9489/Program.cs#L46-L51) unmarshalling.
-- [C#->json](https://github.com/infinispan/Infinispan.Hotrod.Core/blob/234362df176512f23d0eaef171a26b6f5ccf9489/Program.cs#L52) marshalling.
+- [C#->JSON](https://github.com/infinispan/Infinispan.Hotrod.Core/blob/234362df176512f23d0eaef171a26b6f5ccf9489/Program.cs#L52) marshalling.
 
 ### Conclusion
 
