@@ -109,7 +109,7 @@ namespace Infinispan.Hotrod.Core
             }
         }
         public bool Available { get; set; }
-        public Result Connect(InfinispanClient client)
+        public async Task<Result> Connect(InfinispanClient client)
         {
             if (!client.TcpClient.IsConnected)
             {
@@ -120,13 +120,12 @@ namespace Infinispan.Hotrod.Core
                     {
                         Commands.AUTH_MECH_LIST authMechList = new Commands.AUTH_MECH_LIST();
                         InfinispanRequest request = new InfinispanRequest(this, this.Cluster, null, client, authMechList, typeof(string));
-                        var task = request.Execute();
-                        task.Wait();
-                        if (task.Result.ResultType == ResultType.DataError ||
-                            task.Result.ResultType == ResultType.Error
-                            || task.Result.ResultType == ResultType.NetError)
+                        var taskResult = await request.Execute();
+                        if (taskResult.ResultType == ResultType.DataError ||
+                            taskResult.ResultType == ResultType.Error
+                            || taskResult.ResultType == ResultType.NetError)
                         {
-                            return task.Result;
+                            return taskResult;
                         }
                         bool found = false;
                         if (this.AuthMech != null)
@@ -143,21 +142,20 @@ namespace Infinispan.Hotrod.Core
                         if (!found)
                         {
                             // TODO: check if error is handled correctly
-                            task.Result.Messge = "SASL mech: " + this.AuthMech + " not available server side";
-                            task.Result.ResultType = ResultType.NetError;
-                            return task.Result;
+                            taskResult.Messge = "SASL mech: " + this.AuthMech + " not available server side";
+                            taskResult.ResultType = ResultType.NetError;
+                            return taskResult;
                         }
                         Commands.AUTH auth = new Commands.AUTH(this.AuthMech, new System.Net.NetworkCredential(User, Password));
                         while (auth.Completed == 0)
                         {
                             request = new InfinispanRequest(this, this.Cluster, null, client, auth, typeof(string));
-                            task = request.Execute();
-                            task.Wait();
-                            if (task.Result.ResultType == ResultType.DataError ||
-                                task.Result.ResultType == ResultType.Error
-                                || task.Result.ResultType == ResultType.NetError)
+                            taskResult = await request.Execute();
+                            if (taskResult.ResultType == ResultType.DataError ||
+                                taskResult.ResultType == ResultType.Error
+                                || taskResult.ResultType == ResultType.NetError)
                             {
-                                return task.Result;
+                                return taskResult;
                             }
                         }
                     }

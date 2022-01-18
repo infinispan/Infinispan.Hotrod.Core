@@ -115,7 +115,7 @@ namespace Infinispan.Hotrod.Core
                 }
                 try
                 {
-                    var result = host.Connect(client);
+                    var result = await host.Connect(client);
                     if (result.IsError)
                     {
                         Console.WriteLine("errCon");
