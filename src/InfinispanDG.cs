@@ -9,36 +9,64 @@ using Org.Infinispan.Query.Remote.Client;
 namespace Infinispan.Hotrod.Core
 {
     /// <summary>
-    /// InfinispanDG class describes an Infinispan Cluster
+    /// InfinispanDG class describes an Infinispan Cluster and is the main API entry point.
     /// </summary>
-    public class InfinispanDG : IHostHandler, IDisposable, ILogHandler
+    public class InfinispanDG : IDisposable, ILogHandler
     {
         /// <summary>
-        /// Construct a cluster
+        /// Constructor for the InfinispanDG class. The returned instance is blank
+        /// and needs to be properly setup before any operation can be executed on the Infinispan cluster.
+        /// Most of the configuration is exposed as properties or public methods.
         /// </summary>
         public InfinispanDG()
         {
-            // Default HostHandler is this
-            this.HostHandler = this;
         }
+        /// <summary>
+        /// Username for the connection credentials
+        /// </summary>
         public string User { get; set; }
+        /// <summary>
+        /// Password for the connection credentials
+        /// </summary>
         public string Password { get; set; }
+        /// <summary>
+        /// SASL authentication mechanism  
+        /// </summary>
         public string AuthMech { get; set; }
+        /// <summary>
+        /// HotRod protocol version
+        /// </summary>
         public byte Version { get; set; } = 0x1f;
-        public byte ClientIntelligence { get; set; } = 0x01;
-        public UInt32 TopologyId { get; set; } = 0xFFFFFFFFU;
+        /// <summary>
+        /// Client intelligence. Supported values are: 0x01 (basic)
+        /// and 0x03 (hash-distribution)
+        /// </summary>
+        public byte ClientIntelligence { get; set; } = 0x02;
+        /// <summary>
+        /// Force the server must include a return value in the respose
+        /// </summary>
         public bool ForceReturnValue = false;
+        /// <summary>
+        /// Enable TLS communication
+        /// </summary>
         public bool UseTLS = false;
-        private IHostHandler HostHandler;
-        private Dictionary<UntypedCache, TopologyInfo> topologyInfoMap = new Dictionary<UntypedCache, TopologyInfo>();
-        private IList<InfinispanHost> mHosts = new List<InfinispanHost>();
-        private InfinispanHost[] mActiveHosts = new InfinispanHost[0];
-        public int reqFailed = 0;
-        public static Int32 MAXHASHVALUE { get; private set; } = 0x7FFFFFFF;
+        /// <summary>
+        /// Add a cluster node to the initial list of nodes.
+        /// </summary>
+        /// <param name="host">node address</param>
+        /// <param name="port">port</param>
+        /// <returns></returns>
         public InfinispanHost AddHost(string host, int port = 11222)
         {
             return AddHost(host, port, UseTLS);
         }
+        /// <summary>
+        /// Add a cluster node to the initial list of nodes.
+        /// </summary>
+        /// <param name="host">node address</param>
+        /// <param name="port">port</param>
+        /// <param name="ssl">overrides the cluster TLS setting</param>
+        /// <returns></returns>
         public InfinispanHost AddHost(string host, int port, bool ssl)
         {
             if (port == 0)
@@ -51,27 +79,236 @@ namespace Infinispan.Hotrod.Core
             mActiveHosts = mHosts.ToArray();
             return ispnHost;
         }
-        InfinispanHost IHostHandler.GetHost()
+        /// <summary>
+        /// Returns a proxy to a remote cache on the server
+        /// </summary>
+        /// <typeparam name="K">Type of the key</typeparam>
+        /// <typeparam name="V">Type of the value</typeparam>
+        /// <param name="keyM">A marshaller for K. <see>Infinispan.Hotrod.Core.Marshaller</see></param>
+        /// <param name="valM">A marshaller for V</param>
+        /// <param name="name">Name of the cache</param>
+        /// <returns></returns>
+        public Cache<K, V> newCache<K, V>(Marshaller<K> keyM, Marshaller<V> valM, string name)
         {
-            var items = mActiveHosts;
-            for (int i = 0; i < items.Length; i++)
-            {
-                if (items[i].Available)
-                    return items[i];
-            }
-            return null;
+            return new Cache<K, V>(this, keyM, valM, name);
         }
-        InfinispanHost IHostHandler.GetHost(int index, TopologyInfo topologyInfo)
+        public void EnableLog(LogType type)
         {
-            var items = mActiveHosts;
-            foreach (var owner in topologyInfo.OwnersPerSegment[index])
-            {
-                if (items[owner].Available)
-                    return items[owner];
-            }
-            return null;
+            enabledType = type;
         }
-        public async Task<Result> Execute(UntypedCache cache, Command cmd)
+        public void Log(LogType type, string message)
+        {
+            if (type < enabledType)
+            {
+                return;
+            }
+            lock (mLockConsole)
+            {
+                Console.Write($"[{ DateTime.Now.ToString("HH:mmm:ss")}] ");
+                switch (type)
+                {
+                    case LogType.Error:
+                        Console.ForegroundColor = ConsoleColor.DarkRed;
+                        break;
+                    case LogType.Warring:
+                        Console.ForegroundColor = ConsoleColor.Yellow;
+                        break;
+                    case LogType.Fatal:
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        break;
+                    case LogType.Info:
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        break;
+                    default:
+                        Console.ForegroundColor = ConsoleColor.White;
+                        break;
+                }
+                Console.Write($"[{type.ToString()}] ");
+                Console.ForegroundColor = ConsoleColor.Gray;
+                Console.WriteLine(message);
+            }
+        }
+        internal async ValueTask<V> Put<K, V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key, V value, ExpirationTime lifespan = null, ExpirationTime maxidle = null)
+        {
+            Commands.PUT<K, V> cmd = new Commands.PUT<K, V>(km, vm, key, value);
+            cmd.Flags = cache.Flags;
+            if (lifespan != null)
+            {
+                cmd.Lifespan = lifespan;
+            }
+            if (maxidle != null)
+            {
+                cmd.MaxIdle = maxidle;
+            }
+            var result = await Execute(cache, cmd);
+            if (result.IsError)
+                throw new InfinispanException(result.Messge);
+            return cmd.PrevValue;
+        }
+        internal async ValueTask<V> Get<K, V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key)
+        {
+            Commands.GET<K, V> cmd = new Commands.GET<K, V>(km, vm, key);
+            cmd.Flags = cache.Flags;
+            var result = await Execute(cache, cmd);
+            if (result.IsError)
+                throw new InfinispanException(result.Messge);
+            return cmd.Value;
+        }
+        internal async ValueTask<ValueWithVersion<V>> GetWithVersion<K, V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key)
+        {
+            Commands.GETWITHVERSION<K, V> cmd = new Commands.GETWITHVERSION<K, V>(km, vm, key);
+            cmd.Flags = cache.Flags;
+            var result = await Execute(cache, cmd);
+            if (result.IsError)
+                throw new InfinispanException(result.Messge);
+            return cmd.ValueWithVersion;
+        }
+        internal async ValueTask<ValueWithMetadata<V>> GetWithMetadata<K, V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key)
+        {
+            Commands.GETWITHMETADATA<K, V> cmd = new Commands.GETWITHMETADATA<K, V>(km, vm, key);
+            cmd.Flags = cache.Flags;
+            var result = await Execute(cache, cmd);
+            if (result.IsError)
+                throw new InfinispanException(result.Messge);
+            return cmd.ValueWithMetadata;
+        }
+        internal async ValueTask<Int32> Size(UntypedCache cache)
+        {
+            Commands.SIZE cmd = new Commands.SIZE();
+            cmd.Flags = cache.Flags;
+            var result = await Execute(cache, cmd);
+            if (result.IsError)
+                throw new InfinispanException(result.Messge);
+            return cmd.Size;
+        }
+        internal async ValueTask<Boolean> ContainsKey<K>(Marshaller<K> km, UntypedCache cache, K key)
+        {
+            Commands.CONTAINSKEY<K> cmd = new Commands.CONTAINSKEY<K>(km, key);
+            if (cache != null)
+            {
+                cmd.Flags = cache.Flags;
+            }
+            var result = await Execute(cache, cmd);
+            if (result.IsError)
+                throw new InfinispanException(result.Messge);
+            return cmd.IsContained;
+        }
+        internal async ValueTask<(V V, Boolean Removed)> Remove<K, V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key)
+        {
+            Commands.REMOVE<K, V> cmd = new Commands.REMOVE<K, V>(km, vm, key);
+            cmd.Flags = cache.Flags;
+            var result = await Execute(cache, cmd);
+            if (result.IsError)
+                throw new InfinispanException(result.Messge);
+            return (cmd.PrevValue, cmd.Removed);
+        }
+        internal async ValueTask Clear(UntypedCache cache)
+        {
+            Commands.CLEAR cmd = new Commands.CLEAR();
+            cmd.Flags = cache.Flags;
+            var result = await Execute(cache, cmd);
+            if (result.IsError)
+                throw new InfinispanException(result.Messge);
+            return;
+        }
+
+        internal async ValueTask<ServerStatistics> Stats(UntypedCache cache)
+        {
+            Commands.STATS cmd = new Commands.STATS();
+            cmd.Flags = cache.Flags;
+            var result = await Execute(cache, cmd);
+            if (result.IsError)
+                throw new InfinispanException(result.Messge);
+            return cmd.Stats;
+        }
+        internal async ValueTask<(V V, Boolean Replaced)> Replace<K, V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key, V value, ExpirationTime lifespan = null, ExpirationTime maxidle = null)
+        {
+            Commands.REPLACE<K, V> cmd = new Commands.REPLACE<K, V>(km, vm, key, value);
+            cmd.Flags = cache.Flags;
+            if (lifespan != null)
+            {
+                cmd.Lifespan = lifespan;
+            }
+            if (maxidle != null)
+            {
+                cmd.MaxIdle = maxidle;
+            }
+            var result = await Execute(cache, cmd);
+            if (result.IsError)
+                throw new InfinispanException(result.Messge);
+            return (cmd.PrevValue, cmd.Replaced);
+        }
+        internal async ValueTask<Boolean> ReplaceWithVersion<K, V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key, V value, Int64 version, ExpirationTime lifespan = null, ExpirationTime maxidle = null)
+        {
+            Commands.REPLACEWITHVERSION<K, V> cmd = new Commands.REPLACEWITHVERSION<K, V>(km, vm, key, value);
+            cmd.Flags = cache.Flags;
+            if (lifespan != null)
+            {
+                cmd.Lifespan = lifespan;
+            }
+            if (maxidle != null)
+            {
+                cmd.MaxIdle = maxidle;
+            }
+            cmd.Version = version;
+            var result = await Execute(cache, cmd);
+            if (result.IsError)
+                throw new InfinispanException(result.Messge);
+            return cmd.Replaced;
+        }
+        internal async ValueTask<(V V, Boolean Removed)> RemoveWithVersion<K, V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key, Int64 version)
+        {
+            Commands.REMOVEWITHVERSION<K, V> cmd = new Commands.REMOVEWITHVERSION<K, V>(km, vm, key);
+            cmd.Flags = cache.Flags;
+            cmd.Version = version;
+            var result = await Execute(cache, cmd);
+            if (result.IsError)
+                throw new InfinispanException(result.Messge);
+            return (cmd.PrevValue, cmd.Removed);
+        }
+        internal async ValueTask<QueryResponse> Query(QueryRequest query, UntypedCache cache)
+        {
+            Commands.QUERY cmd = new Commands.QUERY(query);
+            cmd.Flags = cache.Flags;
+            cmd.Query = query;
+            var result = await Execute(cache, cmd);
+            if (result.IsError)
+                throw new InfinispanException(result.Messge);
+            return cmd.QueryResponse;
+        }
+        internal async ValueTask<ISet<K>> KeySet<K>(Marshaller<K> km, UntypedCache cache)
+        {
+            Commands.KEYSET<K> cmd = new Commands.KEYSET<K>(km);
+            if (cache != null)
+            {
+                cmd.Flags = cache.Flags;
+            }
+            var result = await Execute(cache, cmd);
+            if (result.IsError)
+                throw new InfinispanException(result.Messge);
+            return cmd.keys;
+        }
+        public void Dispose()
+        {
+            if (!mIsDisposed)
+            {
+                mIsDisposed = true;
+                foreach (var item in mHosts)
+                    item.Dispose();
+            }
+        }
+        public async Task shutdown()
+        {  // TODO: is this a correct shutdown?
+            await mHosts[0].shutdown();
+        }
+        // Private stuff below this line
+        internal UInt32 TopologyId { get; set; } = 0xFFFFFFFFU;
+        private IHostHandler HostHandler;
+        private Dictionary<UntypedCache, TopologyInfo> topologyInfoMap = new Dictionary<UntypedCache, TopologyInfo>();
+        private IList<InfinispanHost> mHosts = new List<InfinispanHost>();
+        private InfinispanHost[] mActiveHosts = new InfinispanHost[0];
+        private static Int32 MAXHASHVALUE { get; set; } = 0x7FFFFFFF;
+        private async Task<Result> Execute(UntypedCache cache, Command cmd)
         {
             TopologyInfo topologyInfo;
             // Get the topology info for this cache. Initial hosts list will be used
@@ -79,7 +316,7 @@ namespace Infinispan.Hotrod.Core
             topologyInfoMap.TryGetValue(cache, out topologyInfo);
             return await ExecuteWithRetry(cache, cmd, topologyInfo);
         }
-        public async Task<Result> ExecuteWithRetry(UntypedCache cache, Command cmd, TopologyInfo topologyInfo)
+        private async Task<Result> ExecuteWithRetry(UntypedCache cache, Command cmd, TopologyInfo topologyInfo)
         {
             InfinispanHost host;
             var hostHandlerForRetry = new HostHandlerForRetry(this);
@@ -101,7 +338,6 @@ namespace Infinispan.Hotrod.Core
                     // No (more) hosts available for the execution
                     var cmdResult = new Result() { ResultType = ResultType.NetError, Messge = "Infinispan server is not available" };
                     cmdResultTask.TrySetResult(cmdResult);
-                    ++reqFailed;
                     return cmdResult;
                 }
                 // First available host will be used even if its clients are all busy
@@ -130,7 +366,6 @@ namespace Infinispan.Hotrod.Core
                         {
                             continue;
                         }
-                        ++reqFailed;
                         return result;
                     }
                     cmdResultTask.TrySetResult(result);
@@ -145,17 +380,14 @@ namespace Infinispan.Hotrod.Core
                     }
                 }
             }
-
         }
-
         private bool canRetry(Result result)
         {
             // Do not retry by default
             // Recoverable-by-retry errors should be added one by one
             return false;
         }
-
-        public static uint getSegmentSize(int numSegments)
+        private static uint getSegmentSize(int numSegments)
         {
             return (uint)(InfinispanDG.MAXHASHVALUE / numSegments);
         }
@@ -202,232 +434,9 @@ namespace Infinispan.Hotrod.Core
                 }
             }
         }
-        public async ValueTask<V> Put<K, V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key, V value, ExpirationTime lifespan = null, ExpirationTime maxidle = null)
-        {
-            Commands.PUT<K, V> cmd = new Commands.PUT<K, V>(km, vm, key, value);
-            cmd.Flags = cache.Flags;
-            if (lifespan != null)
-            {
-                cmd.Lifespan = lifespan;
-            }
-            if (maxidle != null)
-            {
-                cmd.MaxIdle = maxidle;
-            }
-            var result = await Execute(cache, cmd);
-            if (result.IsError)
-                throw new InfinispanException(result.Messge);
-            return cmd.PrevValue;
-        }
-        public async ValueTask<V> Get<K, V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key)
-        {
-            Commands.GET<K, V> cmd = new Commands.GET<K, V>(km, vm, key);
-            cmd.Flags = cache.Flags;
-            var result = await Execute(cache, cmd);
-            if (result.IsError)
-                throw new InfinispanException(result.Messge);
-            return cmd.Value;
-        }
-        public async ValueTask<ValueWithVersion<V>> GetWithVersion<K, V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key)
-        {
-            Commands.GETWITHVERSION<K, V> cmd = new Commands.GETWITHVERSION<K, V>(km, vm, key);
-            cmd.Flags = cache.Flags;
-            var result = await Execute(cache, cmd);
-            if (result.IsError)
-                throw new InfinispanException(result.Messge);
-            return cmd.ValueWithVersion;
-        }
-        public async ValueTask<ValueWithMetadata<V>> GetWithMetadata<K, V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key)
-        {
-            Commands.GETWITHMETADATA<K, V> cmd = new Commands.GETWITHMETADATA<K, V>(km, vm, key);
-            cmd.Flags = cache.Flags;
-            var result = await Execute(cache, cmd);
-            if (result.IsError)
-                throw new InfinispanException(result.Messge);
-            return cmd.ValueWithMetadata;
-        }
-        public async ValueTask<Int32> Size(UntypedCache cache)
-        {
-            Commands.SIZE cmd = new Commands.SIZE();
-            cmd.Flags = cache.Flags;
-            var result = await Execute(cache, cmd);
-            if (result.IsError)
-                throw new InfinispanException(result.Messge);
-            return cmd.Size;
-        }
-        public async ValueTask<Boolean> ContainsKey<K>(Marshaller<K> km, UntypedCache cache, K key)
-        {
-            Commands.CONTAINSKEY<K> cmd = new Commands.CONTAINSKEY<K>(km, key);
-            if (cache != null)
-            {
-                cmd.Flags = cache.Flags;
-            }
-            var result = await Execute(cache, cmd);
-            if (result.IsError)
-                throw new InfinispanException(result.Messge);
-            return cmd.IsContained;
-        }
-        public async ValueTask<(V V, Boolean Removed)> Remove<K, V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key)
-        {
-            Commands.REMOVE<K, V> cmd = new Commands.REMOVE<K, V>(km, vm, key);
-            cmd.Flags = cache.Flags;
-            var result = await Execute(cache, cmd);
-            if (result.IsError)
-                throw new InfinispanException(result.Messge);
-            return (cmd.PrevValue, cmd.Removed);
-        }
-        public async ValueTask Clear(UntypedCache cache)
-        {
-            Commands.CLEAR cmd = new Commands.CLEAR();
-            cmd.Flags = cache.Flags;
-            var result = await Execute(cache, cmd);
-            if (result.IsError)
-                throw new InfinispanException(result.Messge);
-            return;
-        }
-
-        public async ValueTask<ServerStatistics> Stats(UntypedCache cache)
-        {
-            Commands.STATS cmd = new Commands.STATS();
-            cmd.Flags = cache.Flags;
-            var result = await Execute(cache, cmd);
-            if (result.IsError)
-                throw new InfinispanException(result.Messge);
-            return cmd.Stats;
-        }
-        public async ValueTask<(V V, Boolean Replaced)> Replace<K, V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key, V value, ExpirationTime lifespan = null, ExpirationTime maxidle = null)
-        {
-            Commands.REPLACE<K, V> cmd = new Commands.REPLACE<K, V>(km, vm, key, value);
-            cmd.Flags = cache.Flags;
-            if (lifespan != null)
-            {
-                cmd.Lifespan = lifespan;
-            }
-            if (maxidle != null)
-            {
-                cmd.MaxIdle = maxidle;
-            }
-            var result = await Execute(cache, cmd);
-            if (result.IsError)
-                throw new InfinispanException(result.Messge);
-            return (cmd.PrevValue, cmd.Replaced);
-        }
-        public async ValueTask<Boolean> ReplaceWithVersion<K, V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key, V value, Int64 version, ExpirationTime lifespan = null, ExpirationTime maxidle = null)
-        {
-            Commands.REPLACEWITHVERSION<K, V> cmd = new Commands.REPLACEWITHVERSION<K, V>(km, vm, key, value);
-            cmd.Flags = cache.Flags;
-            if (lifespan != null)
-            {
-                cmd.Lifespan = lifespan;
-            }
-            if (maxidle != null)
-            {
-                cmd.MaxIdle = maxidle;
-            }
-            cmd.Version = version;
-            var result = await Execute(cache, cmd);
-            if (result.IsError)
-                throw new InfinispanException(result.Messge);
-            return cmd.Replaced;
-        }
-        public async ValueTask<(V V, Boolean Removed)> RemoveWithVersion<K, V>(Marshaller<K> km, Marshaller<V> vm, UntypedCache cache, K key, Int64 version)
-        {
-            Commands.REMOVEWITHVERSION<K, V> cmd = new Commands.REMOVEWITHVERSION<K, V>(km, vm, key);
-            cmd.Flags = cache.Flags;
-            cmd.Version = version;
-            var result = await Execute(cache, cmd);
-            if (result.IsError)
-                throw new InfinispanException(result.Messge);
-            return (cmd.PrevValue, cmd.Removed);
-        }
-        public async ValueTask<QueryResponse> Query(QueryRequest query, UntypedCache cache)
-        {
-            Commands.QUERY cmd = new Commands.QUERY(query);
-            cmd.Flags = cache.Flags;
-            cmd.Query = query;
-            var result = await Execute(cache, cmd);
-            if (result.IsError)
-                throw new InfinispanException(result.Messge);
-            return cmd.QueryResponse;
-        }
-        public async ValueTask<ISet<K>> KeySet<K>(Marshaller<K> km, UntypedCache cache)
-        {
-            Commands.KEYSET<K> cmd = new Commands.KEYSET<K>(km);
-            if (cache != null)
-            {
-                cmd.Flags = cache.Flags;
-            }
-            var result = await Execute(cache, cmd);
-            if (result.IsError)
-                throw new InfinispanException(result.Messge);
-            return cmd.keys;
-        }
         private bool mIsDisposed = false;
-
-        public void Dispose()
-        {
-            if (!mIsDisposed)
-            {
-                mIsDisposed = true;
-                foreach (var item in mHosts)
-                    item.Dispose();
-            }
-        }
-        /// <summary>
-        /// Returns a proxy to a remote cache on the server
-        /// </summary>
-        /// <typeparam name="K">Type of the key</typeparam>
-        /// <typeparam name="V">Type of the value</typeparam>
-        /// <param name="keyM">A marshaller for K. <see>Infinispan.Hotrod.Core.Marshaller</see></param>
-        /// <param name="valM">A marshaller for V</param>
-        /// <param name="name">Name of the cache</param>
-        /// <returns></returns>
-        public Cache<K, V> newCache<K, V>(Marshaller<K> keyM, Marshaller<V> valM, string name)
-        {
-            return new Cache<K, V>(this, keyM, valM, name);
-        }
         private object mLockConsole = new object();
         private LogType enabledType = LogType.Error;
-        public void EnableLog(LogType type)
-        {
-            enabledType = type;
-        }
-        public void Log(LogType type, string message)
-        {
-            if (type < enabledType)
-            {
-                return;
-            }
-            lock (mLockConsole)
-            {
-                Console.Write($"[{ DateTime.Now.ToString("HH:mmm:ss")}] ");
-                switch (type)
-                {
-                    case LogType.Error:
-                        Console.ForegroundColor = ConsoleColor.DarkRed;
-                        break;
-                    case LogType.Warring:
-                        Console.ForegroundColor = ConsoleColor.Yellow;
-                        break;
-                    case LogType.Fatal:
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        break;
-                    case LogType.Info:
-                        Console.ForegroundColor = ConsoleColor.Green;
-                        break;
-                    default:
-                        Console.ForegroundColor = ConsoleColor.White;
-                        break;
-                }
-                Console.Write($"[{type.ToString()}] ");
-                Console.ForegroundColor = ConsoleColor.Gray;
-                Console.WriteLine(message);
-            }
-        }
-        public async Task shutdown()
-        {  // TODO: is this a correct shutdown?
-            await mHosts[0].shutdown();
-        }
         private class HostHandlerForRetry : IHostHandler
         {
             private InfinispanDG hostHandler;
