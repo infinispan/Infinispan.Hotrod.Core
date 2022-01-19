@@ -21,12 +21,16 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             TestGetWithMetadata(hotrodCache);
         }
 
-        public void TestReaderPerformsWrites(Cache<String, String> hotrodCache)
+        public async void TestReaderPerformsWrites(Cache<String, String> hotrodCache)
         {
-            Assert.Throws<InfinispanException>(() => TestPut(hotrodCache));
-            Assert.ThrowsAsync<InfinispanException>(() => TestPutAsync(hotrodCache));
-            Assert.ThrowsAsync<InfinispanException>(() => TestRemoveAsyncNonExistent(hotrodCache));
-            Assert.Throws<InfinispanException>(() => TestRemoveNonExistent(hotrodCache));
+            var excpt = Assert.Throws<InfinispanException>(() => TestPut(hotrodCache));
+            Assert.Matches("java.lang.SecurityException: ISPN000287: Unauthorized access:.*lacks 'WRITE' permission", excpt.Message);
+            excpt = await Assert.ThrowsAsync<InfinispanException>(() => TestPutAsync(hotrodCache));
+            Assert.Matches("java.lang.SecurityException: ISPN000287: Unauthorized access:.*lacks 'WRITE' permission", excpt.Message);
+            excpt = await Assert.ThrowsAsync<InfinispanException>(() => TestRemoveAsyncNonExistent(hotrodCache));
+            Assert.Matches("java.lang.SecurityException: ISPN000287: Unauthorized access:.*lacks 'WRITE' permission", excpt.Message);
+            excpt = Assert.Throws<InfinispanException>(() => TestRemoveNonExistent(hotrodCache));
+            Assert.Matches("java.lang.SecurityException: ISPN000287: Unauthorized access:.*lacks 'WRITE' permission", excpt.Message);
         }
 
         public void TestWriterSuccess(Cache<String, String> hotrodCache)

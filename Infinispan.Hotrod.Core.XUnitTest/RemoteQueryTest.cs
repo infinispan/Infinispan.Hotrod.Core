@@ -423,12 +423,13 @@ namespace Infinispan.Hotrod.Core.XUnitTest
         }
 
         [Fact]
-        public void InvalidEmbeddedAttributeTest()
+        public async void InvalidEmbeddedAttributeTest()
         {
             QueryRequest qr = new QueryRequest();
             qr.QueryString = "select u.addresses from sample_bank_account.User u";
 
-            Assert.ThrowsAsync<InfinispanException>(() => userCache.Query(qr));
+            var excp = await Assert.ThrowsAsync<InfinispanException>(() => userCache.Query(qr));
+            Assert.Equal("org.infinispan.objectfilter.ParsingException: ISPN028503: Property addresses can not be selected from type sample_bank_account.User since it is an embedded entity.", excp.Message);
         }
         [Fact]
         public void RejectProjectionOfRepeatedPropertyTest()
