@@ -119,14 +119,19 @@ namespace Infinispan.Hotrod.Core
                     if (result.IsError)
                     {
                         Console.WriteLine("errCon");
-                        // TODO: save the error and then go ahead with retry
+                        // TODO: save the error? and then go ahead with retry
                         continue;
                     }
                     InfinispanRequest request = new InfinispanRequest(host, host.Cluster, cache, client, cmd);
                     result = await request.Execute();
                     if (result.IsError)
                     {
-                        continue;
+                        if (canRetry(result))
+                        {
+                            continue;
+                        }
+                        ++reqFailed;
+                        return result;
                     }
                     cmdResultTask.TrySetResult(result);
                     return result;
@@ -141,6 +146,13 @@ namespace Infinispan.Hotrod.Core
                 }
             }
 
+        }
+
+        private bool canRetry(Result result)
+        {
+            // Do not retry by default
+            // Recoverable-by-retry errors should be added one by one
+            return false;
         }
 
         public static uint getSegmentSize(int numSegments)

@@ -8,20 +8,21 @@ namespace Infinispan.Hotrod.Core.XUnitTest
 {
     public class DefaultCacheTestFixture : IDisposable
     {
-        public HotRodServer hotRodServer {get; private set;}
-        public Cache<string,string> cache;
-        public DefaultCacheTestFixture() {
+        public HotRodServer hotRodServer { get; private set; }
+        public Cache<string, string> cache;
+        public InfinispanDG infinispan = new InfinispanDG();
+        public DefaultCacheTestFixture()
+        {
             hotRodServer = new HotRodServer("infinispan-noauth.xml");
             hotRodServer.StartHotRodServer();
-            var infinispan = new InfinispanDG();
             infinispan.AddHost("127.0.0.1");
-            infinispan.Version=0x1f;
-            infinispan.ForceReturnValue=false;
-            infinispan.ClientIntelligence=0x01;
+            infinispan.Version = 0x1f;
+            infinispan.ForceReturnValue = false;
+            infinispan.ClientIntelligence = 0x01;
             cache = infinispan.newCache(new StringMarshaller(), new StringMarshaller(), "default");
         }
-         
-        public void Dispose()   
+
+        public void Dispose()
         {
             hotRodServer.Dispose();
         }
@@ -30,16 +31,43 @@ namespace Infinispan.Hotrod.Core.XUnitTest
     public class DefaultCacheTest : IClassFixture<DefaultCacheTestFixture>
     {
         private readonly DefaultCacheTestFixture _fixture;
-        private Cache<string,string> _cache;
-        public DefaultCacheTest(DefaultCacheTestFixture fixture) {
+        private Cache<string, string> _cache;
+        private InfinispanDG _infinispan;
+        public DefaultCacheTest(DefaultCacheTestFixture fixture)
+        {
             _fixture = fixture;
             _cache = _fixture.cache;
+            _infinispan = _fixture.infinispan;
         }
 
         [Fact]
-        public void startHotRodServerTest() {
+        public void startHotRodServerTest()
+        {
             Console.WriteLine("Running test");
             Assert.True(_fixture.hotRodServer.IsRunning(), "Server is not running");
+        }
+
+        [Fact]
+        public async void WrongConnectionTest()
+        {
+            var infinispan = new InfinispanDG();
+            infinispan.AddHost("127.0.0.1", 11322);
+            infinispan.Version = 0x1f;
+            infinispan.ForceReturnValue = false;
+            infinispan.ClientIntelligence = 0x01;
+            var cache = infinispan.newCache(new StringMarshaller(), new StringMarshaller(), "default");
+            String key = UniqueKey.NextKey();
+            var excpt = await Assert.ThrowsAsync<InfinispanException>(() => cache.Get(key));
+            Assert.Equal("Infinispan server is not available", excpt.Message);
+        }
+
+        [Fact]
+        public async void WrongCacheNameTest()
+        {
+            var cache = _infinispan.newCache(new StringMarshaller(), new StringMarshaller(), "nonExistent");
+            String key = UniqueKey.NextKey();
+            var excpt = await Assert.ThrowsAsync<InfinispanException>(() => cache.Get(key));
+            Assert.Equal("org.infinispan.server.hotrod.CacheNotFoundException: Cache with name 'nonExistent' not found amongst the configured caches", excpt.Message);
         }
 
         [Fact]
@@ -144,7 +172,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             String key = UniqueKey.NextKey();
 
             /* Created with lifespan/maxidle. */
-            await _cache.Put(key, "rubidium", new ExpirationTime{ Value = 60, Unit = TimeUnit.MINUTES}, new ExpirationTime {Value = 30, Unit = TimeUnit.MINUTES});
+            await _cache.Put(key, "rubidium", new ExpirationTime { Value = 60, Unit = TimeUnit.MINUTES }, new ExpirationTime { Value = 30, Unit = TimeUnit.MINUTES });
 
             ValueWithMetadata<string> metadata = await _cache.GetWithMetadata(key);
             Assert.Equal("rubidium", metadata.Value);
