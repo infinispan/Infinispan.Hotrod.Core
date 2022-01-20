@@ -4,7 +4,7 @@ This branch provides a demonstration of the Hot Rod .NET Core client with remote
 ### Goal
 This demo aims to show you the current maturity level of the Hot Rod .NET Core client as well as how to:
 
-- Include ithe client in your application.
+- Include the client in your application.
 - Store and query entries in a remote cache.
 - Handle Protobuf serialization of C# data types.
 
