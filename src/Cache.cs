@@ -8,7 +8,7 @@ using Org.Infinispan.Query.Remote.Client;
 namespace Infinispan.Hotrod.Core
 {
 
-    public interface UntypedCache
+    public interface ICache
     {
         public string Name { get; }
         public byte[] NameAsBytes { get; }
@@ -22,7 +22,7 @@ namespace Infinispan.Hotrod.Core
         public MediaType ValueMediaType { get; set; }
 
     }
-    public class Cache<K, V> : UntypedCache
+    public class Cache<K, V> : ICache
     {
         protected InfinispanDG Cluster;
         public string Name { get; }
@@ -74,15 +74,15 @@ namespace Infinispan.Hotrod.Core
 
         public async Task<V> Get(K key)
         {
-            return await Cluster.Get(KeyMarshaller, ValueMarshaller, (UntypedCache)this, key);
+            return await Cluster.Get(KeyMarshaller, ValueMarshaller, (ICache)this, key);
         }
         public async Task<ValueWithVersion<V>> GetWithVersion(K key)
         {
-            return await Cluster.GetWithVersion(KeyMarshaller, ValueMarshaller, (UntypedCache)this, key);
+            return await Cluster.GetWithVersion(KeyMarshaller, ValueMarshaller, (ICache)this, key);
         }
         public async Task<ValueWithMetadata<V>> GetWithMetadata(K key)
         {
-            return await Cluster.GetWithMetadata(KeyMarshaller, ValueMarshaller, (UntypedCache)this, key);
+            return await Cluster.GetWithMetadata(KeyMarshaller, ValueMarshaller, (ICache)this, key);
         }
 
         public async Task<V> Put(K key, V value, ExpirationTime lifespan = null, ExpirationTime maxidle = null)
@@ -95,11 +95,11 @@ namespace Infinispan.Hotrod.Core
         }
         public async Task<Boolean> ContainsKey(K key)
         {
-            return await Cluster.ContainsKey(KeyMarshaller, (UntypedCache)this, key);
+            return await Cluster.ContainsKey(KeyMarshaller, (ICache)this, key);
         }
         public async Task<(V PrevValue, Boolean Removed)> Remove(K key)
         {
-            return await Cluster.Remove(KeyMarshaller, ValueMarshaller, (UntypedCache)this, key);
+            return await Cluster.Remove(KeyMarshaller, ValueMarshaller, (ICache)this, key);
         }
         public async Task Clear()
         {
@@ -119,21 +119,21 @@ namespace Infinispan.Hotrod.Core
         }
         public async Task<Boolean> ReplaceWithVersion(K key, V value, Int64 version, ExpirationTime lifeSpan = null, ExpirationTime maxIdle = null)
         {
-            return await Cluster.ReplaceWithVersion(KeyMarshaller, ValueMarshaller, (UntypedCache)this, key, value, version, lifeSpan, maxIdle);
+            return await Cluster.ReplaceWithVersion(KeyMarshaller, ValueMarshaller, (ICache)this, key, value, version, lifeSpan, maxIdle);
         }
         public async Task<(V V, Boolean Removed)> RemoveWithVersion(K key, Int64 version)
         {
-            return await Cluster.RemoveWithVersion(KeyMarshaller, ValueMarshaller, (UntypedCache)this, key, version);
+            return await Cluster.RemoveWithVersion(KeyMarshaller, ValueMarshaller, (ICache)this, key, version);
         }
         public async Task<QueryResponse> Query(QueryRequest query)
         {
-            return await Cluster.Query(query, (UntypedCache)this);
+            return await Cluster.Query(query, (ICache)this);
         }
         public async Task<List<Object>> Query(String query)
         {
             var qr = new QueryRequest();
             qr.QueryString = query;
-            var queryResponse = await Cluster.Query(qr, (UntypedCache)this);
+            var queryResponse = await Cluster.Query(qr, (ICache)this);
             List<Object> result = new List<Object>();
             if (queryResponse.ProjectionSize > 0)
             {  // Query has select
@@ -153,7 +153,7 @@ namespace Infinispan.Hotrod.Core
         }
         public async Task<ISet<K>> KeySet()
         {
-            return await Cluster.KeySet<K>(KeyMarshaller, (UntypedCache)this);
+            return await Cluster.KeySet<K>(KeyMarshaller, (ICache)this);
         }
         private static List<Object> unwrapWithProjection(QueryResponse resp)
         {

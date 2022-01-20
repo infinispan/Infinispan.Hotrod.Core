@@ -9,7 +9,7 @@ namespace Infinispan.Hotrod.Core
 {
     public class InfinispanRequest
     {
-        public InfinispanRequest(InfinispanHost host, InfinispanDG cluster, UntypedCache cache, InfinispanClient client, Command cmd, params Type[] types)
+        public InfinispanRequest(InfinispanHost host, InfinispanDG cluster, ICache cache, InfinispanClient client, Command cmd, params Type[] types)
         {
             Client = client;
             Client.TcpClient.DataReceive = OnReceive;
@@ -42,7 +42,7 @@ namespace Infinispan.Hotrod.Core
         public InfinispanHost Host { get; set; }
         public InfinispanDG Cluster { get; set; }
 
-        public UntypedCache Cache { get; set; }
+        public ICache Cache { get; set; }
         private void OnError(IClient c, ClientErrorArgs e)
         {
             if (e.Error is BeetleX.BXException || e.Error is System.Net.Sockets.SocketException ||
