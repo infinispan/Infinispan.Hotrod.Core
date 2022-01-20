@@ -8,17 +8,30 @@ using Org.Infinispan.Query.Remote.Client;
 namespace Infinispan.Hotrod.Core
 {
 
-    public class UntypedCache
+    public interface UntypedCache
     {
-        public static UntypedCache NullCache = new UntypedCache(null, "");
-        protected InfinispanDG Cluster;
         public string Name { get; }
         public byte[] NameAsBytes { get; }
-        public byte Version { get; protected set; }
+        public byte Version { get; set; }
         public Int64 MessageId { get; }
         public byte ClientIntelligence { get; }
         public UInt32 TopologyId { get; set; }
-        public bool ForceReturnValue;
+        public Int32 Flags { get; }
+        public bool ForceReturnValue { get; set; }
+        public MediaType KeyMediaType { get; set; }
+        public MediaType ValueMediaType { get; set; }
+
+    }
+    public class Cache<K, V> : UntypedCache
+    {
+        protected InfinispanDG Cluster;
+        public string Name { get; }
+        public byte[] NameAsBytes { get; }
+        public byte Version { get; set; }
+        public Int64 MessageId { get; }
+        public byte ClientIntelligence { get; }
+        public UInt32 TopologyId { get; set; }
+        public bool ForceReturnValue { get; set; }
         public bool UseCacheDefaultLifespan;
         public bool UseCacheDefaultMaxIdle;
 
@@ -36,7 +49,7 @@ namespace Infinispan.Hotrod.Core
         public MediaType KeyMediaType { get; set; }
         public MediaType ValueMediaType { get; set; }
         public Codec30 codec;
-        public UntypedCache(InfinispanDG ispnCluster, string name)
+        public Cache(InfinispanDG ispnCluster, Marshaller<K> keyM, Marshaller<V> valM, string name)
         {
             Cluster = ispnCluster;
             Name = name;
@@ -50,13 +63,8 @@ namespace Infinispan.Hotrod.Core
                 ForceReturnValue = Cluster.ForceReturnValue;
             }
             codec = Codec.getCodec(Version);
-        }
 
-    }
-    public class Cache<K, V> : UntypedCache
-    {
-        public Cache(InfinispanDG ispnCluster, Marshaller<K> keyM, Marshaller<V> valM, string name) : base(ispnCluster, name)
-        {
+
             KeyMarshaller = keyM;
             ValueMarshaller = valM;
             Version = ispnCluster.Version;
