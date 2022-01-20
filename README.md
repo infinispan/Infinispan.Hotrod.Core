@@ -13,7 +13,7 @@ For the latest client code, use the [main branch](https://github.com/infinispan/
 ## Querying Infinispan caches with the .NET Core client
 
 The demo shows a typical use case with queries by:
-1. Taking a list of more than 9k applications in JSON format (`data/app.json`) and creates a C# Application object for each entry.
+1. Taking a list of more than 9k application details in JSON format (`data/app.json`) and creates a C# Application object for each entry.
 2. Storing all the entries in the `market` cache on Infinispan Server and then checking the entries against the `data/app.json` file.
 3. Queries the `market` cache to select a list of Application objects, a list of projections, and an aggregate value.
 
