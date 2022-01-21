@@ -297,6 +297,33 @@ namespace Infinispan.Hotrod.Core
                     item.Dispose();
             }
         }
+        internal async ValueTask PutAll<K, V>(Marshaller<K> km, Marshaller<V> vm, ICache cache, Dictionary<K, V> map, ExpirationTime lifespan = null, ExpirationTime maxidle = null)
+        {
+            Commands.PUT_ALL<K, V> cmd = new Commands.PUT_ALL<K, V>(km, vm, map);
+            cmd.Flags = cache.Flags;
+            if (lifespan != null)
+            {
+                cmd.Lifespan = lifespan;
+            }
+            if (maxidle != null)
+            {
+                cmd.MaxIdle = maxidle;
+            }
+            var result = await Execute(cache, cmd);
+            if (result.IsError)
+                throw new InfinispanException(result.Messge);
+            return;
+        }
+        internal async ValueTask<IDictionary<K, V>> GetAll<K, V>(Marshaller<K> km, Marshaller<V> vm, ICache cache, ISet<K> keys)
+        {
+            Commands.GET_ALL<K, V> cmd = new Commands.GET_ALL<K, V>(km, vm, keys);
+            cmd.Flags = cache.Flags;
+            var result = await Execute(cache, cmd);
+            if (result.IsError)
+                throw new InfinispanException(result.Messge);
+            return cmd.Entries;
+        }
+
         public async Task shutdown()
         {  // TODO: is this a correct shutdown?
             await mHosts[0].shutdown();
