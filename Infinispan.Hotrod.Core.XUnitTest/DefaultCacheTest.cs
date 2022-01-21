@@ -315,25 +315,25 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             Assert.Null((await _cache.Replace(key, "v3")).PrevValue);
         }
 
-        // [Test]
-        // public void GetAllTest()
-        // {
-        //     String key1 = UniqueKey.NextKey();
-        //     String key2 = UniqueKey.NextKey();
-        //     cache.Clear();
-        //     Assert.IsNull(cache.Get(key1));
-        //     Assert.IsNull(cache.Get(key2));
-        //     cache.Put(key1, "carbon");
-        //     cache.Put(key2, "oxygen");
-        //     ISet<String> keySet = new HashSet<String>();
-        //     keySet.Add(key1);
-        //     keySet.Add(key2);
-        //     IDictionary<String,String> d = cache.GetAll(keySet);
-        //     Assert.AreEqual(d[key1], cache.Get(key1));
-        //     Assert.AreEqual(d[key2], cache.Get(key2));
-        //     Assert.AreEqual(d[key1], "carbon");
-        //     Assert.AreEqual(d[key2], "oxygen");
-        // }
+        [Fact]
+        public async void GetAllTest()
+        {
+            String key1 = UniqueKey.NextKey();
+            String key2 = UniqueKey.NextKey();
+            await _cache.Clear();
+            Assert.Null(await _cache.Get(key1));
+            Assert.Null(await _cache.Get(key2));
+            await _cache.Put(key1, "carbon");
+            await _cache.Put(key2, "oxygen");
+            ISet<String> keySet = new HashSet<String>();
+            keySet.Add(key1);
+            keySet.Add(key2);
+            IDictionary<String, String> d = await _cache.GetAll(keySet);
+            Assert.Equal(d[key1], await _cache.Get(key1));
+            Assert.Equal(d[key2], await _cache.Get(key2));
+            Assert.Equal(d[key1], "carbon");
+            Assert.Equal(d[key2], "oxygen");
+        }
 
         // [Test]
         // public void GetBulkTest()
@@ -357,26 +357,26 @@ namespace Infinispan.Hotrod.Core.XUnitTest
         //     Assert.AreEqual(data.Count, 2);
         // }
 
-        // [Test]
-        // public void PutAllTest()
-        // {
-        //     ulong initialSize = cache.Size();
+        [Fact]
+        public async void PutAllTest()
+        {
+            int initialSize = await _cache.Size();
 
-        //     String key1 = UniqueKey.NextKey();
-        //     String key2 = UniqueKey.NextKey();
-        //     String key3 = UniqueKey.NextKey();
+            String key1 = UniqueKey.NextKey();
+            String key2 = UniqueKey.NextKey();
+            String key3 = UniqueKey.NextKey();
 
-        //     Dictionary<String, String> map = new Dictionary<String, String>();
-        //     map.Add(key1, "v1");
-        //     map.Add(key2, "v2");
-        //     map.Add(key3, "v3");
+            Dictionary<String, String> map = new Dictionary<String, String>();
+            map.Add(key1, "v1");
+            map.Add(key2, "v2");
+            map.Add(key3, "v3");
 
-        //     cache.PutAll(map);
-        //     Assert.AreEqual(initialSize + 3, cache.Size());
-        //     Assert.AreEqual("v1", cache.Get(key1));
-        //     Assert.AreEqual("v2", cache.Get(key2));
-        //     Assert.AreEqual("v3", cache.Get(key3));
-        // }
+            await _cache.PutAll(map);
+            Assert.Equal(initialSize + 3, await _cache.Size());
+            Assert.Equal("v1", await _cache.Get(key1));
+            Assert.Equal("v2", await _cache.Get(key2));
+            Assert.Equal("v3", await _cache.Get(key3));
+        }
 
         // [Test]
         // public void ContainsValueTest()

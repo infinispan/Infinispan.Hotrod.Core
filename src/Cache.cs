@@ -155,6 +155,14 @@ namespace Infinispan.Hotrod.Core
         {
             return await Cluster.KeySet<K>(KeyMarshaller, (ICache)this);
         }
+        public async Task PutAll(Dictionary<K, V> map, ExpirationTime lifespan = null, ExpirationTime maxidle = null)
+        {
+            await Cluster.PutAll(KeyMarshaller, ValueMarshaller, this, map, lifespan, maxidle);
+        }
+        public async Task<IDictionary<K, V>> GetAll(ISet<K> keys)
+        {
+            return await Cluster.GetAll(KeyMarshaller, ValueMarshaller, this, keys);
+        }
         private static List<Object> unwrapWithProjection(QueryResponse resp)
         {
             List<Object> result = new List<Object>();
