@@ -331,8 +331,8 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             IDictionary<String, String> d = await _cache.GetAll(keySet);
             Assert.Equal(d[key1], await _cache.Get(key1));
             Assert.Equal(d[key2], await _cache.Get(key2));
-            Assert.Equal(d[key1], "carbon");
-            Assert.Equal(d[key2], "oxygen");
+            Assert.Equal("carbon", d[key1]);
+            Assert.Equal("oxygen", d[key2]);
         }
 
         // [Test]

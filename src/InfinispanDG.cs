@@ -51,14 +51,32 @@ namespace Infinispan.Hotrod.Core
         /// </summary>
         public bool UseTLS = false;
         /// <summary>
-        /// Add a cluster node to the initial list of nodes.
+        /// Add a cluster node to the initial list of nodes for the DEFAULT_CLUSTER.
         /// </summary>
         /// <param name="host">node address</param>
         /// <param name="port">port</param>
         /// <returns></returns>
+
+        public bool SwitchCluster(string clusterName)
+        {
+            if (mClusters.ContainsKey(clusterName))
+            {
+                lock (mActiveCluster)
+                {
+                    mActiveCluster = clusterName;
+                    mActiveHosts = mClusters[clusterName].hosts.ToArray();
+                    return true;
+                }
+            }
+            return false;
+        }
         public InfinispanHost AddHost(string host, int port = 11222)
         {
-            return AddHost(host, port, UseTLS);
+            return AddHost("DEFAULT_CLUSTER", host, port, UseTLS);
+        }
+        public InfinispanHost AddHost(string cluster, string host, int port = 11222)
+        {
+            return AddHost(cluster, host, port, UseTLS);
         }
         /// <summary>
         /// Add a cluster node to the initial list of nodes.
@@ -69,14 +87,38 @@ namespace Infinispan.Hotrod.Core
         /// <returns></returns>
         public InfinispanHost AddHost(string host, int port, bool ssl)
         {
+            return AddHost("DEFAULT_CLUSTER", host, port, ssl);
+        }
+        /// <summary>
+        /// Add a cluster node to the initial list of nodes for the specified cluster.
+        /// If applied to the active cluster, the current list of active node is discarded and replace
+        /// with the new list. i.e. all the nodes info received via topology update are discarded.
+        /// </summary>
+        /// <param name="clusterName">name of the owner cluster</param>
+        /// <param name="host">node address</param>
+        /// <param name="port">port</param>
+        /// <param name="ssl">overrides the cluster TLS setting</param>
+        /// <returns></returns>
+        public InfinispanHost AddHost(string clusterName, string host, int port, bool ssl)
+        {
             if (port == 0)
                 port = 11222;
             InfinispanHost ispnHost = new InfinispanHost(ssl, this, host, port);
             ispnHost.User = User;
             ispnHost.Password = Password;
             ispnHost.AuthMech = AuthMech;
-            mHosts.Add(ispnHost);
-            mActiveHosts = mHosts.ToArray();
+            if (!mClusters.ContainsKey(clusterName))
+            {
+                mClusters[clusterName] = new Cluster();
+            }
+            mClusters[clusterName].hosts.Add(ispnHost);
+            if (clusterName == mActiveCluster)
+            {
+                lock (mActiveCluster)
+                {
+                    mActiveHosts = mClusters[mActiveCluster].hosts.ToArray();
+                }
+            }
             return ispnHost;
         }
         /// <summary>
@@ -293,8 +335,11 @@ namespace Infinispan.Hotrod.Core
             if (!mIsDisposed)
             {
                 mIsDisposed = true;
-                foreach (var item in mHosts)
-                    item.Dispose();
+                foreach (var entry in mClusters)
+                {
+                    foreach (var item in entry.Value.hosts)
+                        item.Dispose();
+                }
             }
         }
         internal async ValueTask PutAll<K, V>(Marshaller<K> km, Marshaller<V> vm, ICache cache, Dictionary<K, V> map, ExpirationTime lifespan = null, ExpirationTime maxidle = null)
@@ -324,15 +369,14 @@ namespace Infinispan.Hotrod.Core
             return cmd.Entries;
         }
 
-        public async Task shutdown()
-        {  // TODO: is this a correct shutdown?
-            await mHosts[0].shutdown();
-        }
         // Private stuff below this line
         internal UInt32 TopologyId { get; set; } = 0xFFFFFFFFU;
         private IHostHandler HostHandler;
         private Dictionary<ICache, TopologyInfo> topologyInfoMap = new Dictionary<ICache, TopologyInfo>();
-        private IList<InfinispanHost> mHosts = new List<InfinispanHost>();
+
+        private IDictionary<string, Cluster> mClusters = new Dictionary<string, Cluster>();
+
+        internal string mActiveCluster = "DEFAULT_CLUSTER";
         private InfinispanHost[] mActiveHosts = new InfinispanHost[0];
         private static Int32 MAXHASHVALUE { get; set; } = 0x7FFFFFFF;
         private async Task<Result> Execute(ICache cache, Command cmd)
@@ -362,6 +406,15 @@ namespace Infinispan.Hotrod.Core
                 }
                 if (host == null)
                 {
+                    // Mark this cluster as FAULT
+                    mClusters[mActiveCluster].status = Cluster.Status.FAULT;
+                    hostHandlerForRetry.clusterFault(mActiveCluster);
+                    if (this.clusterFaultRecoveryPolicy(hostHandlerForRetry.faultClusterNames))
+                    {
+                        // Fault recovery has been applied successfully
+                        // try execution on the new cluster
+                        continue;
+                    }
                     // No (more) hosts available for the execution
                     var cmdResult = new Result() { ResultType = ResultType.NetError, Messge = "Infinispan server is not available" };
                     cmdResultTask.TrySetResult(cmdResult);
@@ -382,6 +435,7 @@ namespace Infinispan.Hotrod.Core
                     if (result.IsError)
                     {
                         Console.WriteLine("errCon");
+                        hostHandlerForRetry.faultHosts.Add(host);
                         // TODO: save the error? and then go ahead with retry
                         continue;
                     }
@@ -408,6 +462,26 @@ namespace Infinispan.Hotrod.Core
                 }
             }
         }
+
+        private bool clusterFaultRecoveryPolicy(ISet<string> faultClusterNames)
+        {
+            if (!faultClusterNames.Contains(this.mActiveCluster))
+            {
+                // Current cluster is working. Continue with it
+                return true;
+            }
+            foreach (var cluster in mClusters)
+            {
+                if (!faultClusterNames.Contains(cluster.Key))
+                {
+                    // Found a working cluster. Switch to it.
+                    SwitchCluster(cluster.Key);
+                    return true;
+                }
+            }
+            return false;
+        }
+
         private bool canRetry(Result result)
         {
             // Do not retry by default
@@ -442,7 +516,7 @@ namespace Infinispan.Hotrod.Core
                 var hostName = Encoding.ASCII.GetString(node.Item1);
                 var port = node.Item2;
                 var hostIsNew = true;
-                foreach (var host in mHosts)
+                foreach (var host in mClusters[mActiveCluster].hosts)
                 {
                     if (host.Name == hostName && host.Port == port)
                     {
@@ -457,7 +531,7 @@ namespace Infinispan.Hotrod.Core
                 // If host isn't in the list then add it
                 if (hostIsNew)
                 {
-                    topology.hosts[i] = this.AddHost(hostName, port, UseTLS);
+                    topology.hosts[i] = this.AddHost(mActiveCluster, hostName, port, UseTLS);
                 }
             }
         }
@@ -470,6 +544,9 @@ namespace Infinispan.Hotrod.Core
             private int indexOnInitialList = 0;
             private int indexOnSegment = 0;
             private int traversedSegments = 0;
+
+            internal ISet<string> faultClusterNames = new HashSet<string>();
+            internal ISet<InfinispanHost> faultHosts = new HashSet<InfinispanHost>();
             public HostHandlerForRetry(InfinispanDG hostHandler)
             {
                 this.hostHandler = hostHandler;
@@ -493,8 +570,10 @@ namespace Infinispan.Hotrod.Core
                 var items = this.hostHandler.mActiveHosts;
                 for (; this.indexOnInitialList < items.Length; this.indexOnInitialList++)
                 {
-                    if (items[this.indexOnInitialList].Available)
+                    if (!this.faultHosts.Contains(items[this.indexOnInitialList]))
+                    {
                         return items[this.indexOnInitialList++];
+                    }
                 }
                 return null;
             }
@@ -512,7 +591,7 @@ namespace Infinispan.Hotrod.Core
                     var owners = topologyInfo.OwnersPerSegment[s];
                     for (; this.indexOnSegment < owners.Count; this.indexOnSegment++)
                     {
-                        if (topologyInfo.hosts[owners[this.indexOnSegment]].Available)
+                        if (!this.faultHosts.Contains(topologyInfo.hosts[owners[this.indexOnSegment]]))
                             return topologyInfo.hosts[owners[this.indexOnSegment++]];
                     }
                     ++this.traversedSegments;
@@ -520,6 +599,32 @@ namespace Infinispan.Hotrod.Core
                 }
                 return null;
             }
+
+            internal void clusterFault(string currentCluster)
+            {
+                this.faultClusterNames.Add(currentCluster);
+                this.faultHosts = new HashSet<InfinispanHost>();
+                indexOnInitialList = 0;
+                indexOnSegment = 0;
+                traversedSegments = 0;
+            }
+
+            internal void hostFault(InfinispanHost host)
+            {
+                this.faultHosts.Add(host);
+            }
+
         }
+    }
+
+    internal class Cluster
+    {
+        internal IList<InfinispanHost> hosts = new List<InfinispanHost>();
+        internal enum Status
+        {
+            OK,
+            FAULT
+        }
+        internal Status status = Status.OK;
     }
 }
