@@ -120,59 +120,6 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             _fixture.hotRodServer2.StartHotRodServer();
         }
 
-        public async void ClusterSwitchOnFaultTes()
-        {
-            String key = UniqueKey.NextKey();
-            await _cache1.Put(key, "valueCache1");
-            await _cache2.Put(key, "valueCache2");
-            string res1 = "", res2 = "", res3 = "";
-            Assert.Equal("valueCache1", await _cache1.Get(key));
-            _fixture.hotRodServer1.ShutDownHotrodServer();
-            try
-            {
-                res1 = await _cache1.Get(key);
-            }
-            catch (Exception)
-            {
-                // go ahead...
-            }
-            _fixture.hotRodServer1.StartHotRodServer();
-            try
-            {
-                res2 = await _cache1.Get(key);
-            }
-            catch (Exception)
-            {
-                // go ahead...
-            }
-            _fixture.hotRodServer2.ShutDownHotrodServer();
-            try
-            {
-                res3 = await _cache1.Get(key);
-            }
-            catch (Exception)
-            {
-                // go ahead...
-            }
-            _fixture.hotRodServer1.ShutDownHotrodServer();
-            Exception resEx = null;
-            try
-            {
-                await _cache1.Get(key);
-            }
-            catch (Exception ex)
-            {
-                resEx = ex;
-            }
-            _fixture.hotRodServer1.StartHotRodServer();
-            _fixture.hotRodServer2.StartHotRodServer();
-            Assert.Equal("valueCache2", res1);
-            Assert.Equal("valueCache2", res2);
-            Assert.Null(res3);
-            Assert.IsType<InfinispanException>(resEx);
-        }
-
-
         //     [OneTimeSetUp]
         //     public void BeforeClass()
         //     {
