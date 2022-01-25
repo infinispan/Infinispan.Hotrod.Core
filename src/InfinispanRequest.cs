@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
+using System.Threading;
 namespace Infinispan.Hotrod.Core
 {
     public class InfinispanRequest
@@ -85,7 +86,7 @@ namespace Infinispan.Hotrod.Core
                 if (stream.ReadByte() != 0xA1)
                 {
                     Result.ResultType = ResultType.Error;  // TODO: needed some design for errors
-                    Result.Messge = "Bad Magic NUmber";
+                    Result.Messge = "Bad Magic Number";
                     OnCompleted(Result.ResultType, Result.Messge);
                     return;
                 }
@@ -104,12 +105,24 @@ namespace Infinispan.Hotrod.Core
                 if (topologyChanged != 0)
                 {
                     var topology = readNewTopologyInfo(stream);
-                    Cluster.UpdateTopologyInfo(topology, this.Cache);
+                    // No need to update if monitor can't be taken
+                    // see InfinispanDG.SwitchCluster
+                    if (Monitor.TryEnter(Cluster.mActiveCluster))
+                    {
+                        try
+                        {
+                            Cluster.UpdateTopologyInfo(topology, this.Cache);
+                        }
+                        finally
+                        {
+                            Monitor.Exit(Cluster.mActiveCluster);
+                        }
+                    }
                 }
                 var errMsg = readResponseError(ResponseStatus, stream);
                 if (errMsg != null)
                 {
-                    Result.ResultType = ResultType.Error;  // TODO: needed some design for errors
+                    Result.ResultType = ResultType.Error; // TODO: needed some design for errors
                     Result.Messge = Encoding.ASCII.GetString(errMsg);
                     OnCompleted(Result.ResultType, Result.Messge);
                     return;
