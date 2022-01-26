@@ -30,15 +30,20 @@ Alternatively you can run the demo in a container image using [Podman](https://p
 
 If you install .NET you can run the demo as follows:
 
-1. Set up Infinispan Server for the demo. This step creates a server instance in the filesystem of this repository. Be sure to stop any other locally running Infinispan Server instances.
+1. Be sure to have this branch checked out:
+```bash
+git clone git@github.com:infinispan/Infinispan.Hotrod.Core.git -b query-demo
+cd Infinispan.Hotrod.Core
+```
+2. Set up Infinispan Server for the demo. This step creates a server instance in the filesystem of this repository. Be sure to stop any other locally running Infinispan Server instances.
 ```bash
 scripts/setup.sh
 ```
-2. Start Infinispan Server and create the demo caches.
+3. Start Infinispan Server and create the demo caches.
 ```bash
 scripts/run-ispn.sh
 ```
-3. Run the .NET Core client demo.
+4. Run the .NET Core client demo.
 ```bash
 dotnet run
 ```
