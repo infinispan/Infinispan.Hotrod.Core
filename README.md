@@ -33,6 +33,8 @@ If you install .NET you can run the demo as follows:
 1. Be sure to have this branch checked out:
 ```bash
 git clone git@github.com:infinispan/Infinispan.Hotrod.Core.git -b query-demo
+```
+```bash
 cd Infinispan.Hotrod.Core
 ```
 2. Set up Infinispan Server for the demo. This step creates a server instance in the filesystem of this repository. Be sure to stop any other locally running Infinispan Server instances.
