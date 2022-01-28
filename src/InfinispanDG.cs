@@ -64,7 +64,7 @@ namespace Infinispan.Hotrod.Core
                 lock (mActiveCluster)
                 {
                     mActiveCluster = clusterName;
-                    mActiveHosts = mClusters[clusterName].hosts.ToArray();
+                    mActiveHosts = mClusters[clusterName].staticHosts.ToArray();
                     return true;
                 }
             }
@@ -111,16 +111,34 @@ namespace Infinispan.Hotrod.Core
             {
                 mClusters[clusterName] = new Cluster();
             }
-            mClusters[clusterName].hosts.Add(ispnHost);
+            mClusters[clusterName].staticHosts.Add(ispnHost);
             if (clusterName == mActiveCluster)
             {
                 lock (mActiveCluster)
                 {
-                    mActiveHosts = mClusters[mActiveCluster].hosts.ToArray();
+                    mActiveHosts = mClusters[mActiveCluster].staticHosts.ToArray();
                 }
             }
             return ispnHost;
         }
+
+        private InfinispanHost AddTopologyHost(string clusterName, string host, int port, bool ssl)
+        {
+            if (port == 0)
+                port = 11222;
+            InfinispanHost ispnHost = new InfinispanHost(ssl, this, host, port);
+            ispnHost.User = User;
+            ispnHost.Password = Password;
+            ispnHost.AuthMech = AuthMech;
+            if (!mClusters.ContainsKey(clusterName))
+            {
+                mClusters[clusterName] = new Cluster();
+            }
+            mClusters[clusterName].topologyHosts.Add(ispnHost);
+            return ispnHost;
+        }
+
+
         /// <summary>
         /// Returns a proxy to a remote cache on the server
         /// </summary>
@@ -337,7 +355,7 @@ namespace Infinispan.Hotrod.Core
                 mIsDisposed = true;
                 foreach (var entry in mClusters)
                 {
-                    foreach (var item in entry.Value.hosts)
+                    foreach (var item in entry.Value.staticHosts)
                         item.Dispose();
                 }
             }
@@ -397,12 +415,12 @@ namespace Infinispan.Hotrod.Core
             {
                 if (cmd.isHashAware() && topologyInfo != null)
                 {
-                    var keyIdx = this.getIndexFromBytes(cmd.getKeyAsBytes(), topologyInfo);
-                    host = hostHandlerForRetry.GetHost(keyIdx, topologyInfo);
+                    var keyIdx = this.getSegmentFromBytes(cmd.getKeyAsBytes(), topologyInfo);
+                    host = hostHandlerForRetry.GetHostFromTopologyList(keyIdx, topologyInfo);
                 }
                 else
                 {
-                    host = hostHandlerForRetry.GetHost();
+                    host = hostHandlerForRetry.GetHostFromStaticList();
                 }
                 if (host == null)
                 {
@@ -492,7 +510,7 @@ namespace Infinispan.Hotrod.Core
         {
             return (uint)(InfinispanDG.MAXHASHVALUE / numSegments);
         }
-        private int getIndexFromBytes(byte[] buf, TopologyInfo topologyInfo)
+        private int getSegmentFromBytes(byte[] buf, TopologyInfo topologyInfo)
         {
             Array arr = (Array)buf;
             Int32 hash = MurmurHash3.hash(((sbyte[])arr));
@@ -515,25 +533,35 @@ namespace Infinispan.Hotrod.Core
                 var node = topology.servers[i];
                 var hostName = Encoding.ASCII.GetString(node.Item1);
                 var port = node.Item2;
-                var hostIsNew = true;
-                foreach (var host in mClusters[mActiveCluster].hosts)
+                var host = getHostByNameAndPort(mClusters[mActiveCluster].staticHosts, hostName, port);
+                if (host != null)
                 {
-                    if (host.Name == hostName && host.Port == port)
-                    {
-                        // By design if an host is return in a topology struct
-                        // it is available by default
-                        host.Available = true;
-                        hostIsNew = false;
-                        topology.hosts[i] = host;
-                        break;
-                    }
+                    topology.hosts[i] = host;
+                    continue;
                 }
-                // If host isn't in the list then add it
-                if (hostIsNew)
+                host = getHostByNameAndPort(mClusters[mActiveCluster].topologyHosts, hostName, port);
+                if (host != null)
                 {
-                    topology.hosts[i] = this.AddHost(mActiveCluster, hostName, port, UseTLS);
+                    topology.hosts[i] = host;
+                    continue;
+                }
+
+                topology.hosts[i] = this.AddTopologyHost(mActiveCluster, hostName, port, UseTLS);
+            }
+        }
+        private InfinispanHost getHostByNameAndPort(IList<InfinispanHost> hosts, string hostName, int port)
+        {
+            foreach (var host in mClusters[mActiveCluster].staticHosts)
+            {
+                if (host.Name == hostName && host.Port == port)
+                {
+                    // By design if an host is return in a topology struct
+                    // it is available by default
+                    host.Available = true;
+                    return host;
                 }
             }
+            return null;
         }
         private bool mIsDisposed = false;
         private object mLockConsole = new object();
@@ -552,20 +580,10 @@ namespace Infinispan.Hotrod.Core
                 this.hostHandler = hostHandler;
             }
 
-            public InfinispanHost AddHost(string host, int port = 11222)
-            {
-                return this.hostHandler.AddHost(host, port);
-            }
-
-            public InfinispanHost AddHost(string host, int port, bool ssl)
-            {
-                return this.hostHandler.AddHost(host, port, ssl);
-            }
-
             // return the first host available in the initial list of hosts.
             // Following calls will start the search from the index of the last host returned in the last call,
             // this is how the retry policy is implemented here 
-            public InfinispanHost GetHost()
+            public InfinispanHost GetHostFromStaticList()
             {
                 var items = this.hostHandler.mActiveHosts;
                 for (; this.indexOnInitialList < items.Length; this.indexOnInitialList++)
@@ -582,9 +600,8 @@ namespace Infinispan.Hotrod.Core
             // Following calls try to return an available host using this strategy:
             // - search in the owner segment
             // - search in the other segments starting from the segment owner+1
-            public InfinispanHost GetHost(int segment, TopologyInfo topologyInfo)
+            public InfinispanHost GetHostFromTopologyList(int segment, TopologyInfo topologyInfo)
             {
-                var items = this.hostHandler.mActiveHosts;
                 while (this.traversedSegments < topologyInfo.OwnersPerSegment.Count)
                 {
                     var s = (segment + this.traversedSegments) % topologyInfo.OwnersPerSegment.Count;
@@ -592,7 +609,9 @@ namespace Infinispan.Hotrod.Core
                     for (; this.indexOnSegment < owners.Count; this.indexOnSegment++)
                     {
                         if (!this.faultHosts.Contains(topologyInfo.hosts[owners[this.indexOnSegment]]))
+                        {
                             return topologyInfo.hosts[owners[this.indexOnSegment++]];
+                        }
                     }
                     ++this.traversedSegments;
                     this.indexOnSegment = 0;
@@ -619,7 +638,8 @@ namespace Infinispan.Hotrod.Core
 
     internal class Cluster
     {
-        internal IList<InfinispanHost> hosts = new List<InfinispanHost>();
+        internal IList<InfinispanHost> staticHosts = new List<InfinispanHost>();
+        internal IList<InfinispanHost> topologyHosts = new List<InfinispanHost>();
         internal enum Status
         {
             OK,
