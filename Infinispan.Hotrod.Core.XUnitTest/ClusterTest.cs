@@ -115,13 +115,27 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             await _distributedCache.PutAll(keyVals);
             var res = await _distributedCache.GetAll(keys);
             var tasks = _distributedCache.GetAllByOwner(keys);
-            Task.WaitAll(tasks);
+            try
+            {
+                Task.WaitAll(tasks);
+            }
+            catch (AggregateException aEx)
+            {
+                Assert.Null("Should not reach this point: " + aEx.Message);
+            }
             await _distributedCache.Clear();
 
             Task.WaitAll(_distributedCache.PutAllByOwner(keyVals));
             var res1 = await _distributedCache.GetAll(keys);
             var tasks1 = _distributedCache.GetAllByOwner(keys);
-            Task.WaitAll(tasks1);
+            try
+            {
+                Task.WaitAll(tasks1);
+            }
+            catch (AggregateException aEx)
+            {
+                Assert.Null("Should not reach this point: " + aEx.Message);
+            }
 
 
             var d = new Dictionary<string, string>();
