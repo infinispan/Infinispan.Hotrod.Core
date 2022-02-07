@@ -11,4 +11,16 @@ namespace Infinispan.Hotrod.Core
         }
         public InfinispanException(string msg, Exception innerError) : base(msg, innerError) { }
     }
+    public class InfinispanOperationException<K> : InfinispanException
+    {
+        public K Args;
+        public InfinispanOperationException(K args, string msg) : base(msg)
+        {
+            Args = args;
+        }
+        public InfinispanOperationException(K args, string msg, Exception innerError) : base(msg, innerError)
+        {
+            Args = args;
+        }
+    }
 }

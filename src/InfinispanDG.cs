@@ -188,6 +188,18 @@ namespace Infinispan.Hotrod.Core
                 Console.WriteLine(message);
             }
         }
+        public void Dispose()
+        {
+            if (!mIsDisposed)
+            {
+                mIsDisposed = true;
+                foreach (var entry in mClusters)
+                {
+                    foreach (var item in entry.Value.staticHosts)
+                        item.Dispose();
+                }
+            }
+        }
         internal async ValueTask<V> Put<K, V>(Marshaller<K> km, Marshaller<V> vm, ICache cache, K key, V value, ExpirationTime lifespan = null, ExpirationTime maxidle = null)
         {
             Commands.PUT<K, V> cmd = new Commands.PUT<K, V>(km, vm, key, value);
@@ -348,21 +360,10 @@ namespace Infinispan.Hotrod.Core
                 throw new InfinispanException(result.Messge);
             return cmd.keys;
         }
-        public void Dispose()
-        {
-            if (!mIsDisposed)
-            {
-                mIsDisposed = true;
-                foreach (var entry in mClusters)
-                {
-                    foreach (var item in entry.Value.staticHosts)
-                        item.Dispose();
-                }
-            }
-        }
-        internal async ValueTask PutAll<K, V>(Marshaller<K> km, Marshaller<V> vm, ICache cache, Dictionary<K, V> map, ExpirationTime lifespan = null, ExpirationTime maxidle = null)
+        internal async ValueTask PutAll<K, V>(Marshaller<K> km, Marshaller<V> vm, ICache cache, IDictionary<K, V> map, ExpirationTime lifespan = null, ExpirationTime maxidle = null, int segment = -1)
         {
             Commands.PUT_ALL<K, V> cmd = new Commands.PUT_ALL<K, V>(km, vm, map);
+            cmd.Segment = segment;
             cmd.Flags = cache.Flags;
             if (lifespan != null)
             {
@@ -374,17 +375,89 @@ namespace Infinispan.Hotrod.Core
             }
             var result = await Execute(cache, cmd);
             if (result.IsError)
-                throw new InfinispanException(result.Messge);
+                throw new InfinispanOperationException<IDictionary<K, V>>(map, result.Messge);
             return;
         }
-        internal async ValueTask<IDictionary<K, V>> GetAll<K, V>(Marshaller<K> km, Marshaller<V> vm, ICache cache, ISet<K> keys)
+        internal async ValueTask<IDictionary<K, V>> GetAll<K, V>(Marshaller<K> km, Marshaller<V> vm, ICache cache, ISet<K> keys, int segment = -1)
         {
             Commands.GET_ALL<K, V> cmd = new Commands.GET_ALL<K, V>(km, vm, keys);
+            cmd.Segment = segment;
             cmd.Flags = cache.Flags;
             var result = await Execute(cache, cmd);
             if (result.IsError)
-                throw new InfinispanException(result.Messge);
+                throw new InfinispanOperationException<ISet<K>>(keys, result.Messge);
             return cmd.Entries;
+        }
+        internal Task[] PutAllByOwner<K, V>(Marshaller<K> km, Marshaller<V> vm, ICache cache, IDictionary<K, V> map, ExpirationTime lifespan = null, ExpirationTime maxidle = null)
+        {
+            var mapBySeg = this.SplitKeyValueBySegment(km, cache, map);
+            Task[] ts = new Task<IDictionary<K, V>>[map.Count];
+            int i = 0;
+            foreach (var entry in mapBySeg)
+            {
+                ts[i++] = Task.Run(async () =>
+                {
+                    await this.PutAll<K, V>(km, vm, cache, entry.Value, lifespan, maxidle, entry.Key);
+                });
+            }
+            return ts;
+        }
+        internal Task<IDictionary<K, V>>[] GetAllByOwner<K, V>(Marshaller<K> km, Marshaller<V> vm, ICache cache, ISet<K> keys)
+        {
+            var map = this.SplitBySegment(km, cache, keys);
+            if (map == null)
+                return null;
+            Task<IDictionary<K, V>>[] ts = new Task<IDictionary<K, V>>[map.Count];
+            int i = 0;
+            foreach (var entry in map)
+            {
+                ts[i++] = Task.Run<IDictionary<K, V>>(async () =>
+                {
+                    return await this.GetAll<K, V>(km, vm, cache, entry.Value, entry.Key);
+                });
+            }
+            return ts;
+        }
+        public IDictionary<int, ISet<K>> SplitBySegment<K>(Marshaller<K> km, ICache cache, ICollection<K> keys)
+        {
+            TopologyInfo topologyInfo;
+            this.topologyInfoMap.TryGetValue(cache, out topologyInfo);
+            if (topologyInfo == null)
+            {
+                return null;
+            }
+            IDictionary<int, ISet<K>> res = new Dictionary<int, ISet<K>>();
+            foreach (var k in keys)
+            {
+                var segment = this.getSegmentFromBytes(km.marshall(k), topologyInfo);
+                if (!res.ContainsKey(segment))
+                {
+                    res[segment] = new HashSet<K>();
+                }
+                res[segment].Add(k);
+            }
+            return res;
+        }
+
+        public IDictionary<int, IDictionary<K, V>> SplitKeyValueBySegment<K, V>(Marshaller<K> km, ICache cache, IDictionary<K, V> map)
+        {
+            TopologyInfo topologyInfo;
+            this.topologyInfoMap.TryGetValue(cache, out topologyInfo);
+            if (topologyInfo == null)
+            {
+                return null;
+            }
+            IDictionary<int, IDictionary<K, V>> res = new Dictionary<int, IDictionary<K, V>>();
+            foreach (var entry in map)
+            {
+                var segment = this.getSegmentFromBytes(km.marshall(entry.Key), topologyInfo);
+                if (!res.ContainsKey(segment))
+                {
+                    res[segment] = new Dictionary<K, V>();
+                }
+                res[segment].Add(entry);
+            }
+            return res;
         }
 
         // Private stuff below this line
@@ -407,21 +480,25 @@ namespace Infinispan.Hotrod.Core
         }
         private async Task<Result> ExecuteWithRetry(ICache cache, Command cmd, TopologyInfo topologyInfo)
         {
-            InfinispanHost host;
             var hostHandlerForRetry = new HostHandlerForRetry(this);
             var cmdResultTask = new TaskCompletionSource<Result>();
             Result lastResult = new Result();
+            InfinispanHost host = null;
+            int segment = -1;
+            switch (cmd.getTopologyKnowledgeType())
+            {
+                case Command.TopologyKnoledge.SEGMENT:
+                    segment = cmd.getSegment();
+                    break;
+                case Command.TopologyKnoledge.KEY:
+                    segment = this.getSegmentFromBytes(cmd.getKeyAsBytes(), topologyInfo);
+                    break;
+            }
             while (true)
             {
-                if (cmd.isHashAware() && topologyInfo != null)
-                {
-                    var keyIdx = this.getSegmentFromBytes(cmd.getKeyAsBytes(), topologyInfo);
-                    host = hostHandlerForRetry.GetHostFromTopologyList(keyIdx, topologyInfo);
-                }
-                else
-                {
-                    host = hostHandlerForRetry.GetHostFromStaticList();
-                }
+                host = (segment != -1)
+                        ? host = hostHandlerForRetry.GetHostFromTopologyList(segment, topologyInfo)
+                        : host = hostHandlerForRetry.GetHostFromStaticList();
                 if (host == null)
                 {
                     // Mark this cluster as FAULT
@@ -510,8 +587,12 @@ namespace Infinispan.Hotrod.Core
         {
             return (uint)(InfinispanDG.MAXHASHVALUE / numSegments);
         }
-        private int getSegmentFromBytes(byte[] buf, TopologyInfo topologyInfo)
+        internal int getSegmentFromBytes(byte[] buf, TopologyInfo topologyInfo)
         {
+            if (topologyInfo == null)
+            {
+                return -1;
+            }
             Array arr = (Array)buf;
             Int32 hash = MurmurHash3.hash(((sbyte[])arr));
             Int32 normalizedHash = hash & MAXHASHVALUE;

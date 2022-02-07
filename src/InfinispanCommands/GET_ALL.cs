@@ -14,9 +14,9 @@ namespace Infinispan.Hotrod.Core.Commands
             Keys = keys;
             NetworkReceive = OnReceive;
         }
-        public Marshaller<V> ValueMarshaller;
         public Marshaller<K> KeyMarshaller;
-
+        public Marshaller<V> ValueMarshaller;
+        public int Segment = -1;
         public ISet<K> Keys { get; set; }
 
         public IDictionary<K, V> Entries;
@@ -59,6 +59,15 @@ namespace Infinispan.Hotrod.Core.Commands
             }
             return new Result { Status = ResultStatus.Completed, ResultType = ResultType.Null };
         }
+        internal override TopologyKnoledge getTopologyKnowledgeType()
+        {
+            return TopologyKnoledge.SEGMENT;
+        }
+        internal override int getSegment()
+        {
+            return Segment;
+        }
+
 
     }
 }

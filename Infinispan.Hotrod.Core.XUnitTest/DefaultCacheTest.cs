@@ -2,7 +2,7 @@ using System;
 using Infinispan.Hotrod.Core.Tests.Util;
 using Xunit;
 using System.Collections.Generic;
-
+using System.Threading.Tasks;
 
 namespace Infinispan.Hotrod.Core.XUnitTest
 {
@@ -335,6 +335,45 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             Assert.Equal("oxygen", d[key2]);
         }
 
+        [Fact]
+        public async void GetAllByOwnerTest()
+        {
+            String key1 = UniqueKey.NextKey();
+            String key2 = UniqueKey.NextKey();
+            await _cache.Clear();
+            Assert.Null(await _cache.Get(key1));
+            Assert.Null(await _cache.Get(key2));
+            await _cache.Put(key1, "carbon");
+            await _cache.Put(key2, "oxygen");
+            ISet<String> keySet = new HashSet<String>();
+            keySet.Add(key1);
+            keySet.Add(key2);
+            var tasks = _cache.GetAllByOwner(keySet);
+            // Skip this if there's no topology
+            if (tasks == null)
+                return;
+            try
+            {
+                Task.WaitAll(tasks);
+            }
+            catch (AggregateException aex)
+            {
+                Assert.Null(aex);
+            }
+            var d = new Dictionary<string, string>();
+            foreach (var t in tasks)
+            {
+                foreach (var e in t.Result)
+                {
+                    d.Add(e.Key, e.Value);
+                }
+            }
+            Assert.Equal(d[key1], await _cache.Get(key1));
+            Assert.Equal(d[key2], await _cache.Get(key2));
+            Assert.Equal("carbon", d[key1]);
+            Assert.Equal("oxygen", d[key2]);
+        }
+
         // [Test]
         // public void GetBulkTest()
         // {
@@ -455,7 +494,6 @@ namespace Infinispan.Hotrod.Core.XUnitTest
         //     // Assert.IsTrue(metadata.GetLifespan() > 0);
         //     // Assert.IsTrue(metadata.GetMaxIdle() > 0);
         // }
-
 
     }
 }

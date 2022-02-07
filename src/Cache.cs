@@ -163,6 +163,18 @@ namespace Infinispan.Hotrod.Core
         {
             return await Cluster.GetAll(KeyMarshaller, ValueMarshaller, this, keys);
         }
+        public Task<IDictionary<K, V>>[] GetAllByOwner(ISet<K> keys)
+        {
+            return Cluster.GetAllByOwner(KeyMarshaller, ValueMarshaller, this, keys);
+        }
+        public Task[] PutAllByOwner(IDictionary<K, V> map, ExpirationTime lifespan = null, ExpirationTime maxidle = null)
+        {
+            return Cluster.PutAllByOwner(KeyMarshaller, ValueMarshaller, this, map, lifespan, maxidle);
+        }
+        public IDictionary<int, ISet<K>> SplitBySegment(ISet<K> keys)
+        {
+            return Cluster.SplitBySegment<K>(KeyMarshaller, this, keys);
+        }
         private static List<Object> unwrapWithProjection(QueryResponse resp)
         {
             List<Object> result = new List<Object>();
