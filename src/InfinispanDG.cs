@@ -418,6 +418,16 @@ namespace Infinispan.Hotrod.Core
             }
             return ts;
         }
+        internal async ValueTask<PingResult> Ping(ICache cache)
+        {
+            Commands.PING cmd = new Commands.PING();
+            cmd.Flags = cache.Flags;
+            var result = await Execute(cache, cmd);
+            if (result.IsError)
+                throw new InfinispanException(result.Messge);
+            return cmd.Result;
+        }
+
         public IDictionary<int, ISet<K>> SplitBySegment<K>(Marshaller<K> km, ICache cache, ICollection<K> keys)
         {
             TopologyInfo topologyInfo;

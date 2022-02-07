@@ -175,6 +175,12 @@ namespace Infinispan.Hotrod.Core
         {
             return Cluster.SplitBySegment<K>(KeyMarshaller, this, keys);
         }
+
+        public async Task<PingResult> Ping()
+        {
+            return await Cluster.Ping(this);
+        }
+
         private static List<Object> unwrapWithProjection(QueryResponse resp)
         {
             List<Object> result = new List<Object>();
@@ -350,5 +356,14 @@ namespace Infinispan.Hotrod.Core
         }
         private IDictionary<String, String> stats;
     }
+    public class PingResult
+    {
+        public MediaType KeyType;
+        public MediaType ValueType;
+        public int Version;
+        public int[] Operations;
+
+    }
+
 
 }

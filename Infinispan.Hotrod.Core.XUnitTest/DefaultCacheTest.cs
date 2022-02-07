@@ -374,6 +374,13 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             Assert.Equal("oxygen", d[key2]);
         }
 
+        [Fact]
+        public async void pingTest()
+        {
+            var result = await _cache.Ping();
+            Assert.NotNull(result);
+        }
+
         // [Test]
         // public void GetBulkTest()
         // {
