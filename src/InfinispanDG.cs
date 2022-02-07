@@ -391,7 +391,7 @@ namespace Infinispan.Hotrod.Core
         internal Task[] PutAllByOwner<K, V>(Marshaller<K> km, Marshaller<V> vm, ICache cache, IDictionary<K, V> map, ExpirationTime lifespan = null, ExpirationTime maxidle = null)
         {
             var mapBySeg = this.SplitKeyValueBySegment(km, cache, map);
-            Task[] ts = new Task<IDictionary<K, V>>[map.Count];
+            Task[] ts = new Task[mapBySeg.Count];
             int i = 0;
             foreach (var entry in mapBySeg)
             {
