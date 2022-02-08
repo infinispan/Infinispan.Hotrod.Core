@@ -2,7 +2,7 @@ using System;
 using Infinispan.Hotrod.Core.Tests.Util;
 using Xunit;
 using System.Collections.Generic;
-
+using System.Threading.Tasks;
 
 namespace Infinispan.Hotrod.Core.XUnitTest
 {
@@ -335,6 +335,45 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             Assert.Equal("oxygen", d[key2]);
         }
 
+        [Fact]
+        public async void GetAllByOwnerTest()
+        {
+            String key1 = UniqueKey.NextKey();
+            String key2 = UniqueKey.NextKey();
+            await _cache.Clear();
+            Assert.Null(await _cache.Get(key1));
+            Assert.Null(await _cache.Get(key2));
+            await _cache.Put(key1, "carbon");
+            await _cache.Put(key2, "oxygen");
+            ISet<String> keySet = new HashSet<String>();
+            keySet.Add(key1);
+            keySet.Add(key2);
+            var partResult = _cache.GetAllPart(keySet);
+            // Skip this if there's no topology
+            if (partResult == null)
+                return;
+            try
+            {
+                partResult.WaitAll();
+            }
+            catch (AggregateException aex)
+            {
+                Assert.Null(aex);
+            }
+            var d = partResult.Result();
+            Assert.Equal(d[key1], await _cache.Get(key1));
+            Assert.Equal(d[key2], await _cache.Get(key2));
+            Assert.Equal("carbon", d[key1]);
+            Assert.Equal("oxygen", d[key2]);
+        }
+
+        [Fact]
+        public async void pingTest()
+        {
+            var result = await _cache.Ping();
+            Assert.NotNull(result);
+        }
+
         // [Test]
         // public void GetBulkTest()
         // {
@@ -455,7 +494,6 @@ namespace Infinispan.Hotrod.Core.XUnitTest
         //     // Assert.IsTrue(metadata.GetLifespan() > 0);
         //     // Assert.IsTrue(metadata.GetMaxIdle() > 0);
         // }
-
 
     }
 }

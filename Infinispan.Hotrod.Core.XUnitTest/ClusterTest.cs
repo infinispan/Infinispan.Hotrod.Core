@@ -3,6 +3,8 @@ using Infinispan.Hotrod.Core.Tests.Util;
 using Xunit;
 using System;
 using System.IO;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Infinispan.Hotrod.Core.XUnitTest
 {
@@ -95,6 +97,57 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             _fixture.hotRodServer1.ShutDownHotrodServer();
             Assert.Equal("valueDistributed", await _distributedCache.Get(key));
             await Assert.ThrowsAsync<InfinispanException>(() => _localCache.Get(key));
+        }
+        [Fact]
+        public async void distributedCachePutGetAllByOwner()
+        {
+            var keyVals = new Dictionary<String, String>();
+            var keys = new HashSet<String>();
+
+            for (var i = 0; i < 20; i++)
+            {
+                var k = UniqueKey.NextKey();
+                keys.Add(k);
+                keyVals.Add(k, k + "value");
+            }
+            // Getting the topology
+            var pr = await _distributedCache.Ping();
+            await _distributedCache.PutAll(keyVals);
+            var res = await _distributedCache.GetAll(keys);
+            var partResult = _distributedCache.GetAllPart(keys);
+            try
+            {
+                partResult.WaitAll();
+            }
+            catch (AggregateException aEx)
+            {
+                Assert.Null("Should not reach this point: " + aEx.Message);
+            }
+            await _distributedCache.Clear();
+
+            try
+            {
+                _distributedCache.PutAllPart(keyVals).WaitAll();
+            }
+            catch (AggregateException aEx)
+            {
+                Assert.Null("Should not reach this point: " + aEx.Message);
+            }
+            var res1 = await _distributedCache.GetAll(keys);
+            var partResult1 = _distributedCache.GetAllPart(keys);
+            try
+            {
+                partResult1.WaitAll();
+            }
+            catch (AggregateException aEx)
+            {
+                Assert.Null("Should not reach this point: " + aEx.Message);
+            }
+            var d = partResult.Result();
+            Assert.Equal(d, res);
+            var d1 = partResult1.Result();
+            Assert.Equal(d1, res1);
+            Assert.Equal(d, d1);
         }
     }
 }

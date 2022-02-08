@@ -201,6 +201,37 @@ namespace Infinispan.Hotrod.Core
             }
         }
 
+        public static MediaType readMediaType(PipeStream stream)
+        {
+            MediaType mt = new MediaType();
+            mt.InfoType = (byte)stream.ReadByte();
+            switch (mt.InfoType)
+            {
+                case 0:
+                    break;
+                case 1:
+                    mt.PredefinedMediaType = readVInt(stream);
+                    break;
+                case 2:
+                    ReadArraySession ras = null;
+                    readArray(stream, ref ras);
+                    mt.CustomMediaType = ras.Result;
+                    var paramsCount = readVInt(stream);
+                    if (paramsCount != 0)
+                    {
+                        mt.Params = new List<Tuple<byte[], byte[]>>();
+                        for (var i = 0; i < paramsCount; i++)
+                        {
+                            readArray(stream, ref ras);
+                            var key = ras.Result;
+                            readArray(stream, ref ras);
+                            var value = ras.Result;
+                        }
+                    }
+                    break;
+            }
+            return mt;
+        }
         public static void writeExpirations(ExpirationTime Lifespan, ExpirationTime MaxIdle, PipeStream stream)
         {
             byte units = (byte)(((int)Lifespan.Unit << 4) + (int)MaxIdle.Unit);

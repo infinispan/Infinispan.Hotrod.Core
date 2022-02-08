@@ -7,7 +7,7 @@ namespace Infinispan.Hotrod.Core.Commands
 {
     public class PUT_ALL<K, V> : Command
     {
-        public PUT_ALL(Marshaller<K> km, Marshaller<V> vm, Dictionary<K, V> map)
+        public PUT_ALL(Marshaller<K> km, Marshaller<V> vm, IDictionary<K, V> map)
         {
             Map = map;
             KeyMarshaller = km;
@@ -17,6 +17,7 @@ namespace Infinispan.Hotrod.Core.Commands
         }
         public Marshaller<K> KeyMarshaller;
         public Marshaller<V> ValueMarshaller;
+        public int Segment = -1;
         public int TimeOut { get; set; }
 
         public ExpirationTime Lifespan = new ExpirationTime { Unit = TimeUnit.DEFAULT, Value = 0 };
@@ -26,7 +27,7 @@ namespace Infinispan.Hotrod.Core.Commands
 
         public override Byte Code => 0x2D;
 
-        public Dictionary<K, V> Map { get; set; }
+        public IDictionary<K, V> Map { get; set; }
         public V PrevValue { get; set; }
 
         public override void OnExecute(CommandContext ctx)

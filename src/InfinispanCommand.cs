@@ -35,49 +35,65 @@ namespace Infinispan.Hotrod.Core
         public Func<InfinispanRequest, PipeStream, Result> NetworkReceive { get; set; }
         public abstract string Name { get; }
         public abstract Byte Code { get; }
-        public Int32 Flags {get; set;} // TODO: where to store this?
+        public Int32 Flags { get; set; } // TODO: where to store this?
         public virtual void OnExecute(CommandContext cache)
         {
         }
 
         public virtual void Execute(CommandContext ctx, InfinispanClient client, PipeStream stream)
         {
-                OnExecute(ctx); // Build the message. But there's no need to build anything for hotrod
-                stream.WriteByte(0xA0);
-                Codec.writeVLong(ctx.MessageId, stream);
-                stream.Write(ctx.Version);
-                stream.Write(Code);
-                Codec.writeArray(ctx.NameAsBytes,stream);
-                Codec.writeVInt(Flags,stream);
-                stream.Write(ctx.ClientIntelligence);
-                Codec.writeVUInt(ctx.TopologyId, stream);
-                if (ctx.IsReqResCommand){
-                    Codec.writeMediaType(ctx.CmdReqMediaType, stream);
-                    Codec.writeMediaType(ctx.CmdResMediaType, stream);
-                } else {
-                    Codec.writeMediaType(ctx.KeyMediaType, stream);
-                    Codec.writeMediaType(ctx.ValueMediaType, stream);
-                }
+            OnExecute(ctx); // Build the message. But there's no need to build anything for hotrod
+            stream.WriteByte(0xA0);
+            Codec.writeVLong(ctx.MessageId, stream);
+            stream.Write(ctx.Version);
+            stream.Write(Code);
+            Codec.writeArray(ctx.NameAsBytes, stream);
+            Codec.writeVInt(Flags, stream);
+            stream.Write(ctx.ClientIntelligence);
+            Codec.writeVUInt(ctx.TopologyId, stream);
+            if (ctx.IsReqResCommand)
+            {
+                Codec.writeMediaType(ctx.CmdReqMediaType, stream);
+                Codec.writeMediaType(ctx.CmdResMediaType, stream);
+            }
+            else
+            {
+                Codec.writeMediaType(ctx.KeyMediaType, stream);
+                Codec.writeMediaType(ctx.ValueMediaType, stream);
+            }
         }
 
         public abstract Result OnReceive(InfinispanRequest request, PipeStream stream);
 
-        internal virtual bool isHashAware()
+        internal enum TopologyKnoledge
         {
-            return false;
+            NONE,
+            KEY,
+            SEGMENT
+        }
+        internal virtual TopologyKnoledge getTopologyKnowledgeType()
+        {
+            return TopologyKnoledge.NONE;
         }
 
         internal virtual byte[] getKeyAsBytes()
         {
             throw new NotImplementedException();
         }
+
+        internal virtual int getSegment()
+        {
+            throw new NotImplementedException();
+        }
+
     }
     public abstract class CommandWithKey<K> : Command
     {
         public Marshaller<K> KeyMarshaller;
         public K Key { get; set; }
-        internal override bool isHashAware() {
-            return true;
+        internal override TopologyKnoledge getTopologyKnowledgeType()
+        {
+            return TopologyKnoledge.KEY;
         }
 
         internal override byte[] getKeyAsBytes()
@@ -85,5 +101,4 @@ namespace Infinispan.Hotrod.Core
             return KeyMarshaller.marshall(this.Key);
         }
     }
-
 }
