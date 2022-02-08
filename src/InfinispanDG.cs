@@ -362,7 +362,7 @@ namespace Infinispan.Hotrod.Core
         }
         internal async ValueTask PutAll<K, V>(Marshaller<K> km, Marshaller<V> vm, ICache cache, IDictionary<K, V> map, ExpirationTime lifespan = null, ExpirationTime maxidle = null, int segment = -1)
         {
-            Commands.PUT_ALL<K, V> cmd = new Commands.PUT_ALL<K, V>(km, vm, map);
+            Commands.PUTALL<K, V> cmd = new Commands.PUTALL<K, V>(km, vm, map);
             cmd.Segment = segment;
             cmd.Flags = cache.Flags;
             if (lifespan != null)
@@ -380,7 +380,7 @@ namespace Infinispan.Hotrod.Core
         }
         internal async ValueTask<IDictionary<K, V>> GetAll<K, V>(Marshaller<K> km, Marshaller<V> vm, ICache cache, ISet<K> keys, int segment = -1)
         {
-            Commands.GET_ALL<K, V> cmd = new Commands.GET_ALL<K, V>(km, vm, keys);
+            Commands.GETALL<K, V> cmd = new Commands.GETALL<K, V>(km, vm, keys);
             cmd.Segment = segment;
             cmd.Flags = cache.Flags;
             var result = await Execute(cache, cmd);

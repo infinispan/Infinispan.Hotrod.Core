@@ -118,7 +118,7 @@ namespace Infinispan.Hotrod.Core
                     this.Available = true;
                     if (!string.IsNullOrEmpty(Password))
                     {
-                        Commands.AUTH_MECH_LIST authMechList = new Commands.AUTH_MECH_LIST();
+                        Commands.AUTHMECHLIST authMechList = new Commands.AUTHMECHLIST();
                         InfinispanRequest request = new InfinispanRequest(this, this.Cluster, null, client, authMechList, typeof(string));
                         var taskResult = await request.Execute();
                         if (taskResult.ResultType == ResultType.DataError ||

@@ -5,15 +5,15 @@ using BeetleX.Buffers;
 
 namespace Infinispan.Hotrod.Core.Commands
 {
-    public class AUTH_MECH_LIST : Command
+    public class AUTHMECHLIST : Command
     {
-        public AUTH_MECH_LIST()
+        public AUTHMECHLIST()
         {
             NetworkReceive = OnReceive;
         }
         public int TimeOut { get; set; }
 
-        public override string Name => "AUTH_MECH_LIST";
+        public override string Name => "AUTHMECHLIST";
         public override Byte Code => 0x21;
         public string[] availableMechs { get; set; }
         public override void OnExecute(CommandContext ctx)

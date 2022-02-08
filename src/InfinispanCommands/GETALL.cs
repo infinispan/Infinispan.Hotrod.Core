@@ -5,9 +5,9 @@ using System.Text;
 
 namespace Infinispan.Hotrod.Core.Commands
 {
-    public class GET_ALL<K, V> : Command
+    public class GETALL<K, V> : Command
     {
-        public GET_ALL(Marshaller<K> km, Marshaller<V> vm, ISet<K> keys)
+        public GETALL(Marshaller<K> km, Marshaller<V> vm, ISet<K> keys)
         {
             KeyMarshaller = km;
             ValueMarshaller = vm;
@@ -20,7 +20,7 @@ namespace Infinispan.Hotrod.Core.Commands
         public ISet<K> Keys { get; set; }
 
         public IDictionary<K, V> Entries;
-        public override string Name => "GET_ALL";
+        public override string Name => "GETALL";
 
         public override Byte Code => 0x2F;
 
