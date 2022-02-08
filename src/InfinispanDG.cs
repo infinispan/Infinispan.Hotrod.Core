@@ -472,11 +472,8 @@ namespace Infinispan.Hotrod.Core
 
         // Private stuff below this line
         internal UInt32 TopologyId { get; set; } = 0xFFFFFFFFU;
-        private IHostHandler HostHandler;
         private Dictionary<ICache, TopologyInfo> topologyInfoMap = new Dictionary<ICache, TopologyInfo>();
-
         private IDictionary<string, Cluster> mClusters = new Dictionary<string, Cluster>();
-
         internal string mActiveCluster = "DEFAULT_CLUSTER";
         private InfinispanHost[] mActiveHosts = new InfinispanHost[0];
         private static Int32 MAXHASHVALUE { get; set; } = 0x7FFFFFFF;
