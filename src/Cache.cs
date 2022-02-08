@@ -163,13 +163,15 @@ namespace Infinispan.Hotrod.Core
         {
             return await Cluster.GetAll(KeyMarshaller, ValueMarshaller, this, keys);
         }
-        public Task<IDictionary<K, V>>[] GetAllByOwner(ISet<K> keys)
+        public IPartResult<IDictionary<K, V>> GetAllPart(ISet<K> keys)
         {
-            return Cluster.GetAllByOwner(KeyMarshaller, ValueMarshaller, this, keys);
+            var res = Cluster.GetAllPart(KeyMarshaller, ValueMarshaller, this, keys);
+            return res != null ? new GetAllPartResult<K, V>(res) : null;
         }
-        public Task[] PutAllByOwner(IDictionary<K, V> map, ExpirationTime lifespan = null, ExpirationTime maxidle = null)
+        public IPartResult PutAllPart(IDictionary<K, V> map, ExpirationTime lifespan = null, ExpirationTime maxidle = null)
         {
-            return Cluster.PutAllByOwner(KeyMarshaller, ValueMarshaller, this, map, lifespan, maxidle);
+            var res = Cluster.PutAllPart(KeyMarshaller, ValueMarshaller, this, map, lifespan, maxidle);
+            return res != null ? new PutAllPartResult(res) : null;
         }
         public IDictionary<int, ISet<K>> SplitBySegment(ISet<K> keys)
         {
@@ -366,4 +368,51 @@ namespace Infinispan.Hotrod.Core
     }
 
 
+    public interface IPartResult
+    {
+        void WaitAll();
+
+    }
+    public interface IPartResult<T> : IPartResult
+    {
+        T Result();
+    }
+
+    internal class GetAllPartResult<K, V> : IPartResult<IDictionary<K, V>>
+    {
+        internal GetAllPartResult(Task<IDictionary<K, V>>[] ts)
+        {
+            tasks = ts;
+        }
+        IDictionary<K, V> result;
+        Task<IDictionary<K, V>>[] tasks;
+        public IDictionary<K, V> Result()
+        {
+            result = new Dictionary<K, V>();
+            foreach (var t in tasks)
+            {
+                foreach (var entry in t.Result)
+                {
+                    result.Add(entry.Key, entry.Value);
+                }
+            }
+            return result;
+        }
+        public void WaitAll()
+        {
+            Task.WaitAll(tasks);
+        }
+    }
+    internal class PutAllPartResult : IPartResult
+    {
+        internal PutAllPartResult(Task[] ts)
+        {
+            tasks = ts;
+        }
+        Task[] tasks;
+        public void WaitAll()
+        {
+            Task.WaitAll(tasks);
+        }
+    }
 }

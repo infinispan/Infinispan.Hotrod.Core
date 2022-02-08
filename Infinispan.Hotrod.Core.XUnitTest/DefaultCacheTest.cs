@@ -348,26 +348,19 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             ISet<String> keySet = new HashSet<String>();
             keySet.Add(key1);
             keySet.Add(key2);
-            var tasks = _cache.GetAllByOwner(keySet);
+            var partResult = _cache.GetAllPart(keySet);
             // Skip this if there's no topology
-            if (tasks == null)
+            if (partResult == null)
                 return;
             try
             {
-                Task.WaitAll(tasks);
+                partResult.WaitAll();
             }
             catch (AggregateException aex)
             {
                 Assert.Null(aex);
             }
-            var d = new Dictionary<string, string>();
-            foreach (var t in tasks)
-            {
-                foreach (var e in t.Result)
-                {
-                    d.Add(e.Key, e.Value);
-                }
-            }
+            var d = partResult.Result();
             Assert.Equal(d[key1], await _cache.Get(key1));
             Assert.Equal(d[key2], await _cache.Get(key2));
             Assert.Equal("carbon", d[key1]);

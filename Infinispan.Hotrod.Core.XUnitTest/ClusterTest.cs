@@ -114,10 +114,10 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             var pr = await _distributedCache.Ping();
             await _distributedCache.PutAll(keyVals);
             var res = await _distributedCache.GetAll(keys);
-            var tasks = _distributedCache.GetAllByOwner(keys);
+            var partResult = _distributedCache.GetAllPart(keys);
             try
             {
-                Task.WaitAll(tasks);
+                partResult.WaitAll();
             }
             catch (AggregateException aEx)
             {
@@ -125,37 +125,27 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             }
             await _distributedCache.Clear();
 
-            Task.WaitAll(_distributedCache.PutAllByOwner(keyVals));
-            var res1 = await _distributedCache.GetAll(keys);
-            var tasks1 = _distributedCache.GetAllByOwner(keys);
             try
             {
-                Task.WaitAll(tasks1);
+                _distributedCache.PutAllPart(keyVals).WaitAll();
             }
             catch (AggregateException aEx)
             {
                 Assert.Null("Should not reach this point: " + aEx.Message);
             }
-
-
-            var d = new Dictionary<string, string>();
-            foreach (var t in tasks)
+            var res1 = await _distributedCache.GetAll(keys);
+            var partResult1 = _distributedCache.GetAllPart(keys);
+            try
             {
-                foreach (var entry in t.Result)
-                {
-                    d.Add(entry.Key, entry.Value);
-                }
+                partResult1.WaitAll();
             }
+            catch (AggregateException aEx)
+            {
+                Assert.Null("Should not reach this point: " + aEx.Message);
+            }
+            var d = partResult.Result();
             Assert.Equal(d, res);
-
-            var d1 = new Dictionary<string, string>();
-            foreach (var t in tasks1)
-            {
-                foreach (var entry in t.Result)
-                {
-                    d1.Add(entry.Key, entry.Value);
-                }
-            }
+            var d1 = partResult1.Result();
             Assert.Equal(d1, res1);
             Assert.Equal(d, d1);
         }

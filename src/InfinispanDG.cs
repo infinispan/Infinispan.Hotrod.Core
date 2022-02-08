@@ -388,7 +388,7 @@ namespace Infinispan.Hotrod.Core
                 throw new InfinispanOperationException<ISet<K>>(keys, result.Messge);
             return cmd.Entries;
         }
-        internal Task[] PutAllByOwner<K, V>(Marshaller<K> km, Marshaller<V> vm, ICache cache, IDictionary<K, V> map, ExpirationTime lifespan = null, ExpirationTime maxidle = null)
+        internal Task[] PutAllPart<K, V>(Marshaller<K> km, Marshaller<V> vm, ICache cache, IDictionary<K, V> map, ExpirationTime lifespan = null, ExpirationTime maxidle = null)
         {
             var mapBySeg = this.SplitKeyValueBySegment(km, cache, map);
             Task[] ts = new Task[mapBySeg.Count];
@@ -402,7 +402,7 @@ namespace Infinispan.Hotrod.Core
             }
             return ts;
         }
-        internal Task<IDictionary<K, V>>[] GetAllByOwner<K, V>(Marshaller<K> km, Marshaller<V> vm, ICache cache, ISet<K> keys)
+        internal Task<IDictionary<K, V>>[] GetAllPart<K, V>(Marshaller<K> km, Marshaller<V> vm, ICache cache, ISet<K> keys)
         {
             var map = this.SplitBySegment(km, cache, keys);
             if (map == null)
