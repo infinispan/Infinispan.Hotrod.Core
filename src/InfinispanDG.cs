@@ -188,6 +188,24 @@ namespace Infinispan.Hotrod.Core
                 Console.WriteLine(message);
             }
         }
+
+        internal async Task AddListener(ICache cache, String uuid, IClientListener listener, bool includeState)
+        {
+            Commands.ADDCLIENTLISTENER cmd = new Commands.ADDCLIENTLISTENER(uuid);
+            cmd.Listener = listener;
+            if (includeState)
+            {
+                cmd.IncludeState = 1;
+            }
+            await Execute(cache, cmd);
+        }
+
+        internal async Task RemoveListener(ICache cache, String uuid)
+        {
+            Commands.REMOVECLIENTLISTENER cmd = new Commands.REMOVECLIENTLISTENER(uuid);
+            await Execute(cache, cmd);
+        }
+
         public void Dispose()
         {
             if (!mIsDisposed)
@@ -203,6 +221,23 @@ namespace Infinispan.Hotrod.Core
         internal async ValueTask<V> Put<K, V>(Marshaller<K> km, Marshaller<V> vm, ICache cache, K key, V value, ExpirationTime lifespan = null, ExpirationTime maxidle = null)
         {
             Commands.PUT<K, V> cmd = new Commands.PUT<K, V>(km, vm, key, value);
+            cmd.Flags = cache.Flags;
+            if (lifespan != null)
+            {
+                cmd.Lifespan = lifespan;
+            }
+            if (maxidle != null)
+            {
+                cmd.MaxIdle = maxidle;
+            }
+            var result = await Execute(cache, cmd);
+            if (result.IsError)
+                throw new InfinispanException(result.Messge);
+            return cmd.PrevValue;
+        }
+        internal async ValueTask<V> PutIfAbsent<K, V>(Marshaller<K> km, Marshaller<V> vm, ICache cache, K key, V value, ExpirationTime lifespan = null, ExpirationTime maxidle = null)
+        {
+            Commands.PUTIFABSENT<K, V> cmd = new Commands.PUTIFABSENT<K, V>(km, vm, key, value);
             cmd.Flags = cache.Flags;
             if (lifespan != null)
             {
@@ -477,6 +512,7 @@ namespace Infinispan.Hotrod.Core
         internal string mActiveCluster = "DEFAULT_CLUSTER";
         private InfinispanHost[] mActiveHosts = new InfinispanHost[0];
         private static Int32 MAXHASHVALUE { get; set; } = 0x7FFFFFFF;
+        internal IDictionary<String, InfinispanRequest> ListenerMap = new Dictionary<String, InfinispanRequest>();
         private async Task<Result> Execute(ICache cache, Command cmd)
         {
             TopologyInfo topologyInfo;
@@ -531,9 +567,10 @@ namespace Infinispan.Hotrod.Core
                     var ret = new Result() { ResultType = ResultType.NetError, Messge = "exceeding maximum number of connections" };
                     continue;
                 }
+                Result result = null;
                 try
                 {
-                    var result = await host.Connect(client);
+                    result = await host.Connect(client);
                     if (result.IsError)
                     {
                         Console.WriteLine("errCon");
@@ -559,7 +596,10 @@ namespace Infinispan.Hotrod.Core
                 {
                     if (client != null)
                     {
-                        host.Push(client);
+                        if (result?.ResultType != ResultType.Event)
+                        {
+                            host.Push(client);
+                        }
                     }
                 }
             }

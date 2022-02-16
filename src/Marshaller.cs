@@ -23,6 +23,7 @@ namespace Infinispan.Hotrod.Core
     public class StringMarshaller : Marshaller<string>
     {
 
+        public static StringMarshaller _ASCII = new StringMarshaller();
         public Encoding Encoding;
         /// <summary>
         /// Creates a StringMarshaller

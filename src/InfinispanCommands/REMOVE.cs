@@ -36,13 +36,12 @@ namespace Infinispan.Hotrod.Core.Commands
             base.Execute(ctx, client, stream);
             Codec.writeArray(KeyMarshaller.marshall(Key), stream);
         }
-        public override Result OnReceive(InfinispanRequest request, PipeStream stream)
+        public override Result OnReceive(InfinispanRequest request, ResponseStream stream)
         {
             Removed = !Codec30.isNotExecuted(request.ResponseStatus);
             if ((request.Command.Flags & 0x01) == 1 && request.ResponseStatus != Codec30.KEY_DOES_NOT_EXIST_STATUS)
             {
-                Codec.readArray(stream, ref request.ras);
-                PrevValue = ValueMarshaller.unmarshall(request.ras.Result);
+                PrevValue = ValueMarshaller.unmarshall(Codec.readArray(stream));
                 return new Result { Status = ResultStatus.Completed, ResultType = ResultType.Object };
             }
             return new Result { Status = ResultStatus.Completed, ResultType = ResultType.Null };

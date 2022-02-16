@@ -25,14 +25,13 @@ namespace Infinispan.Hotrod.Core.Commands
         {
             base.Execute(ctx, client, stream);
         }
-        public override Result OnReceive(InfinispanRequest request, PipeStream stream)
+        public override Result OnReceive(InfinispanRequest request, ResponseStream stream)
         {
             var count = Codec.readVInt(stream);
             availableMechs = new string[count];
             for (int i = 0; i < count; i++)
             {
-                Codec.readArray(stream, ref request.ras);
-                availableMechs[i] = Encoding.ASCII.GetString(request.ras.Result);
+                availableMechs[i] = Encoding.ASCII.GetString(Codec.readArray(stream));
             }
             return new Result { Status = ResultStatus.Completed, ResultType = ResultType.Object };
         }

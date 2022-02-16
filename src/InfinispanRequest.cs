@@ -6,12 +6,83 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using System.Threading;
+using System.Threading.Channels;
+
 namespace Infinispan.Hotrod.Core
 {
+
+    public class ResponseStream
+    {
+        public CancellationTokenSource TokenSource = new CancellationTokenSource();
+        private static UnboundedChannelOptions opts = new UnboundedChannelOptions { SingleReader = true, SingleWriter = true };
+        public Channel<ClientReceiveArgs> ResponseChannel = Channel.CreateUnbounded<ClientReceiveArgs>(opts);
+        private ClientReceiveArgs CurrReader;
+
+
+        public async Task<byte[]> ReadAsync(int size)
+        {
+            byte[] buf = new byte[size];
+            int offSet = 0;
+            do
+            {
+                if (CurrReader == null)
+                {
+                    CurrReader = await ResponseChannel.Reader.ReadAsync(TokenSource.Token);
+                }
+                var read = CurrReader.Stream.Read(buf, offSet, size - offSet);
+                if (read == 0)
+                {
+                    CurrReader = null;
+                    continue;
+                }
+                offSet += read;
+            } while (offSet < size);
+            return buf;
+        }
+        public async Task<int> ReadByteAsync()
+        {
+            int result;
+            do
+            {
+                if (CurrReader == null)
+                {
+                    CurrReader = await ResponseChannel.Reader.ReadAsync(TokenSource.Token);
+                }
+                // Stream.ReadByte() should return -1 on empty stream
+                // but it actually rises an exception. Checking both ways
+                result = -1;
+                try
+                {
+                    result = CurrReader.Stream.ReadByte();
+                }
+                catch (NullReferenceException)
+                { }
+                if (result == -1)
+                {
+                    CurrReader = null;
+                }
+            } while (result == -1);
+            return result;
+        }
+
+        public byte[] Read(int size)
+        {
+            return ReadAsync(size).Result;
+        }
+
+        public int ReadByte()
+        {
+            return ReadByteAsync().Result;
+        }
+    }
+
     public class InfinispanRequest
     {
+        static public int count = 0;
+        public int ide;
         public InfinispanRequest(InfinispanHost host, InfinispanDG cluster, ICache cache, InfinispanClient client, Command cmd, params Type[] types)
         {
+            ide = ++count;
             Client = client;
             Client.TcpClient.DataReceive = OnReceive;
             Client.TcpClient.ClientError = OnError;
@@ -36,14 +107,13 @@ namespace Infinispan.Hotrod.Core
                 context.NameAsBytes = new byte[] { };
             }
         }
-        private byte ResponseOpCode;
+        internal byte ResponseOpCode;
         public byte ResponseStatus;
-
         public CommandContext context = new CommandContext();
         public InfinispanHost Host { get; set; }
         public InfinispanDG Cluster { get; set; }
-
         public ICache Cache { get; set; }
+        public IClientListener Listener;
         private void OnError(IClient c, ClientErrorArgs e)
         {
             if (e.Error is BeetleX.BXException || e.Error is System.Net.Sockets.SocketException ||
@@ -58,86 +128,122 @@ namespace Infinispan.Hotrod.Core
             }
         }
         public Type[] Types { get; private set; }
-
-        Task Execution;
-        public ReadArraySession ras;
-
+        internal ResponseStream rs = new ResponseStream();
         private void OnReceive(IClient c, ClientReceiveArgs reader)
         {
-            var stream = reader.Stream.ToPipeStream();
-            if (Execution == null)
+            rs.ResponseChannel.Writer.WriteAsync(reader).AsTask().Wait();
+        }
+
+        private void ProcessResponse()
+        {
+            try
             {
-                Execution = Task.Run(() => { execution(c, reader); });
+                do
+                {
+                    if (rs.ReadByte() != 0xA1)
+                    {
+                        Result.ResultType = ResultType.Error;  // TODO: needed some design for errors
+                        Result.Messge = "Bad Magic Number";
+                        OnCompleted(Result.ResultType, Result.Messge);
+                        return;
+                    }
+                    long inMessageId = Codec.readVLong(rs);
+
+                    if (inMessageId != 0 && inMessageId != context.MessageId)
+                    {
+                        Result.ResultType = ResultType.Error;  // TODO: needed some design for errors
+                        Result.Messge = "Message ID mistmatch";
+                        OnCompleted(Result.ResultType, Result.Messge);
+                        return;
+                    }
+                    ResponseOpCode = (byte)rs.ReadByte();
+                    ResponseStatus = (byte)rs.ReadByte();
+                    var topologyChanged = (byte)rs.ReadByte();
+                    if (topologyChanged != 0)
+                    {
+                        var topology = readNewTopologyInfo(rs);
+                        // No need to update if monitor can't be taken
+                        // see InfinispanDG.SwitchCluster
+                        if (Monitor.TryEnter(Cluster.mActiveCluster))
+                        {
+                            try
+                            {
+                                Cluster.UpdateTopologyInfo(topology, this.Cache);
+                            }
+                            finally
+                            {
+                                Monitor.Exit(Cluster.mActiveCluster);
+                            }
+                        }
+                    }
+                    var errMsg = readResponseError(ResponseStatus, rs);
+                    if (errMsg != null)
+                    {
+                        Result.ResultType = ResultType.Error; // TODO: needed some design for errors
+                        Result.Messge = Encoding.ASCII.GetString(errMsg);
+                        OnCompleted(Result.ResultType, Result.Messge);
+                        return;
+                    }
+                    // Here ends the processing of the response header
+                    // commmand specific data processed below
+                    if (ResponseOpCode == 0x60 || ResponseOpCode == 0x61 || ResponseOpCode == 0x62 || ResponseOpCode == 0x63)
+                    {
+
+                        var ev = this.OnReceiveEvent(this, rs);
+                        this.Cluster.ListenerMap[ev.ListenerID].Listener.OnEvent(ev);
+                        continue;
+                    }
+                    Result = Command.OnReceive(this, rs);
+                    if (Result.Status == ResultStatus.Completed)
+                    {
+                        OnCompleted(Result.ResultType, Result.Messge);
+                        if (Result.ResultType != ResultType.Event)
+                        {
+                            rs.ResponseChannel.Writer.Complete();
+                        }
+                    }
+                } while (Result.ResultType == ResultType.Event);
+            }
+            catch (Exception ex)
+            {
+                this.Host.Push(this.Client);
+                if (!(ex is TaskCanceledException))
+                {
+                    if (!(ex is AggregateException) && !(((AggregateException)ex).InnerException is TaskCanceledException))
+                    {
+                        // TODO: unexpected exception. log something
+                        throw;
+                    }
+                }
+            }
+        }
+        internal Event OnReceiveEvent(InfinispanRequest request, ResponseStream stream)
+        {
+            var listenerId = StringMarshaller._ASCII.unmarshall(Codec.readArray(stream));
+            Event e = new Event();
+            e.ListenerID = listenerId;
+            e.CustomMarker = (byte)stream.ReadByte();
+            if (e.CustomMarker == 0)
+            {
+                e.Retried = (byte)stream.ReadByte();
+                e.Key = Codec.readArray(stream);
+                if (Enum.IsDefined(typeof(EventType), (Int32)request.ResponseOpCode))
+                {
+                    e.Type = (EventType)request.ResponseOpCode;
+                }
+                if (e.Type != EventType.REMOVED && e.Type != EventType.EXPIRED)
+                {
+                    e.Version = Codec.readLong(stream);
+                }
             }
             else
             {
-                if (ras != null && !ras.IsCompleted())
-                {
-                    Codec.continueReadArray(stream, ref ras);
-                }
+                e.customData = Codec.readArray(stream);
             }
+            return e;
         }
 
-        private void execution(IClient c, ClientReceiveArgs reader)
-        {
-            var stream = reader.Stream.ToPipeStream();
-            if (Result.Status != ResultStatus.Loading)
-            {
-                if (stream.ReadByte() != 0xA1)
-                {
-                    Result.ResultType = ResultType.Error;  // TODO: needed some design for errors
-                    Result.Messge = "Bad Magic Number";
-                    OnCompleted(Result.ResultType, Result.Messge);
-                    return;
-                }
-
-                if (Codec.readVLong(stream) != context.MessageId)
-                {
-                    Result.ResultType = ResultType.Error;  // TODO: needed some design for errors
-                    Result.Messge = "Message ID mistmatch";
-                    OnCompleted(Result.ResultType, Result.Messge);
-                    return;
-                }
-
-                ResponseOpCode = (byte)stream.ReadByte();
-                ResponseStatus = (byte)stream.ReadByte();
-                var topologyChanged = (byte)stream.ReadByte();
-                if (topologyChanged != 0)
-                {
-                    var topology = readNewTopologyInfo(stream);
-                    // No need to update if monitor can't be taken
-                    // see InfinispanDG.SwitchCluster
-                    if (Monitor.TryEnter(Cluster.mActiveCluster))
-                    {
-                        try
-                        {
-                            Cluster.UpdateTopologyInfo(topology, this.Cache);
-                        }
-                        finally
-                        {
-                            Monitor.Exit(Cluster.mActiveCluster);
-                        }
-                    }
-                }
-                var errMsg = readResponseError(ResponseStatus, stream);
-                if (errMsg != null)
-                {
-                    Result.ResultType = ResultType.Error; // TODO: needed some design for errors
-                    Result.Messge = Encoding.ASCII.GetString(errMsg);
-                    OnCompleted(Result.ResultType, Result.Messge);
-                    return;
-                }
-                // Here ends the processing of the response header
-                // commmand specific data processed below
-            }
-            Result = Command.OnReceive(this, stream);
-            if (Result.Status == ResultStatus.Completed)
-            {
-                OnCompleted(Result.ResultType, Result.Messge);
-            }
-        }
-
-        private TopologyInfo readNewTopologyInfo(PipeStream stream)
+        private TopologyInfo readNewTopologyInfo(ResponseStream stream)
         {
             var t = new TopologyInfo();
             t.TopologyId = Codec.readVUInt(stream);
@@ -146,8 +252,7 @@ namespace Infinispan.Hotrod.Core
             t.hosts = new InfinispanHost[serversNum];
             for (int i = 0; i < serversNum; i++)
             {
-                Codec.readArray(stream, ref ras);
-                var addr = ras.Result;
+                var addr = Codec.readArray(stream);
                 var port = Codec.readUnsignedShort(stream);
                 t.servers.Add(Tuple.Create(addr, port));
             }
@@ -170,17 +275,14 @@ namespace Infinispan.Hotrod.Core
             }
             return t;
         }
-        private byte[] readResponseError(byte status, PipeStream stream)
+        private byte[] readResponseError(byte status, ResponseStream stream)
         {
             if (Codec30.hasError(status))
             {
-                Codec.readArray(stream, ref ras);
-                return ras.Result;
+                return Codec.readArray(stream);
             }
             return null;
         }
-        public Action<InfinispanRequest> Completed { get; set; }
-
         protected Result Result { get; set; } = new Result();
 
         public Command Command { get; private set; }
@@ -207,25 +309,25 @@ namespace Infinispan.Hotrod.Core
 
         public Task<Result> Execute()
         {
-
             TaskCompletionSource = new TaskCompletionSource<Result>();
+            var processResponseTask = Task.Run(() => ProcessResponse());
             SendCommmand(Command);
             return TaskCompletionSource.Task;
-
         }
-
         private int mCompletedStatus = 0;
-
+        private int mEventLoopStatus = 0;
         public virtual void OnCompleted(ResultType type, string message)
         {
             if (System.Threading.Interlocked.CompareExchange(ref mCompletedStatus, 1, 0) == 0)
             {
                 Result.Status = ResultStatus.Completed;
-                Client.TcpClient.DataReceive = null;
-                Client.TcpClient.ClientError = null;
+                if (type != ResultType.Event)
+                {
+                    // Client.TcpClient.ClientError = null;
+                    // Client.TcpClient.DataReceive = null;
+                }
                 Result.ResultType = type;
                 Result.Messge = message;
-                Completed?.Invoke(this);
                 // TODO: no SELECT or AUTH command in Infinispan, correct implementation needed here
                 // TaskCompletion();
                 // if (Command.GetType() == typeof(SELECT) || Command.GetType() == typeof(AUTH))

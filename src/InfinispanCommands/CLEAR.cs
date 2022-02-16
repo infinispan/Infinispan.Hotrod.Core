@@ -24,7 +24,7 @@ namespace Infinispan.Hotrod.Core.Commands
         {
             base.Execute(ctx, client, stream);
         }
-        public override Result OnReceive(InfinispanRequest request, PipeStream stream)
+        public override Result OnReceive(InfinispanRequest request, ResponseStream stream)
         {
             return new Result{ Status =  ResultStatus.Completed, ResultType = ResultType.Null };
         }

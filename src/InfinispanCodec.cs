@@ -21,7 +21,7 @@ namespace Infinispan.Hotrod.Core
             }
         }
 
-        public static Int64 readVLong(PipeStream stream)
+        public static Int64 readVLong(ResponseStream stream)
         {
             byte b = (byte)stream.ReadByte();
             Int64 i = (Int64)(b & 0x7F);
@@ -32,7 +32,7 @@ namespace Infinispan.Hotrod.Core
             }
             return i;
         }
-        public static Int32 readVInt(PipeStream stream)
+        public static Int32 readVInt(ResponseStream stream)
         {
             byte b = (byte)stream.ReadByte();
             Int32 i = (Int32)(b & 0x7F);
@@ -44,7 +44,7 @@ namespace Infinispan.Hotrod.Core
             return i;
         }
 
-        public static UInt32 readVUInt(PipeStream stream)
+        public static UInt32 readVUInt(ResponseStream stream)
         {
             byte b = (byte)stream.ReadByte();
             UInt32 i = (UInt32)(b & 0x7F);
@@ -55,27 +55,12 @@ namespace Infinispan.Hotrod.Core
             }
             return i;
         }
-        public static void readArray(PipeStream stream, ref ReadArraySession ras)
+        public static byte[] readArray(ResponseStream stream)
         {
-            ras = new ReadArraySession(readVInt(stream));
-            if (stream.Length >= ras.Size)
-            {
-                byte[] ret = new byte[ras.Size];
-                stream.Read(ret, 0, ras.Size);
-                ras.Result = ret;
-            }
+            int size = readVInt(stream);
+            return stream.Read(size);
         }
-
-        public static void continueReadArray(PipeStream stream, ref ReadArraySession ras)
-        {
-            if (ras != null && !ras.IsCompleted() && ras.HasEnoughBytes(stream))
-            {  // There's a task not completed and we have enoungh bytes to complete
-                byte[] ret = new byte[ras.Size];
-                stream.Read(ret, 0, ras.Size);
-                ras.Result = ret;
-            }
-        }
-        public static Int16 readShort(PipeStream stream)
+        public static Int16 readShort(ResponseStream stream)
         {
             Int16 val;
             var b = (byte)stream.ReadByte();
@@ -83,7 +68,7 @@ namespace Infinispan.Hotrod.Core
             val += (byte)(stream.ReadByte() & 0xff);
             return val;
         }
-        public static UInt16 readUnsignedShort(PipeStream stream)
+        public static UInt16 readUnsignedShort(ResponseStream stream)
         {
             UInt16 val;
             var b = (byte)stream.ReadByte();
@@ -93,13 +78,13 @@ namespace Infinispan.Hotrod.Core
         }
 
 
-        public static Int32 readInt(PipeStream stream)
+        public static Int32 readInt(ResponseStream stream)
         {
             Int32 val = readShort(stream);
             val = (val << 16) + readShort(stream);
             return val;
         }
-        public static Int64 readLong(PipeStream stream)
+        public static Int64 readLong(ResponseStream stream)
         {
             Int64 val = readInt(stream);
             val = (val << 32) + readInt(stream);
@@ -165,6 +150,26 @@ namespace Infinispan.Hotrod.Core
                 stream.Write(arr, 0, arr.Length);
             }
         }
+        public static bool compareArray(byte[] b1, byte[] b2)
+        {
+            if (b1 == b2)
+            {
+                return true;
+            }
+            if (b1?.Length != b2?.Length)
+            {
+                return false;
+            }
+            for (var i = 0; i < b1.Length; i++)
+            {
+                if (b1[i] != b2[i])
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
         public static void writeMediaType(MediaType mt, PipeStream stream)
         {
             if (mt == null)
@@ -201,7 +206,7 @@ namespace Infinispan.Hotrod.Core
             }
         }
 
-        public static MediaType readMediaType(PipeStream stream)
+        public static MediaType readMediaType(ResponseStream stream)
         {
             MediaType mt = new MediaType();
             mt.InfoType = (byte)stream.ReadByte();
@@ -213,19 +218,15 @@ namespace Infinispan.Hotrod.Core
                     mt.PredefinedMediaType = readVInt(stream);
                     break;
                 case 2:
-                    ReadArraySession ras = null;
-                    readArray(stream, ref ras);
-                    mt.CustomMediaType = ras.Result;
+                    mt.CustomMediaType = readArray(stream);
                     var paramsCount = readVInt(stream);
                     if (paramsCount != 0)
                     {
                         mt.Params = new List<Tuple<byte[], byte[]>>();
                         for (var i = 0; i < paramsCount; i++)
                         {
-                            readArray(stream, ref ras);
-                            var key = ras.Result;
-                            readArray(stream, ref ras);
-                            var value = ras.Result;
+                            var key = readArray(stream);
+                            var value = readArray(stream);
                         }
                     }
                     break;
@@ -257,10 +258,10 @@ namespace Infinispan.Hotrod.Core
         public int Size;
         private TaskCompletionSource<byte[]> CompleteSource;
 
-        public bool HasEnoughBytes(PipeStream stream)
-        {
-            return stream.Length >= this.Size;
-        }
+        // public bool HasEnoughBytes(ResponseStream stream)
+        // {
+        //     return stream.Length >= this.Size;
+        // }
 
         public bool IsCompleted() { return CompleteSource.Task.IsCompleted; }
         public byte[] Result

@@ -89,6 +89,10 @@ namespace Infinispan.Hotrod.Core
         {
             return await Cluster.Put(KeyMarshaller, ValueMarshaller, this, key, value, lifespan, maxidle);
         }
+        public async Task<V> PutIfAbsent(K key, V value, ExpirationTime lifespan = null, ExpirationTime maxidle = null)
+        {
+            return await Cluster.PutIfAbsent(KeyMarshaller, ValueMarshaller, this, key, value, lifespan, maxidle);
+        }
         public async Task<Int32> Size()
         {
             return await Cluster.Size(this);
@@ -181,6 +185,16 @@ namespace Infinispan.Hotrod.Core
         public async Task<PingResult> Ping()
         {
             return await Cluster.Ping(this);
+        }
+
+        public async Task AddListener(String uuid, IClientListener listener, bool includeState = false)
+        {
+            await Cluster.AddListener(this, uuid, listener, includeState);
+        }
+
+        public async Task RemoveListener(String uuid)
+        {
+            await Cluster.RemoveListener(this, uuid);
         }
 
         private static List<Object> unwrapWithProjection(QueryResponse resp)
@@ -415,4 +429,27 @@ namespace Infinispan.Hotrod.Core
             Task.WaitAll(tasks);
         }
     }
+    public interface IClientListener
+    {
+        void OnEvent(Event e);
+    }
+    public enum EventType
+    {
+        CREATED = 0x60,
+        MODIFIED = 0x61,
+        REMOVED = 0x62,
+        EXPIRED = 0x63
+    }
+    public class Event
+    {
+        public byte[] Key;
+        public byte[] customData;
+        public byte CustomMarker;
+        public byte Retried;
+        public long Version;
+        public EventType Type;
+        public String ListenerID;
+
+    }
+
 }

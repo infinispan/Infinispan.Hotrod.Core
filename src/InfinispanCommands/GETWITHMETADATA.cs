@@ -32,7 +32,7 @@ namespace Infinispan.Hotrod.Core.Commands
             stream.Flush();
         }
 
-        public override Result OnReceive(InfinispanRequest request, PipeStream stream)
+        public override Result OnReceive(InfinispanRequest request, ResponseStream stream)
         {
             if (request.ResponseStatus == Codec30.KEY_DOES_NOT_EXIST_STATUS)
             {
@@ -51,8 +51,7 @@ namespace Infinispan.Hotrod.Core.Commands
                 ValueWithMetadata.MaxIdle = (Int32)Codec.readVInt(stream);
             }
             ValueWithMetadata.Version = Codec.readLong(stream);
-            Codec.readArray(stream, ref request.ras);
-            ValueWithMetadata.Value = ValueMarshaller.unmarshall(request.ras.Result);
+            ValueWithMetadata.Value = ValueMarshaller.unmarshall(Codec.readArray(stream));
             return new Result { Status = ResultStatus.Completed, ResultType = ResultType.Object };
         }
     }

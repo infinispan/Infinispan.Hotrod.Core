@@ -29,7 +29,7 @@ namespace Infinispan.Hotrod.Core.Commands
             Codec.writeArray(KeyMarshaller.marshall(Key), stream);
         }
 
-        public override Result OnReceive(InfinispanRequest request, PipeStream stream)
+        public override Result OnReceive(InfinispanRequest request, ResponseStream stream)
         {
             IsContained = request.ResponseStatus==Codec30.NO_ERROR_STATUS;
             return new Result{ Status =  ResultStatus.Completed, ResultType = ResultType.Object };

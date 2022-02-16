@@ -5,9 +5,9 @@ using BeetleX.Buffers;
 
 namespace Infinispan.Hotrod.Core.Commands
 {
-    public class PUT<K, V> : CommandWithKey<K>
+    public class PUTIFABSENT<K, V> : CommandWithKey<K>
     {
-        public PUT(Marshaller<K> km, Marshaller<V> vm, K key, V data)
+        public PUTIFABSENT(Marshaller<K> km, Marshaller<V> vm, K key, V data)
         {
             Key = key;
             Value = data;
@@ -22,9 +22,9 @@ namespace Infinispan.Hotrod.Core.Commands
         public ExpirationTime Lifespan = new ExpirationTime { Unit = TimeUnit.DEFAULT, Value = 0 };
         public ExpirationTime MaxIdle = new ExpirationTime { Unit = TimeUnit.DEFAULT, Value = 0 };
 
-        public override string Name => "PUT";
+        public override string Name => "PUTIFABSENT";
 
-        public override Byte Code => 0x01;
+        public override Byte Code => 0x05;
 
         public V Value { get; set; }
         public V PrevValue { get; set; }
