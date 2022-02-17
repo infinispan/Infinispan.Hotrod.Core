@@ -116,6 +116,10 @@ namespace Infinispan.Hotrod.Core
         public IClientListener Listener;
         private void OnError(IClient c, ClientErrorArgs e)
         {
+            if (this.rs != null)
+            {
+                this.rs.TokenSource.Cancel();
+            }
             if (e.Error is BeetleX.BXException || e.Error is System.Net.Sockets.SocketException ||
                 e.Error is System.ObjectDisposedException)
             {
@@ -188,7 +192,6 @@ namespace Infinispan.Hotrod.Core
                     // commmand specific data processed below
                     if (ResponseOpCode == 0x60 || ResponseOpCode == 0x61 || ResponseOpCode == 0x62 || ResponseOpCode == 0x63)
                     {
-
                         var ev = this.OnReceiveEvent(this, rs);
                         this.Cluster.ListenerMap[ev.ListenerID].Listener.OnEvent(ev);
                         continue;
@@ -206,6 +209,7 @@ namespace Infinispan.Hotrod.Core
             }
             catch (Exception ex)
             {
+                this.Listener?.OnError();
                 this.Host.Push(this.Client);
                 if (!(ex is TaskCanceledException))
                 {
@@ -318,13 +322,17 @@ namespace Infinispan.Hotrod.Core
         private int mEventLoopStatus = 0;
         public virtual void OnCompleted(ResultType type, string message)
         {
+            // if (type == ResultType.NetError && this.Listener != null)
+            // {
+            //     this.Listener.OnError();
+            // }
             if (System.Threading.Interlocked.CompareExchange(ref mCompletedStatus, 1, 0) == 0)
             {
                 Result.Status = ResultStatus.Completed;
                 if (type != ResultType.Event)
                 {
-                    // Client.TcpClient.ClientError = null;
-                    // Client.TcpClient.DataReceive = null;
+                    Client.TcpClient.ClientError = null;
+                    Client.TcpClient.DataReceive = null;
                 }
                 Result.ResultType = type;
                 Result.Messge = message;

@@ -189,9 +189,9 @@ namespace Infinispan.Hotrod.Core
             }
         }
 
-        internal async Task AddListener(ICache cache, String uuid, IClientListener listener, bool includeState)
+        internal async Task AddListener(ICache cache, IClientListener listener, bool includeState)
         {
-            Commands.ADDCLIENTLISTENER cmd = new Commands.ADDCLIENTLISTENER(uuid);
+            Commands.ADDCLIENTLISTENER cmd = new Commands.ADDCLIENTLISTENER();
             cmd.Listener = listener;
             if (includeState)
             {
@@ -200,9 +200,9 @@ namespace Infinispan.Hotrod.Core
             await Execute(cache, cmd);
         }
 
-        internal async Task RemoveListener(ICache cache, String uuid)
+        internal async Task RemoveListener(ICache cache, IClientListener listener)
         {
-            Commands.REMOVECLIENTLISTENER cmd = new Commands.REMOVECLIENTLISTENER(uuid);
+            Commands.REMOVECLIENTLISTENER cmd = new Commands.REMOVECLIENTLISTENER(listener);
             await Execute(cache, cmd);
         }
 

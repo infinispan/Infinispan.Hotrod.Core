@@ -8,7 +8,6 @@ namespace Infinispan.Hotrod.Core.Commands
 {
     public class ADDCLIENTLISTENER : Command
     {
-        private String ListenerID;
         public byte IncludeState;
         private String FilterFactoryName = "";
         private Tuple<byte[], byte[]>[] FilterArgs;
@@ -17,10 +16,9 @@ namespace Infinispan.Hotrod.Core.Commands
         private int Interests;
         private bool isBinary;
         public IClientListener Listener;
-        public ADDCLIENTLISTENER(String uuid)
+        public ADDCLIENTLISTENER()
         {
             NetworkReceive = OnReceive;
-            this.ListenerID = uuid;
         }
         public override string Name => "ADDCLIENTLISTENER";
 
@@ -34,7 +32,7 @@ namespace Infinispan.Hotrod.Core.Commands
         public override void Execute(CommandContext ctx, InfinispanClient client, PipeStream stream)
         {
             base.Execute(ctx, client, stream);
-            Codec.writeArray(StringMarshaller._ASCII.marshall(this.ListenerID), stream);
+            Codec.writeArray(StringMarshaller._ASCII.marshall(this.Listener.ListenerID), stream);
             stream.WriteByte(this.IncludeState);
             if (!String.IsNullOrEmpty(this.FilterFactoryName))
             {
@@ -73,16 +71,15 @@ namespace Infinispan.Hotrod.Core.Commands
 
         public override Result OnReceive(InfinispanRequest request, ResponseStream stream)
         {
-            System.Diagnostics.Debug.WriteLine("OnReceive ADD");
             if (request.ResponseStatus == Codec30.NO_ERROR_STATUS)
             {
                 InfinispanRequest oldReq;
-                if (request.Cluster.ListenerMap.TryGetValue(this.ListenerID, out oldReq))
+                if (request.Cluster.ListenerMap.TryGetValue(this.Listener.ListenerID, out oldReq))
                 {
                     oldReq.rs.TokenSource.Cancel();
                 }
                 request.Listener = this.Listener;
-                request.Cluster.ListenerMap[this.ListenerID] = request;
+                request.Cluster.ListenerMap[this.Listener.ListenerID] = request;
                 return new Result { Status = ResultStatus.Completed, ResultType = ResultType.Event };
             }
             return new Result { Status = ResultStatus.Completed, ResultType = ResultType.Error };

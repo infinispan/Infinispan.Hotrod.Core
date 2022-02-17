@@ -8,11 +8,11 @@ namespace Infinispan.Hotrod.Core.Commands
 {
     public class REMOVECLIENTLISTENER : Command
     {
-        private String ListenerID;
-        public REMOVECLIENTLISTENER(String uuid)
+        private IClientListener Listener;
+        public REMOVECLIENTLISTENER(IClientListener listener)
         {
             NetworkReceive = OnReceive;
-            this.ListenerID = uuid;
+            this.Listener = listener;
         }
         public override string Name => "REMOVECLIENTLISTENER";
 
@@ -26,7 +26,7 @@ namespace Infinispan.Hotrod.Core.Commands
         public override void Execute(CommandContext ctx, InfinispanClient client, PipeStream stream)
         {
             base.Execute(ctx, client, stream);
-            Codec.writeArray(StringMarshaller._ASCII.marshall(this.ListenerID), stream);
+            Codec.writeArray(StringMarshaller._ASCII.marshall(this.Listener.ListenerID), stream);
             stream.Flush();
         }
 
@@ -35,10 +35,10 @@ namespace Infinispan.Hotrod.Core.Commands
             if (request.ResponseStatus == Codec30.NO_ERROR_STATUS)
             {
                 InfinispanRequest oldReq;
-                if (request.Cluster.ListenerMap.TryGetValue(this.ListenerID, out oldReq))
+                if (request.Cluster.ListenerMap.TryGetValue(this.Listener.ListenerID, out oldReq))
                 {
                     oldReq.rs.TokenSource.Cancel();
-                    request.Cluster.ListenerMap.Remove(this.ListenerID);
+                    request.Cluster.ListenerMap.Remove(this.Listener.ListenerID);
                 }
                 return new Result { Status = ResultStatus.Completed, ResultType = ResultType.Object };
             }

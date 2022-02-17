@@ -33,6 +33,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
     [Collection("MainSequence")]
     public class RemoteEventTest : IClassFixture<RemoteEventTestFixture>
     {
+        public HotRodServer _hotRodServer;
         private readonly RemoteEventTestFixture _fixture;
         private Cache<string, string> _cache;
         private InfinispanDG _infinispan;
@@ -43,6 +44,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             _cache = _fixture.cache;
             _infinispan = _fixture.infinispan;
             _marshaller = _fixture.marshaller;
+            _hotRodServer = _fixture.hotRodServer;
         }
         const string ERRORS_KEY_SUFFIX = ".errors";
         const string PROTOBUF_SCRIPT_CACHE_NAME = "___script_cache";
@@ -50,11 +52,11 @@ namespace Infinispan.Hotrod.Core.XUnitTest
         [Fact]
         public async void BasicEventsTest()
         {
-            LoggingEventListener listener = new LoggingEventListener();
+            LoggingEventListener listener = new LoggingEventListener(_cache, "123456789");
             try
             {
                 await _cache.Clear();
-                await _cache.AddListener("123456789", listener);
+                await _cache.AddListener(listener);
                 AssertNoEvents(listener);
                 await _cache.Put("key1", "value1");
                 AssertOnly("key1", listener, EventType.CREATED);
@@ -74,36 +76,38 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             finally
             {
                 System.Threading.Thread.Sleep(4000);
-                await _cache.RemoveListener("123456789");
+                await _cache.RemoveListener(listener);
+                AssertNoError(listener);
             }
         }
 
         [Fact]
         public async void IncludeCurrentStateEventTest()
         {
-            LoggingEventListener listener = new LoggingEventListener();
+            LoggingEventListener listener = new LoggingEventListener(_cache, "123456789");
             try
             {
                 await _cache.Clear();
                 await _cache.Put("key1", "value1");
                 AssertNoEvents(listener);
-                await _cache.AddListener("123456789", listener, true);
+                await _cache.AddListener(listener, true);
                 AssertOnly("key1", listener, EventType.CREATED);
             }
             finally
             {
-                await _cache.RemoveListener("123456789");
+                await _cache.RemoveListener(listener);
+                AssertNoError(listener);
             }
         }
 
         [Fact]
         public async void ConditionalEventsTest()
         {
-            LoggingEventListener listener = new LoggingEventListener();
+            LoggingEventListener listener = new LoggingEventListener(_cache, "123456789");
             try
             {
                 await _cache.Clear();
-                await _cache.AddListener("123456789", listener);
+                await _cache.AddListener(listener);
                 AssertNoEvents(listener);
                 await _cache.PutIfAbsent("key1", "value1");
                 AssertOnly("key1", listener, EventType.CREATED);
@@ -124,10 +128,29 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             }
             finally
             {
-                await _cache.RemoveListener("123456789");
+                await _cache.RemoveListener(listener);
+                AssertNoError(listener);
             }
         }
 
+        [Fact]
+        public async void RecoverOnErrorTest()
+        {
+            LoggingEventListener listener = new LoggingEventListener(_cache, "123456789");
+            await _cache.Clear();
+            await _cache.AddListener(listener);
+            AssertNoEvents(listener);
+            await _cache.Put("key1", "value1");
+            AssertOnly("key1", listener, EventType.CREATED);
+            _hotRodServer.ShutDownHotrodServer();
+            Assert.True(_hotRodServer.IsStopped());
+            _hotRodServer.StartHotRodServer();
+            Assert.True(_hotRodServer.IsRunning());
+            listener.serverIsRunning.SetResult(true);
+            listener.ListenerIsAdded.Task.Wait();
+            await _cache.Put("key1", "value1");
+            AssertOnly("key1", listener, EventType.CREATED);
+        }
         //     [Test]
         //     [Ignore("ISPN-9409")]
         //     public void CustomEventsTest()
@@ -234,6 +257,10 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             {
                 Assert.Equal(0, listener.customEvents.Count);
             }
+        }
+        private void AssertNoError(LoggingEventListener listener)
+        {
+            Assert.Equal(0, listener.ErrorEvents.Count);
         }
     }
 }

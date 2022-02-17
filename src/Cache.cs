@@ -187,14 +187,14 @@ namespace Infinispan.Hotrod.Core
             return await Cluster.Ping(this);
         }
 
-        public async Task AddListener(String uuid, IClientListener listener, bool includeState = false)
+        public async Task AddListener(IClientListener listener, bool includeState = false)
         {
-            await Cluster.AddListener(this, uuid, listener, includeState);
+            await Cluster.AddListener(this, listener, includeState);
         }
 
-        public async Task RemoveListener(String uuid)
+        public async Task RemoveListener(IClientListener listener)
         {
-            await Cluster.RemoveListener(this, uuid);
+            await Cluster.RemoveListener(this, listener);
         }
 
         private static List<Object> unwrapWithProjection(QueryResponse resp)
@@ -431,7 +431,9 @@ namespace Infinispan.Hotrod.Core
     }
     public interface IClientListener
     {
+        String ListenerID { get; set; }
         void OnEvent(Event e);
+        void OnError();
     }
     public enum EventType
     {
