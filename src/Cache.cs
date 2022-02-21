@@ -433,7 +433,7 @@ namespace Infinispan.Hotrod.Core
     {
         String ListenerID { get; set; }
         void OnEvent(Event e);
-        void OnError();
+        void OnError(Exception ex = null);
     }
     public enum EventType
     {

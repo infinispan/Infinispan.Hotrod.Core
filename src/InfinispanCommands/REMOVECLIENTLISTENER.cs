@@ -37,8 +37,8 @@ namespace Infinispan.Hotrod.Core.Commands
                 InfinispanRequest oldReq;
                 if (request.Cluster.ListenerMap.TryGetValue(this.Listener.ListenerID, out oldReq))
                 {
-                    oldReq.rs.TokenSource.Cancel();
                     request.Cluster.ListenerMap.Remove(this.Listener.ListenerID);
+                    oldReq.rs.TokenSource.Cancel();
                 }
                 return new Result { Status = ResultStatus.Completed, ResultType = ResultType.Object };
             }

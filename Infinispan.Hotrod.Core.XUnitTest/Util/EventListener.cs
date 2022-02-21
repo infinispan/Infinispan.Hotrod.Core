@@ -36,9 +36,9 @@ namespace Infinispan.Hotrod.Core.Tests.Util
                     break;
             }
         }
-        public void OnError()
+        public void OnError(Exception ex = null)
         {
-            ErrorAction();
+            ErrorAction(ex);
         }
         public BlockingCollection<Event> createdEvents = new BlockingCollection<Event>();
         public BlockingCollection<Event> removedEvents = new BlockingCollection<Event>();
@@ -79,14 +79,19 @@ namespace Infinispan.Hotrod.Core.Tests.Util
         {
             customEvents.Add(e);
         }
-        public void ErrorAction()
+        public void ErrorAction(Exception ex)
         {
-            ErrorEvents.Add(new Object());
+            ErrorEvents.Add(ex);
             serverIsRunning.Task.Wait();
             {
                 cache.AddListener(this).Wait();
                 ListenerIsAdded.TrySetResult(true);
             }
+        }
+
+        public void CleanErrors()
+        {
+            ErrorEvents = new BlockingCollection<object>();
         }
         public Event PollEvent(EventType eventType, byte isCustom = 0)
         {

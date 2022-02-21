@@ -209,14 +209,18 @@ namespace Infinispan.Hotrod.Core
             }
             catch (Exception ex)
             {
-                this.Listener?.OnError();
-                this.Host.Push(this.Client);
-                if (!(ex is TaskCanceledException))
+                if (Cluster.ListenerMap.ContainsKey(this.Listener?.ListenerID))
                 {
-                    if (!(ex is AggregateException) && !(((AggregateException)ex).InnerException is TaskCanceledException))
+                    Cluster.ListenerMap.Remove(this.Listener.ListenerID);
+                    this.Listener.OnError(ex);
+                    this.Host.Push(this.Client);
+                    if (!(ex is TaskCanceledException))
                     {
-                        // TODO: unexpected exception. log something
-                        throw;
+                        if (!(ex is AggregateException) && !(((AggregateException)ex).InnerException is TaskCanceledException))
+                        {
+                            // TODO: unexpected exception. log something
+                            throw;
+                        }
                     }
                 }
             }
