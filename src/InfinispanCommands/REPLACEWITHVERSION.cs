@@ -44,13 +44,12 @@ namespace Infinispan.Hotrod.Core.Commands
             Codec.writeArray(ValueMarshaller.marshall(Value), stream);
             stream.Flush();
         }
-        public override Result OnReceive(InfinispanRequest request, PipeStream stream)
+        public override Result OnReceive(InfinispanRequest request, ResponseStream stream)
         {
             Replaced = Codec30.isSuccess(request.ResponseStatus);
             if ((request.Command.Flags & 0x01) == 1 && Codec30.hasPrevious(request.ResponseStatus))
             {
-                Codec.readArray(stream, ref request.ras);
-                var retValAsArray = request.ras.Result;
+                var retValAsArray = Codec.readArray(stream);
                 if (retValAsArray.Length > 0)
                 {
                     PrevValue = ValueMarshaller.unmarshall(retValAsArray);

@@ -31,13 +31,12 @@ namespace Infinispan.Hotrod.Core.Commands
             Codec.writeVInt(Scope, stream);
         }
 
-        public override Result OnReceive(InfinispanRequest request, PipeStream stream)
+        public override Result OnReceive(InfinispanRequest request, ResponseStream stream)
         {
             keys = new HashSet<K>();
             while (stream.ReadByte() == 1)
             {
-                Codec.readArray(stream, ref request.ras);
-                keys.Add(this.KeyMarshaller.unmarshall(request.ras.Result));
+                keys.Add(this.KeyMarshaller.unmarshall(Codec.readArray(stream)));
             }
             return new Result { Status = ResultStatus.Completed, ResultType = ResultType.Object };
         }

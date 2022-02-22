@@ -32,7 +32,7 @@ namespace Infinispan.Hotrod.Core
         {
             Flags = flags;
         }
-        public Func<InfinispanRequest, PipeStream, Result> NetworkReceive { get; set; }
+        public Func<InfinispanRequest, ResponseStream, Result> NetworkReceive { get; set; }
         public abstract string Name { get; }
         public abstract Byte Code { get; }
         public Int32 Flags { get; set; } // TODO: where to store this?
@@ -63,7 +63,7 @@ namespace Infinispan.Hotrod.Core
             }
         }
 
-        public abstract Result OnReceive(InfinispanRequest request, PipeStream stream);
+        public abstract Result OnReceive(InfinispanRequest request, ResponseStream stream);
 
         internal enum TopologyKnoledge
         {

@@ -35,14 +35,13 @@ namespace Infinispan.Hotrod.Core.Commands
             Codec.writeArray(Query.ToByteArray(), stream);
             stream.Flush();
         }
-        public override Result OnReceive(InfinispanRequest request, PipeStream stream)
+        public override Result OnReceive(InfinispanRequest request, ResponseStream stream)
         {
             if (request.ResponseStatus == Codec30.KEY_DOES_NOT_EXIST_STATUS)
             {
                 return new Result { Status = ResultStatus.Completed, ResultType = ResultType.Null };
             }
-            Codec.readArray(stream, ref request.ras);
-            var buf = request.ras.Result;
+            var buf = Codec.readArray(stream);
             QueryResponse = Org.Infinispan.Query.Remote.Client.QueryResponse.Parser.ParseFrom(buf);
             return new Result { Status = ResultStatus.Completed, ResultType = ResultType.Object };
             // var buf = Codec.readArray(stream, ref size);

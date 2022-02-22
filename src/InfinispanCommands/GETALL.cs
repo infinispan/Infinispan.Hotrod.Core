@@ -40,7 +40,7 @@ namespace Infinispan.Hotrod.Core.Commands
             stream.Flush();
         }
 
-        public override Result OnReceive(InfinispanRequest request, PipeStream stream)
+        public override Result OnReceive(InfinispanRequest request, ResponseStream stream)
         {
             if (request.ResponseStatus == Codec30.NO_ERROR_STATUS)
             {
@@ -49,10 +49,8 @@ namespace Infinispan.Hotrod.Core.Commands
                 Entries = new Dictionary<K, V>();
                 for (var i = 0; i < resCount; i++)
                 {
-                    Codec.readArray(stream, ref request.ras);
-                    K k = KeyMarshaller.unmarshall(request.ras.Result);
-                    Codec.readArray(stream, ref request.ras);
-                    V v = ValueMarshaller.unmarshall(request.ras.Result);
+                    K k = KeyMarshaller.unmarshall(Codec.readArray(stream));
+                    V v = ValueMarshaller.unmarshall(Codec.readArray(stream));
                     Entries.Add(k, v);
                 }
                 return new Result { Status = ResultStatus.Completed, ResultType = ResultType.Object };

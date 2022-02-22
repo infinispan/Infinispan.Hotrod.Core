@@ -16,7 +16,8 @@ namespace Infinispan.Hotrod.Core
         Object,
         String,
         Null,
-        NotFound
+        NotFound,
+        Event
     }
 
     public enum ResultStatus

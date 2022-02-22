@@ -129,11 +129,10 @@ namespace Infinispan.Hotrod.Core.Commands
                     break;
             }
         }
-        public override Result OnReceive(InfinispanRequest request, PipeStream stream)
+        public override Result OnReceive(InfinispanRequest request, ResponseStream stream)
         {
             var completed = (byte)stream.ReadByte();
-            Codec.readArray(stream, ref request.ras);
-            Challenge = request.ras.Result;
+            Challenge = Codec.readArray(stream);
             return new Result { Status = ResultStatus.Completed, ResultType = ResultType.Object };
         }
     }

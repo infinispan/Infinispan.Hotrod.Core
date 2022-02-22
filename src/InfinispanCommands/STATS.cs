@@ -26,7 +26,7 @@ namespace Infinispan.Hotrod.Core.Commands
             base.Execute(ctx, client, stream);
         }
 
-        public override Result OnReceive(InfinispanRequest request, PipeStream stream)
+        public override Result OnReceive(InfinispanRequest request, ResponseStream stream)
         {
             if (request.ResponseStatus == Codec30.NO_ERROR_STATUS)
             {
@@ -34,10 +34,8 @@ namespace Infinispan.Hotrod.Core.Commands
                 var statsNum = Codec.readVInt(stream);
                 for (int i = 0; i < statsNum; i++)
                 {
-                    Codec.readArray(stream, ref request.ras);
-                    var name = Encoding.ASCII.GetString(request.ras.Result);
-                    Codec.readArray(stream, ref request.ras);
-                    var value = Encoding.ASCII.GetString(request.ras.Result);
+                    var name = Encoding.ASCII.GetString(Codec.readArray(stream));
+                    var value = Encoding.ASCII.GetString(Codec.readArray(stream));
                     d.Add(name, value);
                 }
                 this.Stats = new ServerStatistics(d);
