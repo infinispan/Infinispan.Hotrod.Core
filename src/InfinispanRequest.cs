@@ -193,7 +193,7 @@ namespace Infinispan.Hotrod.Core
                     if (ResponseOpCode == 0x60 || ResponseOpCode == 0x61 || ResponseOpCode == 0x62 || ResponseOpCode == 0x63)
                     {
                         var ev = this.OnReceiveEvent(this, rs);
-                        this.Cluster.ListenerMap[ev.ListenerID].Listener.OnEvent(ev);
+                        Task.Run(() => { this.Cluster.ListenerMap[ev.ListenerID].Listener.OnEvent(ev); });
                         continue;
                     }
                     Result = Command.OnReceive(this, rs);
@@ -317,7 +317,7 @@ namespace Infinispan.Hotrod.Core
 
         public Task<Result> Execute()
         {
-            TaskCompletionSource = new TaskCompletionSource<Result>();
+            TaskCompletionSource = new TaskCompletionSource<Result>(TaskCreationOptions.RunContinuationsAsynchronously);
             var processResponseTask = Task.Run(() => ProcessResponse());
             SendCommmand(Command);
             return TaskCompletionSource.Task;
