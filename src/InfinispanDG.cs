@@ -70,24 +70,15 @@ namespace Infinispan.Hotrod.Core
             }
             return false;
         }
-        public InfinispanHost AddHost(string host, int port = 11222)
-        {
-            return AddHost("DEFAULT_CLUSTER", host, port, UseTLS);
-        }
-        public InfinispanHost AddHost(string cluster, string host, int port = 11222)
-        {
-            return AddHost(cluster, host, port, UseTLS);
-        }
         /// <summary>
         /// Add a cluster node to the initial list of nodes.
         /// </summary>
         /// <param name="host">node address</param>
         /// <param name="port">port</param>
-        /// <param name="ssl">overrides the cluster TLS setting</param>
         /// <returns></returns>
-        public InfinispanHost AddHost(string host, int port, bool ssl)
+        public InfinispanHost AddHost(string host, int port = 11222)
         {
-            return AddHost("DEFAULT_CLUSTER", host, port, ssl);
+            return AddHost("DEFAULT_CLUSTER", host, port);
         }
         /// <summary>
         /// Add a cluster node to the initial list of nodes for the specified cluster.
@@ -99,11 +90,11 @@ namespace Infinispan.Hotrod.Core
         /// <param name="port">port</param>
         /// <param name="ssl">overrides the cluster TLS setting</param>
         /// <returns></returns>
-        public InfinispanHost AddHost(string clusterName, string host, int port, bool ssl)
+        public InfinispanHost AddHost(string clusterName, string host, int port=11222)
         {
             if (port == 0)
                 port = 11222;
-            InfinispanHost ispnHost = new InfinispanHost(ssl, this, host, port);
+            InfinispanHost ispnHost = new InfinispanHost(this, host, port);
             ispnHost.User = User;
             ispnHost.Password = Password;
             ispnHost.AuthMech = AuthMech;
@@ -122,11 +113,11 @@ namespace Infinispan.Hotrod.Core
             return ispnHost;
         }
 
-        private InfinispanHost AddTopologyHost(string clusterName, string host, int port, bool ssl)
+        private InfinispanHost AddTopologyHost(string clusterName, string host, int port)
         {
             if (port == 0)
                 port = 11222;
-            InfinispanHost ispnHost = new InfinispanHost(ssl, this, host, port);
+            InfinispanHost ispnHost = new InfinispanHost(this, host, port);
             ispnHost.User = User;
             ispnHost.Password = Password;
             ispnHost.AuthMech = AuthMech;
@@ -578,7 +569,7 @@ namespace Infinispan.Hotrod.Core
                         // TODO: save the error? and then go ahead with retry
                         continue;
                     }
-                    InfinispanRequest request = new InfinispanRequest(host, host.Cluster, cache, client, cmd);
+                    InfinispanRequest request = new InfinispanRequest(cache, client, cmd);
                     result = await request.Execute();
                     if (result.IsError)
                     {
@@ -674,7 +665,7 @@ namespace Infinispan.Hotrod.Core
                     continue;
                 }
 
-                topology.hosts[i] = this.AddTopologyHost(mActiveCluster, hostName, port, UseTLS);
+                topology.hosts[i] = this.AddTopologyHost(mActiveCluster, hostName, port);
             }
         }
         private InfinispanHost getHostByNameAndPort(IList<InfinispanHost> hosts, string hostName, int port)

@@ -7,18 +7,15 @@ namespace Infinispan.Hotrod.Core
     // Describes an Infinispan node
     public class InfinispanHost : IDisposable
     {
-        public InfinispanHost(bool ssl, InfinispanDG cluster, string host, int port = 6379)
+        public InfinispanHost(InfinispanDG cluster, string host, int port = 6379)
         {
-            SSL = ssl;
             Name = host;
             Port = port;
             Cluster = cluster;
+            SSL = Cluster.UseTLS;
             Available = true;
             Master = true;
-            mPingClient = new InfinispanClient(SSL, this.Name, this.Port);
         }
-
-        private InfinispanClient mPingClient;
 
         private int mDisposed = 0;
 
@@ -56,8 +53,7 @@ namespace Infinispan.Hotrod.Core
 
         public int MaxConnections { get; set; } = 30;
 
-        public InfinispanDG Cluster { get; set; }
-
+        public readonly InfinispanDG Cluster;
         public string Name { get; set; }
 
         public int Port { get; set; }
@@ -85,7 +81,7 @@ namespace Infinispan.Hotrod.Core
                     if (mCount <= MaxConnections)
                     {
                         // ... create a new one ...
-                        client = new InfinispanClient(SSL, this.Name, this.Port);
+                        client = new InfinispanClient(this, this.Name, this.Port);
                         result.SetResult(client);
                     }
                     else
@@ -119,7 +115,7 @@ namespace Infinispan.Hotrod.Core
                     if (!string.IsNullOrEmpty(Password))
                     {
                         Commands.AUTHMECHLIST authMechList = new Commands.AUTHMECHLIST();
-                        InfinispanRequest request = new InfinispanRequest(this, this.Cluster, null, client, authMechList, typeof(string));
+                        InfinispanRequest request = new InfinispanRequest(null, client, authMechList, typeof(string));
                         var taskResult = await request.Execute();
                         if (taskResult.ResultType == ResultType.DataError ||
                             taskResult.ResultType == ResultType.Error
@@ -149,7 +145,7 @@ namespace Infinispan.Hotrod.Core
                         Commands.AUTH auth = new Commands.AUTH(this.AuthMech, new System.Net.NetworkCredential(User, Password));
                         while (auth.Completed == 0)
                         {
-                            request = new InfinispanRequest(this, this.Cluster, null, client, auth, typeof(string));
+                            request = new InfinispanRequest(null, client, auth, typeof(string));
                             taskResult = await request.Execute();
                             if (taskResult.ResultType == ResultType.DataError ||
                                 taskResult.ResultType == ResultType.Error

@@ -19,7 +19,7 @@ namespace Infinispan.Hotrod.Core.Samples
             ispnCluster.ClientIntelligence = 0x03;
             ispnCluster.ForceReturnValue = false;
 
-            var host = ispnCluster.AddHost("127.0.0.1", 11422, false);
+            var host = ispnCluster.AddHost("127.0.0.1", 11422);
             System.Threading.Thread.Sleep(1000);
             using (CodeTrackFactory.TrackReport("Test", CodeTrackLevel.Bussiness, null))
             {

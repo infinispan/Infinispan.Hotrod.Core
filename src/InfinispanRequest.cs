@@ -79,19 +79,15 @@ namespace Infinispan.Hotrod.Core
     public class InfinispanRequest
     {
         static public int count = 0;
-        public int ide;
-        public InfinispanRequest(InfinispanHost host, InfinispanDG cluster, ICache cache, InfinispanClient client, Command cmd, params Type[] types)
+        public InfinispanRequest(ICache cache, InfinispanClient client, Command cmd, params Type[] types)
         {
-            ide = ++count;
             Client = client;
             Client.TcpClient.DataReceive = OnReceive;
             Client.TcpClient.ClientError = OnError;
             Command = cmd;
-            Host = host;
             Types = types;
-            Cluster = cluster;
             Cache = cache;
-            context.MessageId = host.MessageId;
+            context.MessageId = client.Host.MessageId;
             context.ClientIntelligence = Cluster.ClientIntelligence;
             context.Version = Cluster.Version;
             context.TopologyId = Cluster.TopologyId;
@@ -109,8 +105,7 @@ namespace Infinispan.Hotrod.Core
         internal byte ResponseOpCode;
         public byte ResponseStatus;
         public CommandContext context = new CommandContext();
-        public InfinispanHost Host { get; set; }
-        public InfinispanDG Cluster { get; set; }
+        internal InfinispanDG Cluster { get { return Client.Host.Cluster; } }
         public ICache Cache { get; set; }
         public IClientListener Listener;
         private void OnError(IClient c, ClientErrorArgs e)
@@ -167,7 +162,7 @@ namespace Infinispan.Hotrod.Core
                         var topology = readNewTopologyInfo(rs);
                         // No need to update if monitor can't be taken
                         // see InfinispanDG.SwitchCluster
-                        if (Monitor.TryEnter(Cluster.mActiveCluster))
+                        if (this.Cache!=null && Monitor.TryEnter(Cluster.mActiveCluster))
                         {
                             try
                             {
@@ -212,7 +207,7 @@ namespace Infinispan.Hotrod.Core
                 {
                     Cluster.ListenerMap.Remove(this.Listener.ListenerID);
                     this.Listener.OnError(ex);
-                    this.Host.Push(this.Client);
+                    this.Client.ReturnToPool();
                     if (!(ex is TaskCanceledException))
                     {
                         if (!(ex is AggregateException) && !(((AggregateException)ex).InnerException is TaskCanceledException))

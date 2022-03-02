@@ -20,11 +20,13 @@ namespace Infinispan.Hotrod.Core
         public bool ForceReturnValue { get; set; }
         public MediaType KeyMediaType { get; set; }
         public MediaType ValueMediaType { get; set; }
+        public InfinispanDG Cluster { get;}
 
     }
     public class Cache<K, V> : ICache
     {
-        protected InfinispanDG Cluster;
+        private InfinispanDG _Cluster;
+        public  InfinispanDG Cluster { get { return _Cluster; }}
         public string Name { get; }
         public byte[] NameAsBytes { get; }
         public byte Version { get; set; }
@@ -51,7 +53,7 @@ namespace Infinispan.Hotrod.Core
         public Codec30 codec;
         public Cache(InfinispanDG ispnCluster, Marshaller<K> keyM, Marshaller<V> valM, string name)
         {
-            Cluster = ispnCluster;
+            _Cluster = ispnCluster;
             Name = name;
             MessageId = 1;
             NameAsBytes = Encoding.ASCII.GetBytes(Name);

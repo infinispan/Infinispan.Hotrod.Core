@@ -23,6 +23,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             infinispan1.Version = 0x1f;
             infinispan1.ForceReturnValue = false;
             infinispan1.ClientIntelligence = 0x01;
+            infinispan1.UseTLS = false;
             cache1 = infinispan1.newCache(new StringMarshaller(), new StringMarshaller(), "default");
 
             string jbossHome = System.Environment.GetEnvironmentVariable("JBOSS_HOME");

@@ -227,6 +227,7 @@ namespace Infinispan.Hotrod.Core
                         {
                             var key = readArray(stream);
                             var value = readArray(stream);
+                            mt.Params.Add(new Tuple<byte[], byte[]>(key, value));
                         }
                     }
                     break;
