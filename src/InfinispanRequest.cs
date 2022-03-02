@@ -89,7 +89,6 @@ namespace Infinispan.Hotrod.Core
             Command = cmd;
             Host = host;
             Types = types;
-            Host = host;
             Cluster = cluster;
             Cache = cache;
             context.MessageId = host.MessageId;
@@ -323,7 +322,6 @@ namespace Infinispan.Hotrod.Core
             return TaskCompletionSource.Task;
         }
         private int mCompletedStatus = 0;
-        private int mEventLoopStatus = 0;
         public virtual void OnCompleted(ResultType type, string message)
         {
             // if (type == ResultType.NetError && this.Listener != null)

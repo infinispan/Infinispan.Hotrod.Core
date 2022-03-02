@@ -15,7 +15,7 @@ namespace Infinispan.Hotrod.Core
             Cluster = cluster;
             Available = true;
             Master = true;
-            mPingClient = new InfinispanClient(SSL, this);
+            mPingClient = new InfinispanClient(SSL, this.Name, this.Port);
         }
 
         private InfinispanClient mPingClient;
@@ -85,7 +85,7 @@ namespace Infinispan.Hotrod.Core
                     if (mCount <= MaxConnections)
                     {
                         // ... create a new one ...
-                        client = new InfinispanClient(SSL, this);
+                        client = new InfinispanClient(SSL, this.Name, this.Port);
                         result.SetResult(client);
                     }
                     else

@@ -107,8 +107,7 @@ namespace Infinispan.Hotrod.Core.Tests.Util
                 switch (eventType)
                 {
                     case EventType.CREATED:
-                        var a = createdEvents.Take(token);
-                        return a;
+                        return createdEvents.Take(token);
                     case EventType.MODIFIED:
                         return modifiedEvents.Take(token);
                     case EventType.REMOVED:
@@ -121,7 +120,8 @@ namespace Infinispan.Hotrod.Core.Tests.Util
             }
             catch (OperationCanceledException ex)
             {
-                throw new TimeoutException("The event of type " + eventType.ToString() + " was not received within timeout!", ex);
+                string s = "cre: " + createdEvents.Count + "  mod: " + modifiedEvents.Count + "  rem: " + removedEvents.Count + " exp: " + expiredEvents.Count;
+                throw new TimeoutException("The event of type " + eventType.ToString() + " was not received within timeout!  "+s, ex);
             }
         }
     }

@@ -4,6 +4,8 @@ using Xunit;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
+[assembly: CollectionBehavior(DisableTestParallelization = true)]
+
 namespace Infinispan.Hotrod.Core.XUnitTest
 {
     public class RemoteEventTestFixture : IDisposable
@@ -235,11 +237,11 @@ namespace Infinispan.Hotrod.Core.XUnitTest
 
         private void AssertNoEvents(LoggingEventListener listener)
         {
-            Assert.Equal(0, listener.createdEvents.Count);
-            Assert.Equal(0, listener.removedEvents.Count);
-            Assert.Equal(0, listener.modifiedEvents.Count);
-            Assert.Equal(0, listener.expiredEvents.Count);
-            Assert.Equal(0, listener.customEvents.Count);
+            Assert.Empty(listener.createdEvents);
+            Assert.Empty(listener.removedEvents);
+            Assert.Empty(listener.modifiedEvents);
+            Assert.Empty(listener.expiredEvents);
+            Assert.Empty(listener.customEvents);
         }
 
         private void AssertOnly(string key, LoggingEventListener listener, EventType et, bool isCustom = false)
@@ -248,23 +250,23 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             Assert.Equal(key, _marshaller.unmarshall(remoteEvent.Key));
             if (et != EventType.CREATED || isCustom)
             {
-                Assert.Equal(0, listener.createdEvents.Count);
+                Assert.Empty(listener.createdEvents);
             }
             if (et != EventType.REMOVED || isCustom)
             {
-                Assert.Equal(0, listener.removedEvents.Count);
+                Assert.Empty(listener.removedEvents);
             }
             if (et != EventType.MODIFIED || isCustom)
             {
-                Assert.Equal(0, listener.modifiedEvents.Count);
+                Assert.Empty(listener.modifiedEvents);
             }
             if (et != EventType.EXPIRED || isCustom)
             {
-                Assert.Equal(0, listener.expiredEvents.Count);
+                Assert.Empty(listener.expiredEvents);
             }
             if (isCustom)
             {
-                Assert.Equal(0, listener.customEvents.Count);
+                Assert.Empty(listener.customEvents);
             }
         }
         private void AssertErrorCount(LoggingEventListener listener, int expected = 0)
