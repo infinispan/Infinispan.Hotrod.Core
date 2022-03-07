@@ -27,12 +27,12 @@ namespace Infinispan.Hotrod.Core.Commands
         public byte Completed;
         public byte[] Challenge = new byte[0];
         private int Step = 0;
-        public override void OnExecute(CommandContext ctx)
+        internal override void OnExecute(CommandContext ctx)
         {
             base.OnExecute(ctx);
         }
 
-        public override void Execute(CommandContext ctx, InfinispanClient client, PipeStream stream)
+        internal override void Execute(CommandContext ctx, InfinispanClient client, PipeStream stream)
         {
             switch (this.SaslMechName)
             {

@@ -11,13 +11,13 @@ namespace Infinispan.Hotrod.Core
 {
     public class InfinispanClient
     {
-        public InfinispanClient(InfinispanHost host, string hostname, int hostport)
+        public InfinispanClient(InfinispanHost host)
         {
             this.Host = host;
             if (this.Host.Cluster.UseTLS)
             {
 
-                TcpClient = BeetleX.SocketFactory.CreateSslClient<AsyncTcpClient>(hostname, hostport, "beetlex");
+                TcpClient = BeetleX.SocketFactory.CreateSslClient<AsyncTcpClient>(this.Host.Name, this.Host.Port, "hotrod");
                 TcpClient.CertificateValidationCallback = (o, e, f, d) =>
                 {
                     return true;
@@ -25,14 +25,14 @@ namespace Infinispan.Hotrod.Core
             }
             else
             {
-                TcpClient = BeetleX.SocketFactory.CreateClient<AsyncTcpClient>(hostname, hostport);
+                TcpClient = BeetleX.SocketFactory.CreateClient<AsyncTcpClient>(this.Host.Name, this.Host.Port);
             }
         }
 
         public readonly InfinispanHost Host;
         public AsyncTcpClient TcpClient { get; private set; }
 
-        public void Send(CommandContext cmdCtx, Command cmd)
+        internal void Send(CommandContext cmdCtx, Command cmd)
         {
             PipeStream stream = TcpClient.Stream.ToPipeStream();
 

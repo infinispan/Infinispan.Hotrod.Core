@@ -120,7 +120,7 @@ namespace Infinispan.Hotrod.Core.Tests.Util
             }
             catch (OperationCanceledException ex)
             {
-                string s = "cre: " + createdEvents.Count + "  mod: " + modifiedEvents.Count + "  rem: " + removedEvents.Count + " exp: " + expiredEvents.Count;
+                string s = "cre: " + createdEvents.Count + "  mod: " + modifiedEvents.Count + "  rem: " + removedEvents.Count + " exp: " + expiredEvents.Count+ " err:"+ErrorEvents.Count;
                 throw new TimeoutException("The event of type " + eventType.ToString() + " was not received within timeout!  "+s, ex);
             }
         }

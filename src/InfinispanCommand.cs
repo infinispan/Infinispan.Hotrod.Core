@@ -36,11 +36,11 @@ namespace Infinispan.Hotrod.Core
         public abstract string Name { get; }
         public abstract Byte Code { get; }
         public Int32 Flags { get; set; } // TODO: where to store this?
-        public virtual void OnExecute(CommandContext cache)
+        internal virtual void OnExecute(CommandContext cache)
         {
         }
 
-        public virtual void Execute(CommandContext ctx, InfinispanClient client, PipeStream stream)
+        internal virtual void Execute(CommandContext ctx, InfinispanClient client, PipeStream stream)
         {
             OnExecute(ctx); // Build the message. But there's no need to build anything for hotrod
             stream.WriteByte(0xA0);

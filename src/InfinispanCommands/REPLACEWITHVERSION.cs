@@ -31,11 +31,11 @@ namespace Infinispan.Hotrod.Core.Commands
         public Boolean Replaced { get; private set; }
 
 
-        public override void OnExecute(CommandContext ctx)
+        internal override void OnExecute(CommandContext ctx)
         {
             base.OnExecute(ctx);
         }
-        public override void Execute(CommandContext ctx, InfinispanClient client, PipeStream stream)
+        internal override void Execute(CommandContext ctx, InfinispanClient client, PipeStream stream)
         {
             base.Execute(ctx, client, stream);
             Codec.writeArray(KeyMarshaller.marshall(Key), stream);

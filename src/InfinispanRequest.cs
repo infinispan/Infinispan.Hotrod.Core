@@ -78,8 +78,7 @@ namespace Infinispan.Hotrod.Core
 
     public class InfinispanRequest
     {
-        static public int count = 0;
-        public InfinispanRequest(ICache cache, InfinispanClient client, Command cmd, params Type[] types)
+        public InfinispanRequest(CacheBase cache, InfinispanClient client, Command cmd, params Type[] types)
         {
             Client = client;
             Client.TcpClient.DataReceive = OnReceive;
@@ -87,26 +86,22 @@ namespace Infinispan.Hotrod.Core
             Command = cmd;
             Types = types;
             Cache = cache;
-            context.MessageId = client.Host.MessageId;
-            context.ClientIntelligence = Cluster.ClientIntelligence;
-            context.Version = Cluster.Version;
-            context.TopologyId = Cluster.TopologyId;
-            if (cache != null)
+            context = new CommandContext
             {
-                context.NameAsBytes = cache.NameAsBytes;
-                context.KeyMediaType = cache.KeyMediaType;
-                context.ValueMediaType = cache.ValueMediaType;
-            }
-            else
-            {
-                context.NameAsBytes = new byte[] { };
-            }
+                MessageId = client.Host.MessageId,
+                ClientIntelligence = Cluster.ClientIntelligence,
+                Version = Cluster.Version,
+                TopologyId = Cluster.TopologyId,
+                KeyMediaType = cache?.KeyMediaType,
+                ValueMediaType = cache?.ValueMediaType,
+                NameAsBytes = (cache != null) ? cache.NameAsBytes : new byte[] { }
+            };
         }
         internal byte ResponseOpCode;
         public byte ResponseStatus;
-        public CommandContext context = new CommandContext();
+        internal CommandContext context;
         internal InfinispanDG Cluster { get { return Client.Host.Cluster; } }
-        public ICache Cache { get; set; }
+        public CacheBase Cache { get; set; }
         public IClientListener Listener;
         private void OnError(IClient c, ClientErrorArgs e)
         {
@@ -140,18 +135,13 @@ namespace Infinispan.Hotrod.Core
                 {
                     if (rs.ReadByte() != 0xA1)
                     {
-                        Result.ResultType = ResultType.Error;  // TODO: needed some design for errors
-                        Result.Messge = "Bad Magic Number";
-                        OnCompleted(Result.ResultType, Result.Messge);
+                        CompleteWithError("Bad Magic Number");
                         return;
                     }
                     long inMessageId = Codec.readVLong(rs);
-
                     if (inMessageId != 0 && inMessageId != context.MessageId)
                     {
-                        Result.ResultType = ResultType.Error;  // TODO: needed some design for errors
-                        Result.Messge = "Message ID mistmatch";
-                        OnCompleted(Result.ResultType, Result.Messge);
+                        CompleteWithError("Message ID mistmatch");
                         return;
                     }
                     ResponseOpCode = (byte)rs.ReadByte();
@@ -159,125 +149,160 @@ namespace Infinispan.Hotrod.Core
                     var topologyChanged = (byte)rs.ReadByte();
                     if (topologyChanged != 0)
                     {
-                        var topology = readNewTopologyInfo(rs);
-                        // No need to update if monitor can't be taken
-                        // see InfinispanDG.SwitchCluster
-                        if (this.Cache!=null && Monitor.TryEnter(Cluster.mActiveCluster))
-                        {
-                            try
-                            {
-                                Cluster.UpdateTopologyInfo(topology, this.Cache);
-                            }
-                            finally
-                            {
-                                Monitor.Exit(Cluster.mActiveCluster);
-                            }
-                        }
+                        ProcessTopologyChange();
                     }
-                    var errMsg = readResponseError(ResponseStatus, rs);
+                    var errMsg = ReadResponseError(ResponseStatus, rs);
                     if (errMsg != null)
                     {
-                        Result.ResultType = ResultType.Error; // TODO: needed some design for errors
-                        Result.Messge = Encoding.ASCII.GetString(errMsg);
-                        OnCompleted(Result.ResultType, Result.Messge);
+                        CompleteWithError(Encoding.ASCII.GetString(errMsg));
                         return;
                     }
                     // Here ends the processing of the response header
                     // commmand specific data processed below
-                    if (ResponseOpCode == 0x60 || ResponseOpCode == 0x61 || ResponseOpCode == 0x62 || ResponseOpCode == 0x63)
+                    if (IsEvent(ResponseOpCode))
                     {
-                        var ev = this.OnReceiveEvent(this, rs);
-                        Task.Run(() => { this.Cluster.ListenerMap[ev.ListenerID].Listener.OnEvent(ev); });
-                        continue;
+                        ProcessEvent();
                     }
-                    Result = Command.OnReceive(this, rs);
-                    if (Result.Status == ResultStatus.Completed)
+                    else
                     {
-                        OnCompleted(Result.ResultType, Result.Messge);
-                        if (Result.ResultType != ResultType.Event)
-                        {
-                            rs.ResponseChannel.Writer.Complete();
-                        }
+                        ProcessCommandResponse();
                     }
                 } while (Result.ResultType == ResultType.Event);
             }
             catch (Exception ex)
             {
-                if (Cluster.ListenerMap.ContainsKey(this.Listener?.ListenerID))
+                if (this.Listener!=null)
                 {
+                    Task.Run(() => { this.Listener.OnError(ex); });
                     Cluster.ListenerMap.Remove(this.Listener.ListenerID);
-                    this.Listener.OnError(ex);
-                    this.Client.ReturnToPool();
-                    if (!(ex is TaskCanceledException))
+                }
+                CompleteWithError(ex.Message);
+                this.Client.ReturnToPool();
+                if (!(ex is TaskCanceledException))
+                {
+                    if (!((ex is AggregateException) && ((ex.InnerException is TaskCanceledException))))
                     {
-                        if (!(ex is AggregateException) && !(((AggregateException)ex).InnerException is TaskCanceledException))
+                        if (this.Listener != null)
                         {
-                            // TODO: unexpected exception. log something
-                            throw;
+                            Task.Run(() => { this.Listener.OnError(ex); });
                         }
+                        // TODO: unexpected exception. log something
+                        throw;
                     }
                 }
             }
         }
-        internal Event OnReceiveEvent(InfinispanRequest request, ResponseStream stream)
+
+        private void ProcessCommandResponse()
         {
-            var listenerId = StringMarshaller._ASCII.unmarshall(Codec.readArray(stream));
-            Event e = new Event();
-            e.ListenerID = listenerId;
-            e.CustomMarker = (byte)stream.ReadByte();
+            Result = Command.OnReceive(this, rs);
+            if (Result.Status == ResultStatus.Completed)
+            {
+                OnCompleted(Result.ResultType, Result.Messge);
+                if (Result.ResultType != ResultType.Event)
+                {
+                    rs.ResponseChannel.Writer.Complete();
+                }
+            }
+        }
+        private void ProcessEvent()
+        {
+            var ev = this.OnReceiveEvent();
+            InfinispanRequest req;
+            if (Cluster.ListenerMap.TryGetValue(ev.ListenerID, out req))
+            {
+                Task.Run(() => { req.Listener.OnEvent(ev); });
+            }
+        }
+        private bool IsEvent(byte responseOpCode)
+        {
+            return Enum.IsDefined(typeof(EventType), responseOpCode);
+        }
+        private void ProcessTopologyChange()
+        {
+            var topology = ReadNewTopologyInfo();
+            // No need to update if monitor can't be taken
+            // see InfinispanDG.SwitchCluster
+            if (this.Cache != null && Monitor.TryEnter(Cluster.mActiveCluster))
+            {
+                try
+                {
+                    Cluster.UpdateTopologyInfo(topology, this.Cache);
+                }
+                finally
+                {
+                    Monitor.Exit(Cluster.mActiveCluster);
+                }
+            }
+        }
+
+        private void CompleteWithError(string msg)
+        {
+            Result.ResultType = ResultType.Error;  // TODO: needed some design for errors
+            Result.Messge = msg;
+            OnCompleted(Result.ResultType, Result.Messge);
+        }
+
+        internal Event OnReceiveEvent()
+        {
+            var listenerId = StringMarshaller._ASCII.unmarshall(Codec.readArray(rs));
+            Event e = new Event
+            {
+                ListenerID = listenerId,
+                CustomMarker = (byte)rs.ReadByte()
+            };
             if (e.CustomMarker == 0)
             {
-                e.Retried = (byte)stream.ReadByte();
-                e.Key = Codec.readArray(stream);
-                if (Enum.IsDefined(typeof(EventType), (Int32)request.ResponseOpCode))
-                {
-                    e.Type = (EventType)request.ResponseOpCode;
-                }
+                e.Retried = (byte)rs.ReadByte();
+                e.Key = Codec.readArray(rs);
+                e.Type = (EventType)this.ResponseOpCode;
                 if (e.Type != EventType.REMOVED && e.Type != EventType.EXPIRED)
                 {
-                    e.Version = Codec.readLong(stream);
+                    e.Version = Codec.readLong(rs);
                 }
             }
             else
             {
-                e.customData = Codec.readArray(stream);
+                e.customData = Codec.readArray(rs);
             }
             return e;
         }
 
-        private TopologyInfo readNewTopologyInfo(ResponseStream stream)
+        private TopologyInfo ReadNewTopologyInfo()
         {
-            var t = new TopologyInfo();
-            t.TopologyId = Codec.readVUInt(stream);
-            var serversNum = Codec.readVInt(stream);
+            var t = new TopologyInfo
+            {
+                TopologyId = Codec.readVUInt(rs)
+            };
+            var serversNum = Codec.readVInt(rs);
             t.servers = new List<Tuple<byte[], ushort>>();
             t.hosts = new InfinispanHost[serversNum];
             for (int i = 0; i < serversNum; i++)
             {
-                var addr = Codec.readArray(stream);
-                var port = Codec.readUnsignedShort(stream);
+                var addr = Codec.readArray(rs);
+                var port = Codec.readUnsignedShort(rs);
                 t.servers.Add(Tuple.Create(addr, port));
             }
             //  TODO: check if   clientIntelligence==CLIENT_INTELLIGENCE_HASH_DISTRIBUTION_AWARE
-            t.HashFuncNum = (byte)stream.ReadByte();
+            t.HashFuncNum = (byte)rs.ReadByte();
             if (t.HashFuncNum > 0)
             {
-                var segmentsNum = Codec.readVInt(stream);
+                var segmentsNum = Codec.readVInt(rs);
                 t.OwnersPerSegment = new List<List<Int32>>();
                 for (int i = 0; i < segmentsNum; i++)
                 {
-                    var ownerNumPerSeg = (byte)stream.ReadByte();
+                    var ownerNumPerSeg = (byte)rs.ReadByte();
                     var owners = new List<Int32>();
                     for (int j = 0; j < ownerNumPerSeg; j++)
                     {
-                        owners.Add(Codec.readVInt(stream));
+                        owners.Add(Codec.readVInt(rs));
                     }
                     t.OwnersPerSegment.Add(owners);
                 }
             }
             return t;
         }
-        private byte[] readResponseError(byte status, ResponseStream stream)
+        private byte[] ReadResponseError(byte status, ResponseStream stream)
         {
             if (Codec30.hasError(status))
             {

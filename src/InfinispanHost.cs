@@ -7,7 +7,7 @@ namespace Infinispan.Hotrod.Core
     // Describes an Infinispan node
     public class InfinispanHost : IDisposable
     {
-        public InfinispanHost(InfinispanDG cluster, string host, int port = 6379)
+        public InfinispanHost(InfinispanDG cluster, string host, int port)
         {
             Name = host;
             Port = port;
@@ -81,7 +81,7 @@ namespace Infinispan.Hotrod.Core
                     if (mCount <= MaxConnections)
                     {
                         // ... create a new one ...
-                        client = new InfinispanClient(this, this.Name, this.Port);
+                        client = new InfinispanClient(this);
                         result.SetResult(client);
                     }
                     else
