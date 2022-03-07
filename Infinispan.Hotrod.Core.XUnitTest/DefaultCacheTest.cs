@@ -79,7 +79,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
         [Fact]
         public void VersionTest()
         {
-            Assert.NotEqual(0, _cache.Version);
+            Assert.NotEqual(0, _cache.Cluster.Version);
         }
 
         // TODO: Verify if GetProtocolVersion method is needed

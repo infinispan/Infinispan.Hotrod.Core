@@ -7,38 +7,30 @@ using Org.Infinispan.Query.Remote.Client;
 
 namespace Infinispan.Hotrod.Core
 {
-
-    public interface ICache
+    public class CacheBase
     {
-        public string Name { get; }
-        public byte[] NameAsBytes { get; }
-        public byte Version { get; set; }
-        public Int64 MessageId { get; }
-        public byte ClientIntelligence { get; }
-        public UInt32 TopologyId { get; set; }
-        public Int32 Flags { get; }
-        public bool ForceReturnValue { get; set; }
-        public MediaType KeyMediaType { get; set; }
-        public MediaType ValueMediaType { get; set; }
-        public InfinispanDG Cluster { get;}
-
-    }
-    public class Cache<K, V> : ICache
-    {
-        private InfinispanDG _Cluster;
-        public  InfinispanDG Cluster { get { return _Cluster; }}
-        public string Name { get; }
-        public byte[] NameAsBytes { get; }
-        public byte Version { get; set; }
-        public Int64 MessageId { get; }
-        public byte ClientIntelligence { get; }
-        public UInt32 TopologyId { get; set; }
-        public bool ForceReturnValue { get; set; }
+        public CacheBase(InfinispanDG ispnCluster, string name)
+        {
+            _cluster = ispnCluster;
+            Name = name;
+            NameAsBytes = Encoding.ASCII.GetBytes(Name);
+            if (_cluster != null)
+            {
+                ForceReturnValue = _cluster.ForceReturnValue;
+            }
+            codec = Codec.getCodec(_cluster.Version);
+        }
+        public readonly string Name;
+        public bool ForceReturnValue;
+        public MediaType KeyMediaType;
+        public MediaType ValueMediaType;
+        public readonly byte[] NameAsBytes;
+        private readonly InfinispanDG _cluster;
+        public InfinispanDG Cluster { get { return _cluster; } }
         public bool UseCacheDefaultLifespan;
         public bool UseCacheDefaultMaxIdle;
-
+        public readonly Codec30 codec;
         public Int32 Flags { get { return getFlags(); } }
-
         private int getFlags()
         {
             int retVal = 0;
@@ -47,44 +39,28 @@ namespace Infinispan.Hotrod.Core
             if (UseCacheDefaultMaxIdle) retVal += 4;
             return retVal;
         }
-
-        public MediaType KeyMediaType { get; set; }
-        public MediaType ValueMediaType { get; set; }
-        public Codec30 codec;
-        public Cache(InfinispanDG ispnCluster, Marshaller<K> keyM, Marshaller<V> valM, string name)
+    }
+    public class Cache<K, V> : CacheBase
+    {
+        public Cache(InfinispanDG ispnCluster, Marshaller<K> keyM, Marshaller<V> valM, string name) : base(ispnCluster, name)
         {
-            _Cluster = ispnCluster;
-            Name = name;
-            MessageId = 1;
-            NameAsBytes = Encoding.ASCII.GetBytes(Name);
-            if (Cluster != null)
-            {
-                Version = Cluster.Version;
-                ClientIntelligence = Cluster.ClientIntelligence;
-                TopologyId = Cluster.TopologyId;
-                ForceReturnValue = Cluster.ForceReturnValue;
-            }
-            codec = Codec.getCodec(Version);
-
-
             KeyMarshaller = keyM;
             ValueMarshaller = valM;
-            Version = ispnCluster.Version;
         }
-        Marshaller<K> KeyMarshaller;
-        Marshaller<V> ValueMarshaller;
+        readonly Marshaller<K> KeyMarshaller;
+        readonly Marshaller<V> ValueMarshaller;
 
         public async Task<V> Get(K key)
         {
-            return await Cluster.Get(KeyMarshaller, ValueMarshaller, (ICache)this, key);
+            return await Cluster.Get(KeyMarshaller, ValueMarshaller, (CacheBase)this, key);
         }
         public async Task<ValueWithVersion<V>> GetWithVersion(K key)
         {
-            return await Cluster.GetWithVersion(KeyMarshaller, ValueMarshaller, (ICache)this, key);
+            return await Cluster.GetWithVersion(KeyMarshaller, ValueMarshaller, (CacheBase)this, key);
         }
         public async Task<ValueWithMetadata<V>> GetWithMetadata(K key)
         {
-            return await Cluster.GetWithMetadata(KeyMarshaller, ValueMarshaller, (ICache)this, key);
+            return await Cluster.GetWithMetadata(KeyMarshaller, ValueMarshaller, (CacheBase)this, key);
         }
 
         public async Task<V> Put(K key, V value, ExpirationTime lifespan = null, ExpirationTime maxidle = null)
@@ -101,11 +77,11 @@ namespace Infinispan.Hotrod.Core
         }
         public async Task<Boolean> ContainsKey(K key)
         {
-            return await Cluster.ContainsKey(KeyMarshaller, (ICache)this, key);
+            return await Cluster.ContainsKey(KeyMarshaller, (CacheBase)this, key);
         }
         public async Task<(V PrevValue, Boolean Removed)> Remove(K key)
         {
-            return await Cluster.Remove(KeyMarshaller, ValueMarshaller, (ICache)this, key);
+            return await Cluster.Remove(KeyMarshaller, ValueMarshaller, (CacheBase)this, key);
         }
         public async Task Clear()
         {
@@ -125,21 +101,21 @@ namespace Infinispan.Hotrod.Core
         }
         public async Task<Boolean> ReplaceWithVersion(K key, V value, Int64 version, ExpirationTime lifeSpan = null, ExpirationTime maxIdle = null)
         {
-            return await Cluster.ReplaceWithVersion(KeyMarshaller, ValueMarshaller, (ICache)this, key, value, version, lifeSpan, maxIdle);
+            return await Cluster.ReplaceWithVersion(KeyMarshaller, ValueMarshaller, (CacheBase)this, key, value, version, lifeSpan, maxIdle);
         }
         public async Task<(V V, Boolean Removed)> RemoveWithVersion(K key, Int64 version)
         {
-            return await Cluster.RemoveWithVersion(KeyMarshaller, ValueMarshaller, (ICache)this, key, version);
+            return await Cluster.RemoveWithVersion(KeyMarshaller, ValueMarshaller, (CacheBase)this, key, version);
         }
         public async Task<QueryResponse> Query(QueryRequest query)
         {
-            return await Cluster.Query(query, (ICache)this);
+            return await Cluster.Query(query, (CacheBase)this);
         }
         public async Task<List<Object>> Query(String query)
         {
             var qr = new QueryRequest();
             qr.QueryString = query;
-            var queryResponse = await Cluster.Query(qr, (ICache)this);
+            var queryResponse = await Cluster.Query(qr, (CacheBase)this);
             List<Object> result = new List<Object>();
             if (queryResponse.ProjectionSize > 0)
             {  // Query has select
@@ -159,7 +135,7 @@ namespace Infinispan.Hotrod.Core
         }
         public async Task<ISet<K>> KeySet()
         {
-            return await Cluster.KeySet<K>(KeyMarshaller, (ICache)this);
+            return await Cluster.KeySet<K>(KeyMarshaller, (CacheBase)this);
         }
         public async Task PutAll(Dictionary<K, V> map, ExpirationTime lifespan = null, ExpirationTime maxidle = null)
         {
@@ -437,7 +413,7 @@ namespace Infinispan.Hotrod.Core
         void OnEvent(Event e);
         void OnError(Exception ex = null);
     }
-    public enum EventType
+    public enum EventType : byte
     {
         CREATED = 0x60,
         MODIFIED = 0x61,

@@ -54,7 +54,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
         [Fact]
         public async void BasicEventsTest()
         {
-            LoggingEventListener listener = new LoggingEventListener(_cache, "123456789");
+            LoggingEventListener listener = new LoggingEventListener(_cache, "Basic");
             try
             {
                 await _cache.Clear();
@@ -77,16 +77,16 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             }
             finally
             {
-                System.Threading.Thread.Sleep(4000);
+                AssertErrorCount(listener,0);
                 await _cache.RemoveListener(listener);
-                AssertErrorCount(listener);
+                AssertErrorCount(listener,0);
             }
         }
 
         [Fact]
         public async void IncludeCurrentStateEventTest()
         {
-            LoggingEventListener listener = new LoggingEventListener(_cache, "123456789");
+            LoggingEventListener listener = new LoggingEventListener(_cache, "IncludeCurrentState");
             try
             {
                 await _cache.Clear();
@@ -97,16 +97,16 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             }
             finally
             {
-                AssertErrorCount(listener);
+                AssertErrorCount(listener,0);
                 await _cache.RemoveListener(listener);
-                AssertErrorCount(listener);
+                AssertErrorCount(listener,0);
             }
         }
 
         [Fact]
         public async void ConditionalEventsTest()
         {
-            LoggingEventListener listener = new LoggingEventListener(_cache, "123456789");
+            LoggingEventListener listener = new LoggingEventListener(_cache, "Conditional");
             try
             {
                 await _cache.Clear();
@@ -131,14 +131,15 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             }
             finally
             {
+                AssertErrorCount(listener, 0);
                 await _cache.RemoveListener(listener);
-                AssertErrorCount(listener);
+                AssertErrorCount(listener,0);
             }
         }
         [Fact]
         public async void RecoverOnErrorTest()
         {
-            LoggingEventListener listener = new LoggingEventListener(_cache, "123456789");
+            LoggingEventListener listener = new LoggingEventListener(_cache, "RecoverOnError");
             try
             {
                 await _cache.Clear();
@@ -157,6 +158,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             }
             finally
             {
+                AssertErrorCount(listener, 1);
                 await _cache.RemoveListener(listener);
                 AssertErrorCount(listener, 1);
                 listener.CleanErrors();
@@ -269,7 +271,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
                 Assert.Empty(listener.customEvents);
             }
         }
-        private void AssertErrorCount(LoggingEventListener listener, int expected = 0)
+        private void AssertErrorCount(LoggingEventListener listener, int expected)
         {
             Assert.Equal(expected, listener.ErrorEvents.Count);
         }

@@ -6,18 +6,18 @@ using System.Collections.Concurrent;
 
 namespace Infinispan.Hotrod.Core
 {
-    public class CommandContext
+    internal class CommandContext
     {
-        public long MessageId { get; internal set; }
-        public byte Version { get; internal set; }
-        public byte[] NameAsBytes { get; internal set; }
-        public byte ClientIntelligence { get; internal set; }
-        public UInt32 TopologyId { get; internal set; }
-        public MediaType KeyMediaType { get; internal set; }
-        public MediaType ValueMediaType { get; internal set; }
-        public MediaType CmdReqMediaType { get; internal set; }
-        public MediaType CmdResMediaType { get; internal set; }
-        public bool IsReqResCommand { get; internal set; }
+        public long MessageId;
+        public byte Version;
+        public byte[] NameAsBytes;
+        public byte ClientIntelligence;
+        public UInt32 TopologyId;
+        public MediaType KeyMediaType;
+        public MediaType ValueMediaType;
+        public MediaType CmdReqMediaType;
+        public MediaType CmdResMediaType;
+        public bool IsReqResCommand;
 
     }
 }

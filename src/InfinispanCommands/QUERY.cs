@@ -18,12 +18,12 @@ namespace Infinispan.Hotrod.Core.Commands
         public Org.Infinispan.Query.Remote.Client.QueryResponse QueryResponse;
         public override string Name => "QUERY";
         public override Byte Code => 0x1f;
-        public override void OnExecute(CommandContext ctx)
+        internal override void OnExecute(CommandContext ctx)
         {
             base.OnExecute(ctx);
         }
 
-        public override void Execute(CommandContext ctx, InfinispanClient client, PipeStream stream)
+        internal override void Execute(CommandContext ctx, InfinispanClient client, PipeStream stream)
         {
             ctx.IsReqResCommand = true;
             ctx.CmdReqMediaType = new MediaType();

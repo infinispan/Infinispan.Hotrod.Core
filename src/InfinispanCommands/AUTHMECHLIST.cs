@@ -16,12 +16,12 @@ namespace Infinispan.Hotrod.Core.Commands
         public override string Name => "AUTHMECHLIST";
         public override Byte Code => 0x21;
         public string[] availableMechs { get; set; }
-        public override void OnExecute(CommandContext ctx)
+        internal override void OnExecute(CommandContext ctx)
         {
             base.OnExecute(ctx);
         }
 
-        public override void Execute(CommandContext ctx, InfinispanClient client, PipeStream stream)
+        internal override void Execute(CommandContext ctx, InfinispanClient client, PipeStream stream)
         {
             base.Execute(ctx, client, stream);
         }
