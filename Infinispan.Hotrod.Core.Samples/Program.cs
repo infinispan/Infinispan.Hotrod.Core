@@ -31,7 +31,7 @@ namespace Infinispan.Hotrod.Core.Samples
         {
             var km = new StringMarshaller();
             var vm = new StringMarshaller();
-            var cache = ispnCluster.newCache(km, vm, "distributed");
+            var cache = ispnCluster.NewCache(km, vm, "distributed");
             cache.ForceReturnValue = true;
             string result = await cache.Put("key1", "value1");
             Console.WriteLine("Result is: " + result);

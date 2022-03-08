@@ -27,8 +27,8 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             string jbossHome = System.Environment.GetEnvironmentVariable("JBOSS_HOME");
             hotRodServer2 = new HotRodServer("infinispan.xml", "-o 100 -s " + jbossHome + "/server1 -Dinfinispan.cluster.name=name -Djgroups.tcp.address=127.0.0.1", "server1", 11322);
             hotRodServer2.StartHotRodServer();
-            distributedCache = infinispan1.newCache(new StringMarshaller(), new StringMarshaller(), "distributed");
-            localCache = infinispan1.newCache(new StringMarshaller(), new StringMarshaller(), "namedCache");
+            distributedCache = infinispan1.NewCache(new StringMarshaller(), new StringMarshaller(), "distributed");
+            localCache = infinispan1.NewCache(new StringMarshaller(), new StringMarshaller(), "namedCache");
         }
 
         public void Dispose()

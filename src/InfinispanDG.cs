@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using BeetleX.EventArgs;
+using Infinispan.Hotrod.Core.Commands;
 using Org.Infinispan.Query.Remote.Client;
 
 namespace Infinispan.Hotrod.Core
@@ -92,12 +93,12 @@ namespace Infinispan.Hotrod.Core
         /// <returns></returns>
         public InfinispanHost AddHost(string clusterName, string host, int port=11222)
         {
-            if (port == 0)
-                port = 11222;
-            InfinispanHost ispnHost = new InfinispanHost(this, host, port);
-            ispnHost.User = User;
-            ispnHost.Password = Password;
-            ispnHost.AuthMech = AuthMech;
+            InfinispanHost ispnHost = new InfinispanHost(this, host, port)
+            {
+                User = User,
+                Password = Password,
+                AuthMech = AuthMech
+            };
             if (!mClusters.ContainsKey(clusterName))
             {
                 mClusters[clusterName] = new Cluster();
@@ -115,12 +116,12 @@ namespace Infinispan.Hotrod.Core
 
         private InfinispanHost AddTopologyHost(string clusterName, string host, int port)
         {
-            if (port == 0)
-                port = 11222;
-            InfinispanHost ispnHost = new InfinispanHost(this, host, port);
-            ispnHost.User = User;
-            ispnHost.Password = Password;
-            ispnHost.AuthMech = AuthMech;
+            InfinispanHost ispnHost = new InfinispanHost(this, host, port)
+            {
+                User = User,
+                Password = Password,
+                AuthMech = AuthMech
+            };
             if (!mClusters.ContainsKey(clusterName))
             {
                 mClusters[clusterName] = new Cluster();
@@ -139,7 +140,7 @@ namespace Infinispan.Hotrod.Core
         /// <param name="valM">A marshaller for V</param>
         /// <param name="name">Name of the cache</param>
         /// <returns></returns>
-        public Cache<K, V> newCache<K, V>(Marshaller<K> keyM, Marshaller<V> valM, string name)
+        public Cache<K, V> NewCache<K, V>(Marshaller<K> keyM, Marshaller<V> valM, string name)
         {
             return new Cache<K, V>(this, keyM, valM, name);
         }
@@ -155,26 +156,16 @@ namespace Infinispan.Hotrod.Core
             }
             lock (mLockConsole)
             {
-                Console.Write($"[{ DateTime.Now.ToString("HH:mmm:ss")}] ");
-                switch (type)
+                Console.Write($"[{ DateTime.Now:HH:mmm:ss}] ");
+                Console.ForegroundColor = type switch
                 {
-                    case LogType.Error:
-                        Console.ForegroundColor = ConsoleColor.DarkRed;
-                        break;
-                    case LogType.Warring:
-                        Console.ForegroundColor = ConsoleColor.Yellow;
-                        break;
-                    case LogType.Fatal:
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        break;
-                    case LogType.Info:
-                        Console.ForegroundColor = ConsoleColor.Green;
-                        break;
-                    default:
-                        Console.ForegroundColor = ConsoleColor.White;
-                        break;
-                }
-                Console.Write($"[{type.ToString()}] ");
+                    LogType.Error => ConsoleColor.DarkRed,
+                    LogType.Warring => ConsoleColor.Yellow,
+                    LogType.Fatal => ConsoleColor.Red,
+                    LogType.Info => ConsoleColor.Green,
+                    _ => ConsoleColor.White,
+                };
+                Console.Write($"[{type}] ");
                 Console.ForegroundColor = ConsoleColor.Gray;
                 Console.WriteLine(message);
             }
@@ -213,34 +204,16 @@ namespace Infinispan.Hotrod.Core
         {
             Commands.PUT<K, V> cmd = new Commands.PUT<K, V>(km, vm, key, value);
             cmd.Flags = cache.Flags;
-            if (lifespan != null)
-            {
-                cmd.Lifespan = lifespan;
-            }
-            if (maxidle != null)
-            {
-                cmd.MaxIdle = maxidle;
-            }
+            PopulateExpirations(lifespan, maxidle, cmd);
             var result = await Execute(cache, cmd);
-            if (result.IsError)
-                throw new InfinispanException(result.Messge);
             return cmd.PrevValue;
         }
         internal async ValueTask<V> PutIfAbsent<K, V>(Marshaller<K> km, Marshaller<V> vm, CacheBase cache, K key, V value, ExpirationTime lifespan = null, ExpirationTime maxidle = null)
         {
             Commands.PUTIFABSENT<K, V> cmd = new Commands.PUTIFABSENT<K, V>(km, vm, key, value);
             cmd.Flags = cache.Flags;
-            if (lifespan != null)
-            {
-                cmd.Lifespan = lifespan;
-            }
-            if (maxidle != null)
-            {
-                cmd.MaxIdle = maxidle;
-            }
+            PopulateExpirations(lifespan, maxidle, cmd);
             var result = await Execute(cache, cmd);
-            if (result.IsError)
-                throw new InfinispanException(result.Messge);
             return cmd.PrevValue;
         }
         internal async ValueTask<V> Get<K, V>(Marshaller<K> km, Marshaller<V> vm, CacheBase cache, K key)
@@ -248,8 +221,6 @@ namespace Infinispan.Hotrod.Core
             Commands.GET<K, V> cmd = new Commands.GET<K, V>(km, vm, key);
             cmd.Flags = cache.Flags;
             var result = await Execute(cache, cmd);
-            if (result.IsError)
-                throw new InfinispanException(result.Messge);
             return cmd.Value;
         }
         internal async ValueTask<ValueWithVersion<V>> GetWithVersion<K, V>(Marshaller<K> km, Marshaller<V> vm, CacheBase cache, K key)
@@ -257,8 +228,6 @@ namespace Infinispan.Hotrod.Core
             Commands.GETWITHVERSION<K, V> cmd = new Commands.GETWITHVERSION<K, V>(km, vm, key);
             cmd.Flags = cache.Flags;
             var result = await Execute(cache, cmd);
-            if (result.IsError)
-                throw new InfinispanException(result.Messge);
             return cmd.ValueWithVersion;
         }
         internal async ValueTask<ValueWithMetadata<V>> GetWithMetadata<K, V>(Marshaller<K> km, Marshaller<V> vm, CacheBase cache, K key)
@@ -266,8 +235,6 @@ namespace Infinispan.Hotrod.Core
             Commands.GETWITHMETADATA<K, V> cmd = new Commands.GETWITHMETADATA<K, V>(km, vm, key);
             cmd.Flags = cache.Flags;
             var result = await Execute(cache, cmd);
-            if (result.IsError)
-                throw new InfinispanException(result.Messge);
             return cmd.ValueWithMetadata;
         }
         internal async ValueTask<Int32> Size(CacheBase cache)
@@ -275,8 +242,6 @@ namespace Infinispan.Hotrod.Core
             Commands.SIZE cmd = new Commands.SIZE();
             cmd.Flags = cache.Flags;
             var result = await Execute(cache, cmd);
-            if (result.IsError)
-                throw new InfinispanException(result.Messge);
             return cmd.Size;
         }
         internal async ValueTask<Boolean> ContainsKey<K>(Marshaller<K> km, CacheBase cache, K key)
@@ -287,8 +252,6 @@ namespace Infinispan.Hotrod.Core
                 cmd.Flags = cache.Flags;
             }
             var result = await Execute(cache, cmd);
-            if (result.IsError)
-                throw new InfinispanException(result.Messge);
             return cmd.IsContained;
         }
         internal async ValueTask<(V V, Boolean Removed)> Remove<K, V>(Marshaller<K> km, Marshaller<V> vm, CacheBase cache, K key)
@@ -296,8 +259,6 @@ namespace Infinispan.Hotrod.Core
             Commands.REMOVE<K, V> cmd = new Commands.REMOVE<K, V>(km, vm, key);
             cmd.Flags = cache.Flags;
             var result = await Execute(cache, cmd);
-            if (result.IsError)
-                throw new InfinispanException(result.Messge);
             return (cmd.PrevValue, cmd.Removed);
         }
         internal async ValueTask Clear(CacheBase cache)
@@ -305,8 +266,6 @@ namespace Infinispan.Hotrod.Core
             Commands.CLEAR cmd = new Commands.CLEAR();
             cmd.Flags = cache.Flags;
             var result = await Execute(cache, cmd);
-            if (result.IsError)
-                throw new InfinispanException(result.Messge);
             return;
         }
 
@@ -315,43 +274,23 @@ namespace Infinispan.Hotrod.Core
             Commands.STATS cmd = new Commands.STATS();
             cmd.Flags = cache.Flags;
             var result = await Execute(cache, cmd);
-            if (result.IsError)
-                throw new InfinispanException(result.Messge);
             return cmd.Stats;
         }
         internal async ValueTask<(V V, Boolean Replaced)> Replace<K, V>(Marshaller<K> km, Marshaller<V> vm, CacheBase cache, K key, V value, ExpirationTime lifespan = null, ExpirationTime maxidle = null)
         {
             Commands.REPLACE<K, V> cmd = new Commands.REPLACE<K, V>(km, vm, key, value);
             cmd.Flags = cache.Flags;
-            if (lifespan != null)
-            {
-                cmd.Lifespan = lifespan;
-            }
-            if (maxidle != null)
-            {
-                cmd.MaxIdle = maxidle;
-            }
+            PopulateExpirations(lifespan, maxidle, cmd);
             var result = await Execute(cache, cmd);
-            if (result.IsError)
-                throw new InfinispanException(result.Messge);
             return (cmd.PrevValue, cmd.Replaced);
         }
         internal async ValueTask<Boolean> ReplaceWithVersion<K, V>(Marshaller<K> km, Marshaller<V> vm, CacheBase cache, K key, V value, Int64 version, ExpirationTime lifespan = null, ExpirationTime maxidle = null)
         {
             Commands.REPLACEWITHVERSION<K, V> cmd = new Commands.REPLACEWITHVERSION<K, V>(km, vm, key, value);
             cmd.Flags = cache.Flags;
-            if (lifespan != null)
-            {
-                cmd.Lifespan = lifespan;
-            }
-            if (maxidle != null)
-            {
-                cmd.MaxIdle = maxidle;
-            }
+            PopulateExpirations(lifespan, maxidle, cmd);
             cmd.Version = version;
             var result = await Execute(cache, cmd);
-            if (result.IsError)
-                throw new InfinispanException(result.Messge);
             return cmd.Replaced;
         }
         internal async ValueTask<(V V, Boolean Removed)> RemoveWithVersion<K, V>(Marshaller<K> km, Marshaller<V> vm, CacheBase cache, K key, Int64 version)
@@ -360,8 +299,6 @@ namespace Infinispan.Hotrod.Core
             cmd.Flags = cache.Flags;
             cmd.Version = version;
             var result = await Execute(cache, cmd);
-            if (result.IsError)
-                throw new InfinispanException(result.Messge);
             return (cmd.PrevValue, cmd.Removed);
         }
         internal async ValueTask<QueryResponse> Query(QueryRequest query, CacheBase cache)
@@ -370,8 +307,6 @@ namespace Infinispan.Hotrod.Core
             cmd.Flags = cache.Flags;
             cmd.Query = query;
             var result = await Execute(cache, cmd);
-            if (result.IsError)
-                throw new InfinispanException(result.Messge);
             return cmd.QueryResponse;
         }
         internal async ValueTask<ISet<K>> KeySet<K>(Marshaller<K> km, CacheBase cache)
@@ -382,8 +317,6 @@ namespace Infinispan.Hotrod.Core
                 cmd.Flags = cache.Flags;
             }
             var result = await Execute(cache, cmd);
-            if (result.IsError)
-                throw new InfinispanException(result.Messge);
             return cmd.keys;
         }
         internal async ValueTask PutAll<K, V>(Marshaller<K> km, Marshaller<V> vm, CacheBase cache, IDictionary<K, V> map, ExpirationTime lifespan = null, ExpirationTime maxidle = null, int segment = -1)
@@ -391,17 +324,8 @@ namespace Infinispan.Hotrod.Core
             Commands.PUTALL<K, V> cmd = new Commands.PUTALL<K, V>(km, vm, map);
             cmd.Segment = segment;
             cmd.Flags = cache.Flags;
-            if (lifespan != null)
-            {
-                cmd.Lifespan = lifespan;
-            }
-            if (maxidle != null)
-            {
-                cmd.MaxIdle = maxidle;
-            }
+            PopulateExpirations(lifespan, maxidle, cmd);
             var result = await Execute(cache, cmd);
-            if (result.IsError)
-                throw new InfinispanOperationException<IDictionary<K, V>>(map, result.Messge);
             return;
         }
         internal async ValueTask<IDictionary<K, V>> GetAll<K, V>(Marshaller<K> km, Marshaller<V> vm, CacheBase cache, ISet<K> keys, int segment = -1)
@@ -410,8 +334,6 @@ namespace Infinispan.Hotrod.Core
             cmd.Segment = segment;
             cmd.Flags = cache.Flags;
             var result = await Execute(cache, cmd);
-            if (result.IsError)
-                throw new InfinispanOperationException<ISet<K>>(keys, result.Messge);
             return cmd.Entries;
         }
         internal Task[] PutAllPart<K, V>(Marshaller<K> km, Marshaller<V> vm, CacheBase cache, IDictionary<K, V> map, ExpirationTime lifespan = null, ExpirationTime maxidle = null)
@@ -449,8 +371,6 @@ namespace Infinispan.Hotrod.Core
             Commands.PING cmd = new Commands.PING();
             cmd.Flags = cache.Flags;
             var result = await Execute(cache, cmd);
-            if (result.IsError)
-                throw new InfinispanException(result.Messge);
             return cmd.Result;
         }
 
@@ -510,7 +430,10 @@ namespace Infinispan.Hotrod.Core
             // Get the topology info for this cache. Initial hosts list will be used
             // until a topology record is received for a given cache
             topologyInfoMap.TryGetValue(cache, out topologyInfo);
-            return await ExecuteWithRetry(cache, cmd, topologyInfo);
+            var result = await ExecuteWithRetry(cache, cmd, topologyInfo);
+            if (result.IsError)
+                throw new InfinispanException(result.Messge);
+            return result;
         }
         private async Task<Result> ExecuteWithRetry(CacheBase cache, Command cmd, TopologyInfo topologyInfo)
         {
@@ -745,13 +668,20 @@ namespace Infinispan.Hotrod.Core
                 indexOnSegment = 0;
                 traversedSegments = 0;
             }
-
-            internal void hostFault(InfinispanHost host)
-            {
-                this.faultHosts.Add(host);
-            }
-
         }
+        private static void PopulateExpirations(ExpirationTime lifespan, ExpirationTime maxidle, ICommandWithExpiration cmd)
+        {
+            if (lifespan != null)
+            {
+                cmd.Lifespan = lifespan;
+            }
+            if (maxidle != null)
+            {
+                cmd.MaxIdle = maxidle;
+            }
+        }
+
+
     }
 
     internal class Cluster

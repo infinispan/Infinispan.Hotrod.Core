@@ -14,7 +14,7 @@ namespace Infinispan.Hotrod.Application
             InfinispanDG dg = new InfinispanDG();
             // Use a non-authenticated non-encrypted cluster;
             dg.AddHost("127.0.0.1",11222);
-            var cache = dg.newCache<string,string>(new StringMarshaller(), new StringMarshaller(), "default");
+            var cache = dg.NewCache<string,string>(new StringMarshaller(), new StringMarshaller(), "default");
             await cache.Put("greetings",myGreetings);
             string result = await cache.Get("greetings");
             Console.WriteLine("Greetings from cache: "+result);

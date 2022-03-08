@@ -45,7 +45,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             infinispan.ForceReturnValue = false;
             infinispan.ClientIntelligence = 0x01;
 
-            metaCache = infinispan.newCache(new StringMarshaller(), new StringMarshaller(), PROTOBUF_METADATA_CACHE_NAME);
+            metaCache = infinispan.NewCache(new StringMarshaller(), new StringMarshaller(), PROTOBUF_METADATA_CACHE_NAME);
             // TODO: fix syntax below
             MediaType kvMediaType = new MediaType();
             kvMediaType.CustomMediaType = Encoding.ASCII.GetBytes("text/plain");
@@ -60,7 +60,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
                 Assert.True(false, "fail: error in registering .proto model");
             }
 
-            cache = infinispan.newCache(new BasicTypesProtoStreamMarshaller(), new BasicTypesProtoStreamMarshaller(), NAMED_CACHE);
+            cache = infinispan.NewCache(new BasicTypesProtoStreamMarshaller(), new BasicTypesProtoStreamMarshaller(), NAMED_CACHE);
 
             MediaType kvMT = new MediaType();
             kvMT.CustomMediaType = Encoding.ASCII.GetBytes("application/x-protostream");

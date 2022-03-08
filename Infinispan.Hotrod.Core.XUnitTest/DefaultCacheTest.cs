@@ -19,7 +19,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             infinispan.Version = 0x1f;
             infinispan.ForceReturnValue = false;
             infinispan.ClientIntelligence = 0x01;
-            cache = infinispan.newCache(new StringMarshaller(), new StringMarshaller(), "default");
+            cache = infinispan.NewCache(new StringMarshaller(), new StringMarshaller(), "default");
         }
 
         public void Dispose()
@@ -55,7 +55,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             infinispan.Version = 0x1f;
             infinispan.ForceReturnValue = false;
             infinispan.ClientIntelligence = 0x01;
-            var cache = infinispan.newCache(new StringMarshaller(), new StringMarshaller(), "default");
+            var cache = infinispan.NewCache(new StringMarshaller(), new StringMarshaller(), "default");
             String key = UniqueKey.NextKey();
             var excpt = await Assert.ThrowsAsync<InfinispanException>(() => cache.Get(key));
             Assert.Equal("Infinispan server is not available", excpt.Message);
@@ -64,7 +64,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
         [Fact]
         public async void WrongCacheNameTest()
         {
-            var cache = _infinispan.newCache(new StringMarshaller(), new StringMarshaller(), "nonExistent");
+            var cache = _infinispan.NewCache(new StringMarshaller(), new StringMarshaller(), "nonExistent");
             String key = UniqueKey.NextKey();
             var excpt = await Assert.ThrowsAsync<InfinispanException>(() => cache.Get(key));
             Assert.Equal("org.infinispan.server.hotrod.CacheNotFoundException: Cache with name 'nonExistent' not found amongst the configured caches", excpt.Message);

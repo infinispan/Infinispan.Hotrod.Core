@@ -23,7 +23,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             infinispan.ForceReturnValue = false;
             infinispan.ClientIntelligence = 0x01;
             marshaller = new StringMarshaller();
-            cache = infinispan.newCache(marshaller, marshaller, "default");
+            cache = infinispan.NewCache(marshaller, marshaller, "default");
         }
 
         public void Dispose()

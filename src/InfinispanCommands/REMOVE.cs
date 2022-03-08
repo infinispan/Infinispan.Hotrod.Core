@@ -5,7 +5,7 @@ using BeetleX.Buffers;
 
 namespace Infinispan.Hotrod.Core.Commands
 {
-    public class REMOVE<K, V> : CommandWithKey<K>
+    public class REMOVE<K, V> : CommandWithKey<K>, ICommandWithExpiration
     {
         public REMOVE(Marshaller<K> km, Marshaller<V> vm, K key)
         {
@@ -17,10 +17,8 @@ namespace Infinispan.Hotrod.Core.Commands
         }
         public Marshaller<V> ValueMarshaller;
         public int TimeOut { get; set; }
-
-        public ExpirationTime Lifespan = new ExpirationTime { Unit = TimeUnit.DEFAULT, Value = 0 };
-        public ExpirationTime MaxIdle = new ExpirationTime { Unit = TimeUnit.DEFAULT, Value = 0 };
-
+        public ExpirationTime Lifespan { get; set; } = new ExpirationTime { Unit = TimeUnit.DEFAULT, Value = 0 };
+        public ExpirationTime MaxIdle { get; set; } = new ExpirationTime { Unit = TimeUnit.DEFAULT, Value = 0 };
         public override string Name => "REMOVE";
 
         public override Byte Code => 0x0B;
