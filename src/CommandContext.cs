@@ -8,16 +8,15 @@ namespace Infinispan.Hotrod.Core
 {
     internal class CommandContext
     {
-        public long MessageId;
-        public byte Version;
-        public byte[] NameAsBytes;
-        public byte ClientIntelligence;
-        public UInt32 TopologyId;
-        public MediaType KeyMediaType;
-        public MediaType ValueMediaType;
         public MediaType CmdReqMediaType;
         public MediaType CmdResMediaType;
         public bool IsReqResCommand;
-
+        public InfinispanClient Client;
+        public CacheBase Cache;
+        public byte[] CacheNameAsBytes { get { return (Cache != null) ? Cache.NameAsBytes : new byte[] { }; } }
+        public long MessageId;
+        public byte ClientIntelligence { get { return Client.Host.Cluster.ClientIntelligence; } }
+        public byte Version { get { return Client.Host.Cluster.Version; } }
+        public UInt32 TopologyId { get { return Client.Host.Cluster.TopologyId; } }
     }
 }

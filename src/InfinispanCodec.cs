@@ -20,12 +20,13 @@ namespace Infinispan.Hotrod.Core
                     return new Codec30();
             }
         }
-
         public static Int64 readVLong(ResponseStream stream)
         {
-            byte b = (byte)stream.ReadByte();
-            Int64 i = (Int64)(b & 0x7F);
-            for (int shift = 7; (b & 0x80) != 0; shift += 7)
+            byte b = 0x80;
+            Int64 i = 0;
+            // Read b byte while 0x80 bit is 1
+            // Compose final value by R-shifting i and pasting 7 bits at time 
+            for (int shift = 0; (b & 0x80) != 0; shift += 7)
             {
                 b = (byte)stream.ReadByte();
                 i |= (Int64)((b & 0x7FL) << shift);
@@ -34,26 +35,11 @@ namespace Infinispan.Hotrod.Core
         }
         public static Int32 readVInt(ResponseStream stream)
         {
-            byte b = (byte)stream.ReadByte();
-            Int32 i = (Int32)(b & 0x7F);
-            for (int shift = 7; (b & 0x80) != 0; shift += 7)
-            {
-                b = (byte)stream.ReadByte();
-                i |= (Int32)((b & 0x7F) << shift);
-            }
-            return i;
+            return (Int32)readVLong(stream);
         }
-
         public static UInt32 readVUInt(ResponseStream stream)
         {
-            byte b = (byte)stream.ReadByte();
-            UInt32 i = (UInt32)(b & 0x7F);
-            for (int shift = 7; (b & 0x80) != 0; shift += 7)
-            {
-                b = (byte)stream.ReadByte();
-                i |= (UInt32)((b & 0x7F) << shift);
-            }
-            return i;
+            return (UInt32)readVLong(stream);
         }
         public static byte[] readArray(ResponseStream stream)
         {
@@ -102,13 +88,7 @@ namespace Infinispan.Hotrod.Core
         }
         public static void writeVInt(Int32 val, PipeStream stream)
         {
-            while (val > 0x7f)
-            {
-                byte b = (byte)(val & 0x7fL | 0x80);
-                stream.Write(b);
-                val >>= 7;
-            }
-            stream.Write((byte)val);
+            writeVLong(val, stream);
         }
 
         public static void writeVUInt(UInt32 val, PipeStream stream)
@@ -124,6 +104,7 @@ namespace Infinispan.Hotrod.Core
 
         public static void writeInt(Int32 v, PipeStream stream)
         {
+            // Write Int value on the wire, MSB first
             stream.Write((byte)(v >> 24));
             stream.Write((byte)(v >> 16));
             stream.Write((byte)(v >> 8));
@@ -132,6 +113,7 @@ namespace Infinispan.Hotrod.Core
 
         public static void writeLong(Int64 v, PipeStream stream)
         {
+            // Write LONG value on the wire, MSB first
             stream.Write((byte)(v >> 56));
             stream.Write((byte)(v >> 48));
             stream.Write((byte)(v >> 40));

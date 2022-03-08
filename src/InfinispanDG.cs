@@ -704,8 +704,7 @@ namespace Infinispan.Hotrod.Core
             // this is how the retry policy is implemented here 
             public InfinispanHost GetHostFromStaticList()
             {
-                var items = this.hostHandler.mActiveHosts;
-                for (; this.indexOnInitialList < items.Length; this.indexOnInitialList++)
+                for (var items = this.hostHandler.mActiveHosts; this.indexOnInitialList < items.Length; this.indexOnInitialList++)
                 {
                     if (!this.faultHosts.Contains(items[this.indexOnInitialList]))
                     {

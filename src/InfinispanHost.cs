@@ -44,7 +44,10 @@ namespace Infinispan.Hotrod.Core
             return mPool.Count;
         }
         private long messageId = 1;
-        public long MessageId { get { return messageId++; } set { messageId = value; } }
+        public long NewMessageId()
+        {
+            return messageId++;
+        }
         private Queue<TaskCompletionSource<InfinispanClient>> mQueue = new Queue<TaskCompletionSource<InfinispanClient>>();
 
         private Stack<InfinispanClient> mPool = new Stack<InfinispanClient>();
@@ -115,7 +118,7 @@ namespace Infinispan.Hotrod.Core
                     if (!string.IsNullOrEmpty(Password))
                     {
                         Commands.AUTHMECHLIST authMechList = new Commands.AUTHMECHLIST();
-                        InfinispanRequest request = new InfinispanRequest(null, client, authMechList, typeof(string));
+                        InfinispanRequest request = new InfinispanRequest(null, client, authMechList);
                         var taskResult = await request.Execute();
                         if (taskResult.ResultType == ResultType.DataError ||
                             taskResult.ResultType == ResultType.Error
@@ -145,7 +148,7 @@ namespace Infinispan.Hotrod.Core
                         Commands.AUTH auth = new Commands.AUTH(this.AuthMech, new System.Net.NetworkCredential(User, Password));
                         while (auth.Completed == 0)
                         {
-                            request = new InfinispanRequest(null, client, auth, typeof(string));
+                            request = new InfinispanRequest(null, client, auth);
                             taskResult = await request.Execute();
                             if (taskResult.ResultType == ResultType.DataError ||
                                 taskResult.ResultType == ResultType.Error
