@@ -78,41 +78,32 @@ namespace Infinispan.Hotrod.Core
 
     public class InfinispanRequest
     {
-        public InfinispanRequest(CacheBase cache, InfinispanClient client, Command cmd, params Type[] types)
+        public InfinispanRequest(CacheBase cache, InfinispanClient client, Command cmd)
         {
             Client = client;
             Client.TcpClient.DataReceive = OnReceive;
             Client.TcpClient.ClientError = OnError;
             Command = cmd;
-            Types = types;
-            Cache = cache;
             context = new CommandContext
             {
-                MessageId = client.Host.MessageId,
-                ClientIntelligence = Cluster.ClientIntelligence,
-                Version = Cluster.Version,
-                TopologyId = Cluster.TopologyId,
-                KeyMediaType = cache?.KeyMediaType,
-                ValueMediaType = cache?.ValueMediaType,
-                NameAsBytes = (cache != null) ? cache.NameAsBytes : new byte[] { }
+                MessageId = client.Host.NewMessageId(),
+                Client = client,
+                Cache = cache,
             };
         }
         internal byte ResponseOpCode;
         public byte ResponseStatus;
         internal CommandContext context;
         internal InfinispanDG Cluster { get { return Client.Host.Cluster; } }
-        public CacheBase Cache { get; set; }
         public IClientListener Listener;
         private void OnError(IClient c, ClientErrorArgs e)
         {
-            if (this.rs != null)
-            {
-                this.rs.TokenSource.Cancel();
-            }
+            this.peerDisconnect = true;
+            this.rs?.TokenSource?.Cancel();
+            c.DisConnect();
             if (e.Error is BeetleX.BXException || e.Error is System.Net.Sockets.SocketException ||
                 e.Error is System.ObjectDisposedException)
             {
-                c.DisConnect();
                 OnCompleted(ResultType.NetError, e.Error.Message);
             }
             else
@@ -120,7 +111,6 @@ namespace Infinispan.Hotrod.Core
                 OnCompleted(ResultType.DataError, e.Error.Message);
             }
         }
-        public Type[] Types { get; private set; }
         internal ResponseStream rs = new ResponseStream();
         private void OnReceive(IClient c, ClientReceiveArgs reader)
         {
@@ -133,39 +123,17 @@ namespace Infinispan.Hotrod.Core
             {
                 do
                 {
-                    if (rs.ReadByte() != 0xA1)
+                    if (ReadHeader())
                     {
-                        CompleteWithError("Bad Magic Number");
-                        return;
-                    }
-                    long inMessageId = Codec.readVLong(rs);
-                    if (inMessageId != 0 && inMessageId != context.MessageId)
-                    {
-                        CompleteWithError("Message ID mistmatch");
-                        return;
-                    }
-                    ResponseOpCode = (byte)rs.ReadByte();
-                    ResponseStatus = (byte)rs.ReadByte();
-                    var topologyChanged = (byte)rs.ReadByte();
-                    if (topologyChanged != 0)
-                    {
-                        ProcessTopologyChange();
-                    }
-                    var errMsg = ReadResponseError(ResponseStatus, rs);
-                    if (errMsg != null)
-                    {
-                        CompleteWithError(Encoding.ASCII.GetString(errMsg));
-                        return;
-                    }
-                    // Here ends the processing of the response header
-                    // commmand specific data processed below
-                    if (IsEvent(ResponseOpCode))
-                    {
-                        ProcessEvent();
-                    }
-                    else
-                    {
-                        ProcessCommandResponse();
+                        // Processing commmand/event specific data
+                        if (IsEvent(ResponseOpCode))
+                        {
+                            ProcessEvent();
+                        }
+                        else
+                        {
+                            ProcessCommandResponse();
+                        }
                     }
                 } while (Result.ResultType == ResultType.Event);
             }
@@ -173,24 +141,56 @@ namespace Infinispan.Hotrod.Core
             {
                 if (this.Listener!=null)
                 {
-                    Task.Run(() => { this.Listener.OnError(ex); });
                     Cluster.ListenerMap.Remove(this.Listener.ListenerID);
                 }
                 CompleteWithError(ex.Message);
-                this.Client.ReturnToPool();
-                if (!(ex is TaskCanceledException))
+                // Return Client to the pool only if TaskCompletionSource is already completed
+                if (!TaskCompletionSource.TrySetException(ex))
                 {
-                    if (!((ex is AggregateException) && ((ex.InnerException is TaskCanceledException))))
+                    this.Client.ReturnToPool();
+                }
+                // If the exception is not related to a task cancellation by the client, then call the OnError recover function if any
+                // and propagate the exception
+                if (this.peerDisconnect)
+                {
+                    if (this.Listener != null)
                     {
-                        if (this.Listener != null)
-                        {
-                            Task.Run(() => { this.Listener.OnError(ex); });
-                        }
-                        // TODO: unexpected exception. log something
-                        throw;
+                        Task.Run(() => { this.Listener.OnError(ex); });
                     }
+                      // Propagate the exception
+                       throw;
                 }
             }
+        }
+        // Read the message header from the stream
+        // Return false on error
+        private bool ReadHeader()
+        {
+            if (rs.ReadByte() != 0xA1)
+            {
+                CompleteWithError("Bad Magic Number");
+                return false;
+            }
+            long inMessageId = Codec.readVLong(rs);
+            if (inMessageId != 0 && inMessageId != context.MessageId)
+            {
+                CompleteWithError("Message ID mistmatch");
+                return false;
+            }
+            ResponseOpCode = (byte)rs.ReadByte();
+            ResponseStatus = (byte)rs.ReadByte();
+            var topologyChanged = (byte)rs.ReadByte();
+            if (topologyChanged != 0)
+            {
+                ProcessTopologyChange();
+            }
+            var errMsg = ReadResponseError(ResponseStatus, rs);
+            if (errMsg != null)
+            {
+                CompleteWithError(Encoding.ASCII.GetString(errMsg));
+                return false;
+            }
+            return true;
         }
 
         private void ProcessCommandResponse()
@@ -223,11 +223,11 @@ namespace Infinispan.Hotrod.Core
             var topology = ReadNewTopologyInfo();
             // No need to update if monitor can't be taken
             // see InfinispanDG.SwitchCluster
-            if (this.Cache != null && Monitor.TryEnter(Cluster.mActiveCluster))
+            if (this.context.Cache != null && Monitor.TryEnter(Cluster.mActiveCluster))
             {
                 try
                 {
-                    Cluster.UpdateTopologyInfo(topology, this.Cache);
+                    Cluster.UpdateTopologyInfo(topology, this.context.Cache);
                 }
                 finally
                 {
@@ -342,12 +342,10 @@ namespace Infinispan.Hotrod.Core
             return TaskCompletionSource.Task;
         }
         private int mCompletedStatus = 0;
+        private bool peerDisconnect;
+
         public virtual void OnCompleted(ResultType type, string message)
         {
-            // if (type == ResultType.NetError && this.Listener != null)
-            // {
-            //     this.Listener.OnError();
-            // }
             if (System.Threading.Interlocked.CompareExchange(ref mCompletedStatus, 1, 0) == 0)
             {
                 Result.Status = ResultStatus.Completed;
@@ -358,28 +356,8 @@ namespace Infinispan.Hotrod.Core
                 }
                 Result.ResultType = type;
                 Result.Messge = message;
-                // TODO: no SELECT or AUTH command in Infinispan, correct implementation needed here
-                // TaskCompletion();
-                // if (Command.GetType() == typeof(SELECT) || Command.GetType() == typeof(AUTH))
-                // {
-                //     Task.Run(() => TaskCompletion());
-                // }
-                // else
-                {
-                    //TODO: check if there's something equivalent in Infinispan and reenable it in case
-                    // if (ResultDispatch.UseDispatch)
-                    //     ResultDispatch.DispatchCenter.Enqueue(this, 3);
-                    // else
-                    TaskCompletion();
-                }
-
+                TaskCompletionSource.TrySetResult(Result);
             }
-
-        }
-
-        internal void TaskCompletion()
-        {
-            TaskCompletionSource.TrySetResult(Result);
         }
     }
     public class TopologyInfo

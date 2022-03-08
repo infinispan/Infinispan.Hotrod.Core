@@ -47,7 +47,7 @@ namespace Infinispan.Hotrod.Core
             Codec.writeVLong(ctx.MessageId, stream);
             stream.Write(ctx.Version);
             stream.Write(Code);
-            Codec.writeArray(ctx.NameAsBytes, stream);
+            Codec.writeArray(ctx.CacheNameAsBytes, stream);
             Codec.writeVInt(Flags, stream);
             stream.Write(ctx.ClientIntelligence);
             Codec.writeVUInt(ctx.TopologyId, stream);
@@ -58,8 +58,8 @@ namespace Infinispan.Hotrod.Core
             }
             else
             {
-                Codec.writeMediaType(ctx.KeyMediaType, stream);
-                Codec.writeMediaType(ctx.ValueMediaType, stream);
+                Codec.writeMediaType(ctx.Cache?.KeyMediaType, stream);
+                Codec.writeMediaType(ctx.Cache?.ValueMediaType, stream);
             }
         }
 
