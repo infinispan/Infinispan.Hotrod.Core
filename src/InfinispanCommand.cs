@@ -101,4 +101,9 @@ namespace Infinispan.Hotrod.Core
             return KeyMarshaller.marshall(this.Key);
         }
     }
+    public interface ICommandWithExpiration
+    {
+        public ExpirationTime Lifespan { get; set; }
+        public ExpirationTime MaxIdle { get; set; }
+    }
 }

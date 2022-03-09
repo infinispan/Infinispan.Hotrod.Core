@@ -64,7 +64,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             var host = ispnCluster.AddHost("127.0.0.1", 11222);
 
             marshaller = new StringMarshaller();
-            var cache = ispnCluster.newCache(marshaller, marshaller, "authCache");
+            var cache = ispnCluster.NewCache(marshaller, marshaller, "authCache");
 
             TestPut(cache);
         }
@@ -82,7 +82,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             var host = ispnCluster.AddHost("127.0.0.1", 11222);
 
             marshaller = new StringMarshaller();
-            var cache = ispnCluster.newCache(marshaller, marshaller, "authCache");
+            var cache = ispnCluster.NewCache(marshaller, marshaller, "authCache");
 
             TestPut(cache);
         }
@@ -106,7 +106,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             var host = ispnCluster.AddHost("127.0.0.1", 11222);
 
             marshaller = new StringMarshaller();
-            var cache = ispnCluster.newCache(marshaller, marshaller, cacheName);
+            var cache = ispnCluster.NewCache(marshaller, marshaller, cacheName);
 
             return cache;
         }

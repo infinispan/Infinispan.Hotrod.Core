@@ -23,7 +23,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             infinispan1.Version = 0x1f;
             infinispan1.ForceReturnValue = false;
             infinispan1.ClientIntelligence = 0x01;
-            cache1 = infinispan1.newCache(new StringMarshaller(), new StringMarshaller(), "default");
+            cache1 = infinispan1.NewCache(new StringMarshaller(), new StringMarshaller(), "default");
 
             string jbossHome = System.Environment.GetEnvironmentVariable("JBOSS_HOME");
             hotRodServer2 = new HotRodServer("infinispan-noauth.xml", "-o 100 -s " + jbossHome + "/server1", "server1", 11322);
@@ -33,7 +33,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             infinispan2.Version = 0x1f;
             infinispan2.ForceReturnValue = false;
             infinispan2.ClientIntelligence = 0x01;
-            cache2 = infinispan2.newCache(new StringMarshaller(), new StringMarshaller(), "default");
+            cache2 = infinispan2.NewCache(new StringMarshaller(), new StringMarshaller(), "default");
         }
 
         public void Dispose()
