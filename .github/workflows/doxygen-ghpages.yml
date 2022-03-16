@@ -6,6 +6,7 @@ jobs:
   run-ci-tests:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2
       - uses: mattnotmitt/doxygen-action@v1.9.2
       - uses: peaceiris/actions-gh-pages@v3
         with:
