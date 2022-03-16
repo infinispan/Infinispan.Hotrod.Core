@@ -1,0 +1,13 @@
+name: doxygen-ghpages
+env:
+  ISPN_VER: '13.0.5.Final'
+on: [push, pull_request]
+jobs:
+  run-ci-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: mattnotmitt/doxygen-action@v1.9.2
+      - uses: peaceiris/actions-gh-pages@v3
+        with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./docs
