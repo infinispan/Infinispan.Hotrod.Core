@@ -51,7 +51,7 @@ PROJECT_BRIEF          = ".NET Core client for Infinispan Hotrod Protocol"
 # pixels and the maximum width should not exceed 200 pixels. Doxygen will copy
 # the logo to the output directory.
 
-PROJECT_LOGO           = /home/rigazilla/git/Infinispan.Hotrod.Core/infinispan_icon_rgb_lightbluewhite_64px.png
+PROJECT_LOGO           = infinispan_icon_rgb_lightbluewhite_64px.png
 
 # The OUTPUT_DIRECTORY tag is used to specify the (relative or absolute) path
 # into which the generated documentation will be written. If a relative path is
