@@ -28,8 +28,6 @@ namespace Infinispan.Hotrod.Core.XUnitTest
         public RemoteQueryTestFixture()
         {
             var assembly = Assembly.GetExecutingAssembly();
-            var arr = assembly.GetManifestResourceNames();
-            Console.WriteLine("arr" + arr);
             var resourceName = "Infinispan.Hotrod.Core.XUnitTest.resources.proto2.bank.proto";
             string protoDef;
             using (Stream stream = assembly.GetManifestResourceStream(resourceName))

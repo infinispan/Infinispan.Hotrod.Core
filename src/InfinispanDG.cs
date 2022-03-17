@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using BeetleX.EventArgs;
 using Infinispan.Hotrod.Core.Commands;
 using Org.Infinispan.Query.Remote.Client;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 
 namespace Infinispan.Hotrod.Core
 {
@@ -57,7 +59,7 @@ namespace Infinispan.Hotrod.Core
         /// <param name="host">node address</param>
         /// <param name="port">port</param>
         /// <returns></returns>
-
+        public X509Chain CACert;
         public bool SwitchCluster(string clusterName)
         {
             if (mClusters.ContainsKey(clusterName))
@@ -91,7 +93,7 @@ namespace Infinispan.Hotrod.Core
         /// <param name="port">port</param>
         /// <param name="ssl">overrides the cluster TLS setting</param>
         /// <returns></returns>
-        public InfinispanHost AddHost(string clusterName, string host, int port=11222)
+        public InfinispanHost AddHost(string clusterName, string host, int port = 11222)
         {
             InfinispanHost ispnHost = new InfinispanHost(this, host, port)
             {

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp3.1</TargetFrameworks>
+    <TargetFrameworks>net5.0</TargetFrameworks>
 
     <IsPackable>false</IsPackable>
   </PropertyGroup>
@@ -28,6 +28,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="resources/proto2/bank.proto"/>
+    <EmbeddedResource Include="resources/proto2/bank.proto" />
+    <EmbeddedResource Include="resources/client/infinispan-ca.pem" />
+    <EmbeddedResource Include="resources/client/bad-infinispan-ca.pem" />
   </ItemGroup>
 </Project>

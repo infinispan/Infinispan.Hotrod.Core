@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp3.1</TargetFrameworks>
+    <TargetFrameworks>net5.0</TargetFrameworks>
     <Version>0.0.2-alpha1</Version>
     <Company>infinispan.org</Company>
     <Authors>rigazilla</Authors>

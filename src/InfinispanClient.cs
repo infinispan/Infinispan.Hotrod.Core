@@ -20,7 +20,14 @@ namespace Infinispan.Hotrod.Core
                 TcpClient = BeetleX.SocketFactory.CreateSslClient<AsyncTcpClient>(this.Host.Name, this.Host.Port, "hotrod");
                 TcpClient.CertificateValidationCallback = (o, e, f, d) =>
                 {
-                    return true;
+                    if (host.Cluster.CACert == null)
+                        return true;
+                    bool result = host.Cluster.CACert.Build(new System.Security.Cryptography.X509Certificates.X509Certificate2(e));
+                    if (!result)
+                    {
+                        System.Diagnostics.Debug.WriteLine("{0}", host.Cluster.CACert.ChainStatus);
+                    }
+                    return result;
                 };
             }
             else
