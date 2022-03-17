@@ -1,6 +1,6 @@
 name: infinispan-netcore-tests
 env:
-  ISPN_VER: '13.0.5.Final'
+  ISPN_VER: '13.0.6.Final'
 on: [push, pull_request]
 jobs:
   run-ci-tests:
@@ -21,6 +21,7 @@ jobs:
         run: echo "JBOSS_HOME=$(echo $PWD/infinispan-server-$ISPN_VER)" >> $GITHUB_ENV
       - run: pwd && unzip infinispan-server-$ISPN_VER.zip
       - run: cp -r Infinispan.Hotrod.Core.XUnitTest/resources/conf/* $JBOSS_HOME/server/conf
+      - run: cp -r Infinispan.Hotrod.Core.XUnitTest/resources/conf/certificates/* $JBOSS_HOME/server/conf
       - run: cp -r $JBOSS_HOME/server $JBOSS_HOME/server1
       - run: dotnet build
       - run: dotnet test
