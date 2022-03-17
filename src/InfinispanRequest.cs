@@ -29,7 +29,7 @@ namespace Infinispan.Hotrod.Core
                 {
                     CurrReader = await ResponseChannel.Reader.ReadAsync(TokenSource.Token);
                 }
-                var read = CurrReader.Stream.Read(buf, offSet, size - offSet);
+                var read = CurrReader.Stream.ToPipeStream().Read(buf, offSet, size - offSet);
                 if (read == 0)
                 {
                     CurrReader = null;
@@ -53,10 +53,12 @@ namespace Infinispan.Hotrod.Core
                 result = -1;
                 try
                 {
-                    result = CurrReader.Stream.ReadByte();
+                    result = CurrReader.Stream.ToPipeStream().ReadByte();
                 }
-                catch (NullReferenceException)
-                { }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.Write(ex.StackTrace.ToString());
+                }
                 if (result == -1)
                 {
                     CurrReader = null;
@@ -139,7 +141,7 @@ namespace Infinispan.Hotrod.Core
             }
             catch (Exception ex)
             {
-                if (this.Listener!=null)
+                if (this.Listener != null)
                 {
                     Cluster.ListenerMap.Remove(this.Listener.ListenerID);
                 }
@@ -157,8 +159,8 @@ namespace Infinispan.Hotrod.Core
                     {
                         Task.Run(() => { this.Listener.OnError(ex); });
                     }
-                      // Propagate the exception
-                       throw;
+                    // Propagate the exception
+                    throw;
                 }
             }
         }
