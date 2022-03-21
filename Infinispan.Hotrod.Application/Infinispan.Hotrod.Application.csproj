@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Infinispan.Hotrod.Core" />
+    <PackageReference Include="Infinispan.Hotrod.Core" Version="*-*"/>
   </ItemGroup>
 
 </Project>

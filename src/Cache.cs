@@ -50,67 +50,156 @@ namespace Infinispan.Hotrod.Core
         readonly Marshaller<K> KeyMarshaller;
         readonly Marshaller<V> ValueMarshaller;
 
+        /// <summary>
+        /// Get an entry from the cache
+        /// </summary>
+        /// <param name="key">key of the entry</param>
+        /// <returns>the value of the entry or null (async)</returns>
         public async Task<V> Get(K key)
         {
             return await Cluster.Get(KeyMarshaller, ValueMarshaller, (CacheBase)this, key);
         }
+        /// <summary>
+        /// Get an entry from the cache with its version
+        /// </summary>
+        /// <param name="key">key of the entry</param>
+        /// <returns>the value with version of the entry or null (async)</returns>
         public async Task<ValueWithVersion<V>> GetWithVersion(K key)
         {
             return await Cluster.GetWithVersion(KeyMarshaller, ValueMarshaller, (CacheBase)this, key);
         }
+        /// <summary>
+        /// Get an entry from the cache with its metadata
+        /// </summary>
+        /// <param name="key">key of the entry</param>
+        /// <returns>the value with metadata of the entry or null (async)</returns>
         public async Task<ValueWithMetadata<V>> GetWithMetadata(K key)
         {
             return await Cluster.GetWithMetadata(KeyMarshaller, ValueMarshaller, (CacheBase)this, key);
         }
-
+        /// <summary>
+        /// Put/replace an entry in the cache
+        /// </summary>
+        /// <param name="key">key of the entry</param>
+        /// <param name="value">value of the entry</param>
+        /// <param name="lifespan">lifespan</param>
+        /// <param name="maxidle">maximum idle time</param>
+        /// <returns></returns>
         public async Task<V> Put(K key, V value, ExpirationTime lifespan = null, ExpirationTime maxidle = null)
         {
             return await Cluster.Put(KeyMarshaller, ValueMarshaller, this, key, value, lifespan, maxidle);
         }
+        /// <summary>
+        /// Put an entry in the cache if absent, does nothing otherwise
+        /// </summary>
+        /// <param name="key">key of the entry</param>
+        /// <param name="value">value of the entry</param>
+        /// <param name="lifespan">lifespan</param>
+        /// <param name="maxidle">maximum idle time</param>
+        /// <returns></returns>
         public async Task<V> PutIfAbsent(K key, V value, ExpirationTime lifespan = null, ExpirationTime maxidle = null)
         {
             return await Cluster.PutIfAbsent(KeyMarshaller, ValueMarshaller, this, key, value, lifespan, maxidle);
         }
+        /// <summary>
+        /// Return the number of entries in a cache
+        /// </summary>
+        /// <returns>number of entries</returns>
         public async Task<Int32> Size()
         {
             return await Cluster.Size(this);
         }
+        /// <summary>
+        /// Check if an entry with the given key is present
+        /// </summary>
+        /// <param name="key">key of the entry</param>
+        /// <returns>true if an entry with the given exists</returns>
         public async Task<Boolean> ContainsKey(K key)
         {
             return await Cluster.ContainsKey(KeyMarshaller, (CacheBase)this, key);
         }
+        /// <summary>
+        /// Remove an entry from the cache
+        /// </summary>
+        /// <param name="key">entry's key</param>
+        /// <returns>true if the entry has been removed</returns>
         public async Task<(V PrevValue, Boolean Removed)> Remove(K key)
         {
             return await Cluster.Remove(KeyMarshaller, ValueMarshaller, (CacheBase)this, key);
         }
+        /// <summary>
+        /// Clear the cache
+        /// </summary>
         public async Task Clear()
         {
             await Cluster.Clear(this);
         }
+        /// <summary>
+        /// Return true is the cache is empty
+        /// </summary>
         public async Task<Boolean> IsEmpty()
         {
             return await Cluster.Size(this) == 0;
         }
+        /// <summary>
+        /// Acquire some cache/cluster statistics
+        /// </summary>
+        /// <returns>some statistics</returns>
         public async Task<ServerStatistics> Stats()
         {
             return await Cluster.Stats(this);
         }
+        /// <summary>
+        /// Replace an entry value
+        /// </summary>
+        /// <param name="key">entry key</param>
+        /// <param name="value">new value</param>
+        /// <param name="lifespan">lifespan for the entry</param>
+        /// <param name="maxidle">max idle time</param>
+        /// <returns>if replaced (the previous value, true) otherwise (null,false)</returns>
         public async Task<(V PrevValue, Boolean Replaced)> Replace(K key, V value, ExpirationTime lifespan = null, ExpirationTime maxidle = null)
         {
             return await Cluster.Replace(KeyMarshaller, ValueMarshaller, this, key, value, lifespan, maxidle);
         }
+        /// <summary>
+        /// Replace the value of an entry with the given version
+        /// </summary>
+        /// <param name="key">entry key</param>
+        /// <param name="value">new value</param>
+        /// <param name="version">entry version</param>
+        /// <param name="lifespan">lifespan for the entry</param>
+        /// <param name="maxidle">max idle time</param>
+        /// <returns>if replaced true otherwise false</returns>
         public async Task<Boolean> ReplaceWithVersion(K key, V value, Int64 version, ExpirationTime lifeSpan = null, ExpirationTime maxIdle = null)
         {
             return await Cluster.ReplaceWithVersion(KeyMarshaller, ValueMarshaller, (CacheBase)this, key, value, version, lifeSpan, maxIdle);
         }
+        /// <summary>
+        /// Remove an entry with the given version
+        /// </summary>
+        /// <param name="key">entry key</param>
+        /// <param name="version">entry version</param>
+        /// <returns>if replaced (the previous value, true) otherwise (null,false)</returns>
         public async Task<(V V, Boolean Removed)> RemoveWithVersion(K key, Int64 version)
         {
             return await Cluster.RemoveWithVersion(KeyMarshaller, ValueMarshaller, (CacheBase)this, key, version);
         }
+        /// <summary>
+        /// Run a query on the cache
+        /// </summary>
+        /// <param name="query">the query request</param>
+        /// <returns>the query result</returns>
         public async Task<QueryResponse> Query(QueryRequest query)
         {
             return await Cluster.Query(query, (CacheBase)this);
         }
+        /// <summary>
+        /// A simplified method to run query
+        /// </summary>
+        /// This method returns the result set as a list of cache objects if the query has no select projection,
+        /// otherwise return a list of tuples
+        /// <param name="query">the query string</param>
+        /// <returns>the resultSet</returns>
         public async Task<List<Object>> Query(String query)
         {
             var qr = new QueryRequest();
@@ -133,43 +222,87 @@ namespace Infinispan.Hotrod.Core
             }
             return result;
         }
+        /// <summary>
+        /// Returns the set of all the cache entry keys 
+        /// </summary>
+        ///
         public async Task<ISet<K>> KeySet()
         {
             return await Cluster.KeySet<K>(KeyMarshaller, (CacheBase)this);
         }
+        /// <summary>
+        /// Put in the cache all the entries in the map
+        /// </summary>
+        /// <param name="map">the map of entries to put in the cache</param>
+        /// <param name="lifespan">the lifespan for all the entries</param>
+        /// <param name="maxidle">the maxidle for all the entries</param>
+        /// <returns></returns>
         public async Task PutAll(Dictionary<K, V> map, ExpirationTime lifespan = null, ExpirationTime maxidle = null)
         {
             await Cluster.PutAll(KeyMarshaller, ValueMarshaller, this, map, lifespan, maxidle);
         }
+        /// <summary>
+        /// Get all the entries matching the keys in the set
+        /// </summary>
+        /// <param name="keys">the key set</param>
+        /// <returns>a map with the found entries</returns>
         public async Task<IDictionary<K, V>> GetAll(ISet<K> keys)
         {
             return await Cluster.GetAll(KeyMarshaller, ValueMarshaller, this, keys);
         }
+        /// <summary>
+        /// An optimized for speed version of GetAll
+        /// </summary>
+        /// This splits the given getall is several getall operation each of which contains keys of a specific
+        /// owner. Then all the operations are sent to the relative owner. Answers are collected and returned in a single result.
+        /// This operation is not atomic and could "partially" fail.
+        /// TODO Allow user to await for the result
+        /// <param name="keys">the key set</param>
+        /// <returns>a map with the found entries</returns>
         public IPartResult<IDictionary<K, V>> GetAllPart(ISet<K> keys)
         {
             var res = Cluster.GetAllPart(KeyMarshaller, ValueMarshaller, this, keys);
             return res != null ? new GetAllPartResult<K, V>(res) : null;
         }
+        /// <summary>
+        /// An optimized for speed version of GetAll
+        /// </summary>
+        /// This splits the given putall is several putall operation each of which contains keys of a specific
+        /// owner. Then all the operations are sent to the relative owner. Answers are collected and returned in a single result.
+        /// This operation is not atomic and could "partially" fail.
+        /// TODO Allow user to await for the result
+        /// <param name="map">the map of entries to put in the cache</param>
+        /// <param name="lifespan">the lifespan for all the entries</param>
+        /// <param name="maxidle">the maxidle for all the entries</param>
+        /// <returns></returns>
         public IPartResult PutAllPart(IDictionary<K, V> map, ExpirationTime lifespan = null, ExpirationTime maxidle = null)
         {
             var res = Cluster.PutAllPart(KeyMarshaller, ValueMarshaller, this, map, lifespan, maxidle);
             return res != null ? new PutAllPartResult(res) : null;
         }
-        public IDictionary<int, ISet<K>> SplitBySegment(ISet<K> keys)
-        {
-            return Cluster.SplitBySegment<K>(KeyMarshaller, this, keys);
-        }
-
+        /// <summary>
+        /// ping operation
+        /// </summary>
+        /// <returns>a ping result</returns>
         public async Task<PingResult> Ping()
         {
             return await Cluster.Ping(this);
         }
-
+        /// <summary>
+        /// Add a listener for events to this cache
+        /// </summary>
+        /// <param name="listener">the listener</param>
+        /// <param name="includeState">wether or not to return the initial cache state</param>
+        /// <returns></returns>
         public async Task AddListener(IClientListener listener, bool includeState = false)
         {
             await Cluster.AddListener(this, listener, includeState);
         }
-
+        /// <summary>
+        /// Remove the listener from the cache
+        /// </summary>
+        /// <param name="listener">the listener</param>
+        /// <returns></returns>
         public async Task RemoveListener(IClientListener listener)
         {
             await Cluster.RemoveListener(this, listener);
