@@ -53,12 +53,6 @@ namespace Infinispan.Hotrod.Core
         /// Enable TLS communication
         /// </summary>
         public bool UseTLS = false;
-        /// <summary>
-        /// Add a cluster node to the initial list of nodes for the DEFAULT_CLUSTER.
-        /// </summary>
-        /// <param name="host">node address</param>
-        /// <param name="port">port</param>
-        /// <returns></returns>
         public X509Chain CACert;
         public bool SwitchCluster(string clusterName)
         {
@@ -74,7 +68,7 @@ namespace Infinispan.Hotrod.Core
             return false;
         }
         /// <summary>
-        /// Add a cluster node to the initial list of nodes.
+        /// Add a cluster node to the initial list of nodes for the DEFAULT_CLUSTER.
         /// </summary>
         /// <param name="host">node address</param>
         /// <param name="port">port</param>
