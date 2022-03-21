@@ -54,11 +54,8 @@ namespace Infinispan.Hotrod.Core
         /// </summary>
         public bool UseTLS = false;
         /// <summary>
-        /// Add a cluster node to the initial list of nodes for the DEFAULT_CLUSTER.
+        /// Certification chain for server certificate verification. Leave it null for no verification.
         /// </summary>
-        /// <param name="host">node address</param>
-        /// <param name="port">port</param>
-        /// <returns></returns>
         public X509Chain CACert;
         public bool SwitchCluster(string clusterName)
         {
@@ -74,7 +71,7 @@ namespace Infinispan.Hotrod.Core
             return false;
         }
         /// <summary>
-        /// Add a cluster node to the initial list of nodes.
+        /// Add a cluster node to the initial list of nodes for the DEFAULT_CLUSTER.
         /// </summary>
         /// <param name="host">node address</param>
         /// <param name="port">port</param>
@@ -136,12 +133,13 @@ namespace Infinispan.Hotrod.Core
         /// <summary>
         /// Returns a proxy to a remote cache on the server
         /// </summary>
+        /// The returned Cache object allows the execution of all the remote operation on the %Infinispan cluster.
         /// <typeparam name="K">Type of the key</typeparam>
         /// <typeparam name="V">Type of the value</typeparam>
         /// <param name="keyM">A marshaller for K. <see>Infinispan.Hotrod.Core.Marshaller</see></param>
         /// <param name="valM">A marshaller for V</param>
         /// <param name="name">Name of the cache</param>
-        /// <returns></returns>
+        /// <returns>the cache object</returns>
         public Cache<K, V> NewCache<K, V>(Marshaller<K> keyM, Marshaller<V> valM, string name)
         {
             return new Cache<K, V>(this, keyM, valM, name);

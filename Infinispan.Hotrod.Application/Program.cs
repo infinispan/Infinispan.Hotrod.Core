@@ -6,18 +6,22 @@ namespace Infinispan.Hotrod.Application
 
     class Program
     {
-        static string checkValue = "";
         static async Task Main(string[] args)
         {
-            var myGreetings = "Hello World!";
-            Console.WriteLine(myGreetings);
+            var myKey = "myKey";
+            /// [Create a cluster object]
             InfinispanDG dg = new InfinispanDG();
             // Use a non-authenticated non-encrypted cluster;
-            dg.AddHost("127.0.0.1",11222);
-            var cache = dg.NewCache<string,string>(new StringMarshaller(), new StringMarshaller(), "default");
-            await cache.Put("greetings",myGreetings);
-            string result = await cache.Get("greetings");
-            Console.WriteLine("Greetings from cache: "+result);
+            dg.AddHost("127.0.0.1", 11222);
+            /// [Create a cluster object]
+            /// [Create a cache]
+            var cache = dg.NewCache<string, string>(new StringMarshaller(), new StringMarshaller(), "default");
+            /// [Create a cache]
+            /// [Application code]
+            await cache.Put(myKey, "some value");
+            string result = await cache.Get(myKey);
+            Console.WriteLine("Getting my entry with key {0} from the cache. Result value is: {1}", myKey, result);
+            /// [Application code]
         }
     }
 }
