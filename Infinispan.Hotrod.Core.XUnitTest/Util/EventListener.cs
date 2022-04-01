@@ -8,12 +8,12 @@ using System.Collections.Concurrent;
 
 namespace Infinispan.Hotrod.Core.Tests.Util
 {
-    class LoggingEventListener : IClientListener
+    class LoggingEventListener : AbstractClientListener
     {
         private Cache<string, string> cache;
         public TaskCompletionSource<bool> serverIsRunning = new TaskCompletionSource<bool>();
         public TaskCompletionSource<bool> ListenerIsAdded = new TaskCompletionSource<bool>();
-        public void OnEvent(Event e)
+        public override void OnEvent(Event e)
         {
             if (e.CustomMarker != 0)
             {
@@ -36,7 +36,7 @@ namespace Infinispan.Hotrod.Core.Tests.Util
                     break;
             }
         }
-        public void OnError(Exception ex = null)
+        public override void OnError(Exception ex = null)
         {
             ErrorAction(ex);
         }
@@ -47,7 +47,7 @@ namespace Infinispan.Hotrod.Core.Tests.Util
         public BlockingCollection<Event> customEvents = new BlockingCollection<Event>();
         public BlockingCollection<Object> ErrorEvents = new BlockingCollection<Object>();
 
-        public string ListenerID { get; set; }
+        public override string ListenerID { get; set; }
 
         public LoggingEventListener(Cache<string, string> cache, String listenerId = default)
         {
@@ -120,8 +120,8 @@ namespace Infinispan.Hotrod.Core.Tests.Util
             }
             catch (OperationCanceledException ex)
             {
-                string s = "cre: " + createdEvents.Count + "  mod: " + modifiedEvents.Count + "  rem: " + removedEvents.Count + " exp: " + expiredEvents.Count+ " err:"+ErrorEvents.Count;
-                throw new TimeoutException("The event of type " + eventType.ToString() + " was not received within timeout!  "+s, ex);
+                string s = "cre: " + createdEvents.Count + "  mod: " + modifiedEvents.Count + "  rem: " + removedEvents.Count + " exp: " + expiredEvents.Count + " err:" + ErrorEvents.Count;
+                throw new TimeoutException("The event of type " + eventType.ToString() + " was not received within timeout!  " + s, ex);
             }
         }
     }

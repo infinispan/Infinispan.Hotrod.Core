@@ -4,6 +4,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Org.Infinispan.Protostream;
 using Org.Infinispan.Query.Remote.Client;
+using System.Threading;
 
 namespace Infinispan.Hotrod.Core
 {
@@ -565,4 +566,20 @@ namespace Infinispan.Hotrod.Core
 
     }
 
+    public abstract class AbstractClientListener : IClientListener
+    {
+        private Task _task;
+        public Task task { set => _task = value; }
+        public abstract string ListenerID { get; set; }
+        public void Wait()
+        {
+            try
+            {
+                _task.Wait();
+            }
+            catch { }
+        }
+        public abstract void OnError(Exception ex = null);
+        public abstract void OnEvent(Event e);
+    }
 }

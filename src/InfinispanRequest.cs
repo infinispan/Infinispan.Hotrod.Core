@@ -55,9 +55,8 @@ namespace Infinispan.Hotrod.Core
                 {
                     result = CurrReader.Stream.ToPipeStream().ReadByte();
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-                    System.Diagnostics.Debug.Write(ex.StackTrace.ToString());
                 }
                 if (result == -1)
                 {
@@ -118,7 +117,6 @@ namespace Infinispan.Hotrod.Core
         {
             rs.ResponseChannel.Writer.WriteAsync(reader).AsTask().Wait();
         }
-
         private void ProcessResponse()
         {
             try
@@ -160,7 +158,7 @@ namespace Infinispan.Hotrod.Core
                         Task.Run(() => { this.Listener.OnError(ex); });
                     }
                     // Propagate the exception
-                    throw;
+                    throw ex;
                 }
             }
         }
@@ -319,7 +317,7 @@ namespace Infinispan.Hotrod.Core
         public InfinispanClient Client { get; private set; }
 
         public TaskCompletionSource<Result> TaskCompletionSource { get; protected set; }
-
+        internal Task CurrentProcessingResponseTask;
         internal void SendCommmand(Command cmd)
         {
             try
@@ -339,7 +337,7 @@ namespace Infinispan.Hotrod.Core
         public Task<Result> Execute()
         {
             TaskCompletionSource = new TaskCompletionSource<Result>(TaskCreationOptions.RunContinuationsAsynchronously);
-            var processResponseTask = Task.Run(() => ProcessResponse());
+            CurrentProcessingResponseTask = Task.Run(() => ProcessResponse());
             SendCommmand(Command);
             return TaskCompletionSource.Task;
         }

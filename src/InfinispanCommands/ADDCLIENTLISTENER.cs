@@ -79,6 +79,11 @@ namespace Infinispan.Hotrod.Core.Commands
                     oldReq.rs.TokenSource.Cancel();
                 }
                 request.Listener = this.Listener;
+                var acl = this.Listener as AbstractClientListener;
+                if (acl != null)
+                {
+                    acl.task = request.CurrentProcessingResponseTask;
+                }
                 request.Cluster.ListenerMap[this.Listener.ListenerID] = request;
                 return new Result { Status = ResultStatus.Completed, ResultType = ResultType.Event };
             }

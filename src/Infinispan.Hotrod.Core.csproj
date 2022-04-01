@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFrameworks>net5.0</TargetFrameworks>
-    <Version>0.0.3-beta</Version>
+    <Version>0.0.3-beta2</Version>
     <Company>infinispan.org</Company>
     <Authors>rigazilla</Authors>
     <Description>An Infinispan client components for dotnet core</Description>

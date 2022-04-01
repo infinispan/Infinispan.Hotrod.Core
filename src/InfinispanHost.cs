@@ -112,7 +112,7 @@ namespace Infinispan.Hotrod.Core
         {
             if (!client.TcpClient.IsConnected)
             {
-                if (client.TcpClient.Connect().Result.Connected)
+                if ((await client.TcpClient.Connect()).Connected)
                 {
                     this.Available = true;
                     if (!string.IsNullOrEmpty(Password))

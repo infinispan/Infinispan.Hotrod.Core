@@ -429,6 +429,7 @@ namespace Infinispan.Hotrod.Core
             TopologyInfo topologyInfo;
             // Get the topology info for this cache. Initial hosts list will be used
             // until a topology record is received for a given cache
+
             topologyInfoMap.TryGetValue(cache, out topologyInfo);
             var result = await ExecuteWithRetry(cache, cmd, topologyInfo);
             if (result.IsError)
