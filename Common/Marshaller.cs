@@ -3,9 +3,9 @@ using Google.Protobuf;
 using Org.Infinispan.Protostream;
 using Infinispan.Hotrod.Core;
 using AppDB;
-namespace Query
+namespace Events
 {
-    class BasicTypesProtoStreamMarshaller : Marshaller<Object>
+    public class BasicTypesProtoStreamMarshaller : Marshaller<Object>
     {
 
         public override byte[] marshall(Object obj)

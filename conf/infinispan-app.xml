@@ -1,0 +1,42 @@
+<infinispan
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="urn:infinispan:config:13.0 https://infinispan.org/schemas/infinispan-config-13.0.xsd
+                            urn:infinispan:server:13.0 https://infinispan.org/schemas/infinispan-server-13.0.xsd"
+      xmlns="urn:infinispan:config:13.0"
+      xmlns:server="urn:infinispan:server:13.0">
+
+   <cache-container name="default" statistics="true" default-cache="default">
+      <transport cluster="${infinispan.cluster.name}" stack="${infinispan.cluster.stack:tcp}"/>
+      <distributed-cache name="default">
+         <expiration interval="1000"/>
+      </distributed-cache>
+      <distributed-cache name="market">
+         <encoding>
+           <key media-type="application/x-protostream; charset=UTF-8"/>
+           <value media-type="application/x-protostream; charset=UTF-8"/>
+         </encoding>
+      </distributed-cache>
+   </cache-container>
+
+   <server xmlns="urn:infinispan:server:13.0">
+      <interfaces>
+         <interface name="public">
+            <inet-address value="${infinispan.bind.address:127.0.0.1}"/>
+         </interface>
+      </interfaces>
+
+      <socket-bindings default-interface="public" port-offset="${infinispan.socket.binding.port-offset:0}">
+         <socket-binding name="default" port="${infinispan.bind.port:11222}"/>
+         <socket-binding name="memcached" port="11221"/>
+      </socket-bindings>
+
+      <endpoints socket-binding="default">
+        <endpoint>
+          <hotrod-connector name="hotrod"/>
+          <rest-connector name="rest"/>
+          <!-- Uncomment to enable the memcached connector -->
+          <!-- memcached-connector socket-binding="memcached" / -->
+        </endpoint>
+      </endpoints>
+   </server>
+</infinispan>

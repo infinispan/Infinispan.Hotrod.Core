@@ -11,7 +11,7 @@ using Org.Infinispan.Protostream;
 using Google.Protobuf;
 using System.Threading.Tasks;
 
-namespace Query
+namespace Events
 {
     class ClientListener : AbstractClientListener
     {
@@ -22,12 +22,22 @@ namespace Query
             System.Console.WriteLine("Listener received an error event. Stacktrace follows\n{0}", ex?.StackTrace.ToString());
         }
         private int created;
+        private int removed;
         private int withVideoInKey;
         private StringMarshaller mk;
 
         public ClientListener(StringMarshaller mk)
         {
             this.mk = mk;
+            Task.Run(() =>
+            {
+                for (; ; )
+                {
+                    Console.Write("Created {0}   ", created);
+                    Console.WriteLine("Removed {0}", removed);
+                    System.Threading.Thread.Sleep(1000);
+                }
+            });
         }
 
         public override void OnEvent(Event e)
@@ -35,26 +45,32 @@ namespace Query
             switch (e.Type)
             {
                 case EventType.CREATED:
-                    string strKey;
+                    string strKey = "";
                     lock (this)
                     {
-                        Console.WriteLine("Created {0}", ++created);
+                        ++created;
                         strKey = mk.unmarshall(e.Key);
                     }
                     if (strKey.Contains("Video"))
                     {
-                        Console.WriteLine("Created key with Video {0}: {1}", ++withVideoInKey, strKey);
+                        Console.WriteLine("Got key with Video {0}: {1}", ++withVideoInKey, strKey);
+                    }
+                    break;
+                case EventType.REMOVED:
+                    lock (this)
+                    {
+                        ++removed;
                     }
                     break;
             }
         }
     }
-    class Program
+    class ListenerClient
     {
         public static InfinispanHost host;
         private static ClientListener listener;
 
-        static void Main(string[] args)
+        public static void Main(string[] args)
         {
             // Setup the cluster
             var ispnCluster = new InfinispanDG();
@@ -73,7 +89,10 @@ namespace Query
             // Create a cache proxy for the remote cache named "market"
             var cache = ispnCluster.NewCache<string, Object>(mk, mv, "market");
             cache.AddListener(listener, false).Wait();
-            System.Threading.Thread.Sleep(20000);
+            Console.ReadLine();
+            Console.WriteLine("Clearing");
+            cache.Clear().Wait();
+            Console.WriteLine("Cleared");
             Console.WriteLine("Size of the cache is {0}", cache.Size().Result);
             listener.Wait();
         }
