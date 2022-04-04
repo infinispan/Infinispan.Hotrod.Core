@@ -23,7 +23,7 @@ All the basic Hotrod request/response operations are supported over [Hotrod 3.0]
 
 For an updated list, all the implemented commands can be found in the [InfinispanCommands](src/InfinispanCommands) folder.
 ## Security
-TLS is working (server cert verification available), authentication is available via SASL (PLAIN and DIGEST-MD5, SCRAM-SHA-256).
+TLS is working (server cert verification available), authentication is available via SASL (PLAIN, DIGEST-MD5 and SCRAM-SHA-256).
 
 ## Hotrod dotnet-client comparison
 The testsuite folder [Infinispan.Hotrod.Core.XUnitTest](Infinispan.Hotrod.Core.XUnitTest) is structured like the testsuite of the [official .NET client](https://github.com/infinispan/dotnet-client) so to make make it easier to compare the two products.
