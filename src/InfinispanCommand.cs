@@ -11,7 +11,7 @@ namespace Infinispan.Hotrod.Core
         private const int MAX_LENGTH_TABLE = 1024 * 32;
 
         public static List<byte[]> mMsgHeaderLenData = new List<byte[]>();
-
+        public IClientListener Listener;
         public static byte[] GetMsgHeaderLengthData(int length)
         {
             if (length > MAX_LENGTH_TABLE)

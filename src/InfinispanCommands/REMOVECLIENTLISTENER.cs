@@ -8,7 +8,6 @@ namespace Infinispan.Hotrod.Core.Commands
 {
     public class REMOVECLIENTLISTENER : Command
     {
-        private IClientListener Listener;
         public REMOVECLIENTLISTENER(IClientListener listener)
         {
             NetworkReceive = OnReceive;

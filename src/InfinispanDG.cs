@@ -156,7 +156,7 @@ namespace Infinispan.Hotrod.Core
             }
             lock (mLockConsole)
             {
-                Console.Write($"[{ DateTime.Now:HH:mmm:ss}] ");
+                Console.Write($"[{DateTime.Now:HH:mmm:ss}] ");
                 Console.ForegroundColor = type switch
                 {
                     LogType.Error => ConsoleColor.DarkRed,
@@ -173,7 +173,7 @@ namespace Infinispan.Hotrod.Core
 
         internal async Task AddListener(CacheBase cache, IClientListener listener, bool includeState)
         {
-            Commands.ADDCLIENTLISTENER cmd = new Commands.ADDCLIENTLISTENER();
+            Commands.ADDCLIENTLISTENER cmd = new Commands.ADDCLIENTLISTENER(this.ListenerMap);
             cmd.Listener = listener;
             if (includeState)
             {

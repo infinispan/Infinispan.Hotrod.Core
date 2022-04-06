@@ -1,5 +1,4 @@
 ﻿using BeetleX.Buffers;
-using BeetleX.Clients;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -15,10 +14,12 @@ namespace Infinispan.Hotrod.Core.Commands
         private Tuple<byte[], byte[]>[] ConverterArgs;
         private int Interests;
         private bool isBinary;
-        public IClientListener Listener;
-        public ADDCLIENTLISTENER()
+        private IDictionary<string, InfinispanRequest> ListenerMap;
+
+        public ADDCLIENTLISTENER(IDictionary<string, InfinispanRequest> listenerMap)
         {
             NetworkReceive = OnReceive;
+            this.ListenerMap = listenerMap;
         }
         public override string Name => "ADDCLIENTLISTENER";
 
@@ -76,9 +77,9 @@ namespace Infinispan.Hotrod.Core.Commands
                 InfinispanRequest oldReq;
                 if (request.Cluster.ListenerMap.TryGetValue(this.Listener.ListenerID, out oldReq))
                 {
+                    oldReq.Command.Listener = null;
                     oldReq.rs.TokenSource.Cancel();
                 }
-                request.Listener = this.Listener;
                 var acl = this.Listener as AbstractClientListener;
                 if (acl != null)
                 {

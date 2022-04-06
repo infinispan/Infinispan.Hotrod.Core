@@ -14,7 +14,7 @@ namespace Infinispan.Hotrod.Core
     public class ResponseStream
     {
         public CancellationTokenSource TokenSource = new CancellationTokenSource();
-        private static UnboundedChannelOptions opts = new UnboundedChannelOptions { SingleReader = true, SingleWriter = true };
+        private static UnboundedChannelOptions opts = new UnboundedChannelOptions { SingleReader = false, SingleWriter = false };
         public Channel<ClientReceiveArgs> ResponseChannel = Channel.CreateUnbounded<ClientReceiveArgs>(opts);
         private ClientReceiveArgs CurrReader;
 
@@ -96,7 +96,6 @@ namespace Infinispan.Hotrod.Core
         public byte ResponseStatus;
         internal CommandContext context;
         internal InfinispanDG Cluster { get { return Client.Host.Cluster; } }
-        public IClientListener Listener;
         private void OnError(IClient c, ClientErrorArgs e)
         {
             this.peerDisconnect = true;
@@ -139,9 +138,9 @@ namespace Infinispan.Hotrod.Core
             }
             catch (Exception ex)
             {
-                if (this.Listener != null)
+                if (this.Command.Listener != null)
                 {
-                    Cluster.ListenerMap.Remove(this.Listener.ListenerID);
+                    Cluster.ListenerMap.Remove(this.Command.Listener.ListenerID);
                 }
                 CompleteWithError(ex.Message);
                 // Return Client to the pool only if TaskCompletionSource is already completed
@@ -153,9 +152,9 @@ namespace Infinispan.Hotrod.Core
                 // and propagate the exception
                 if (this.peerDisconnect)
                 {
-                    if (this.Listener != null)
+                    if (this.Command.Listener != null)
                     {
-                        Task.Run(() => { this.Listener.OnError(ex); });
+                        Task.Run(() => { this.Command.Listener.OnError(ex); });
                     }
                     // Propagate the exception
                     throw ex;
@@ -208,11 +207,7 @@ namespace Infinispan.Hotrod.Core
         private void ProcessEvent()
         {
             var ev = this.OnReceiveEvent();
-            InfinispanRequest req;
-            if (Cluster.ListenerMap.TryGetValue(ev.ListenerID, out req))
-            {
-                Task.Run(() => { req.Listener.OnEvent(ev); });
-            }
+            Task.Run(() => { this.Command.Listener?.OnEvent(ev); });
         }
         private bool IsEvent(byte responseOpCode)
         {
@@ -265,6 +260,7 @@ namespace Infinispan.Hotrod.Core
             {
                 e.customData = Codec.readArray(rs);
             }
+            Result.ResultType = ResultType.Event;
             return e;
         }
 
