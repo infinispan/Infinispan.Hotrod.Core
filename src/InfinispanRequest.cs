@@ -10,16 +10,13 @@ using System.Threading.Channels;
 
 namespace Infinispan.Hotrod.Core
 {
-
     public class ResponseStream
     {
         public CancellationTokenSource TokenSource = new CancellationTokenSource();
-        private static UnboundedChannelOptions opts = new UnboundedChannelOptions { SingleReader = false, SingleWriter = false };
-        public Channel<ClientReceiveArgs> ResponseChannel = Channel.CreateUnbounded<ClientReceiveArgs>(opts);
-        private ClientReceiveArgs CurrReader;
-
-
-        public async Task<byte[]> ReadAsync(int size)
+        private static UnboundedChannelOptions opts = new UnboundedChannelOptions() { SingleReader = false, SingleWriter = false };
+        public Channel<PipeStream> ResponseChannel = Channel.CreateUnbounded<PipeStream>(opts);
+        private PipeStream CurrReader;
+        public byte[] ReadAsync(int size)
         {
             byte[] buf = new byte[size];
             int offSet = 0;
@@ -27,7 +24,9 @@ namespace Infinispan.Hotrod.Core
             {
                 if (CurrReader == null)
                 {
-                    CurrReader = await ResponseChannel.Reader.ReadAsync(TokenSource.Token);
+                    var t = ResponseChannel.Reader.ReadAsync(TokenSource.Token).AsTask();
+                    t.Wait();
+                    CurrReader = t.Result;
                 }
                 var read = CurrReader.Stream.ToPipeStream().Read(buf, offSet, size - offSet);
                 if (read == 0)
@@ -39,14 +38,16 @@ namespace Infinispan.Hotrod.Core
             } while (offSet < size);
             return buf;
         }
-        public async Task<int> ReadByteAsync()
+        public int ReadByteAsync()
         {
             int result;
             do
             {
                 if (CurrReader == null)
                 {
-                    CurrReader = await ResponseChannel.Reader.ReadAsync(TokenSource.Token);
+                    var t = ResponseChannel.Reader.ReadAsync(TokenSource.Token).AsTask();
+                    t.Wait();
+                    CurrReader = t.Result;
                 }
                 // Stream.ReadByte() should return -1 on empty stream
                 // but it actually rises an exception. Checking both ways
@@ -65,15 +66,14 @@ namespace Infinispan.Hotrod.Core
             } while (result == -1);
             return result;
         }
-
         public byte[] Read(int size)
         {
-            return ReadAsync(size).Result;
+            return ReadAsync(size);
         }
 
         public int ReadByte()
         {
-            return ReadByteAsync().Result;
+            return ReadByteAsync();
         }
     }
 
@@ -111,10 +111,14 @@ namespace Infinispan.Hotrod.Core
                 OnCompleted(ResultType.DataError, e.Error.Message);
             }
         }
+        public static int RecvPackZero = 0;
         internal ResponseStream rs = new ResponseStream();
         private void OnReceive(IClient c, ClientReceiveArgs reader)
         {
-            rs.ResponseChannel.Writer.WriteAsync(reader).AsTask().Wait();
+            PipeStream cp = new PipeStream();
+            reader.Stream.ToPipeStream().CopyTo(cp);
+            cp.Position = 0;
+            rs.ResponseChannel.Writer.WriteAsync(cp).AsTask().Wait();
         }
         private void ProcessResponse()
         {
@@ -157,12 +161,13 @@ namespace Infinispan.Hotrod.Core
                         Task.Run(() => { this.Command.Listener.OnError(ex); });
                     }
                     // Propagate the exception
-                    throw ex;
+                    throw;
                 }
             }
         }
         // Read the message header from the stream
         // Return false on error
+        public static int TaskCount = 0;
         private bool ReadHeader()
         {
             if (rs.ReadByte() != 0xA1)
@@ -207,7 +212,7 @@ namespace Infinispan.Hotrod.Core
         private void ProcessEvent()
         {
             var ev = this.OnReceiveEvent();
-            Task.Run(() => { this.Command.Listener?.OnEvent(ev); });
+            Task.Run(() => this.Command.Listener?.OnEvent(ev));
         }
         private bool IsEvent(byte responseOpCode)
         {
