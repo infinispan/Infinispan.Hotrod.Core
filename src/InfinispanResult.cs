@@ -6,27 +6,11 @@ namespace Infinispan.Hotrod.Core
 {
     public class Result
     {
-        public List<ResultItem> Data { get; set; } = new List<ResultItem>();
-
         public string Messge { get; set; }
 
         public ResultStatus Status { get; set; } = ResultStatus.None;
 
         public ResultType ResultType { get; internal set; }
-
-        internal int ArrayCount { get; set; }
-
-        internal int ReadCount { get; set; }
-
-        internal int ArrayReadCount { get; set; }
-
-        internal int? BodyLength { get; set; }
-
-        public void Throw()
-        {
-            if (IsError)
-                throw new InfinispanException(Messge);
-        }
 
         public bool IsError
         {
@@ -37,30 +21,23 @@ namespace Infinispan.Hotrod.Core
                      || this.ResultType == ResultType.NetError);
             }
         }
-
-        public object Value
-        {
-            get
-            {
-                if (Data.Count > 0)
-                    return Data[0].Data;
-                return Messge;
-            }
-        }
-
     }
-
-    public class ResultItem
+    /// <summary>
+    /// CommandResult represent all the info related to a command execution
+    /// </summary>
+    public class CommandResult
     {
-        public object Data { get; set; }
-
-        public ResultType Type { get; set; }
-
-        public override string ToString()
-        {
-            return $"{Type}:{Data}";
-        }
+        /// <summary>
+        /// Results contains all the messages related to execution.
+        /// </summary>
+        public List<Result> Results = new List<Result>();
+        /// <summary>
+        /// IsError is true if the final status of the command is not executed due to error.
+        /// </summary>
+        internal bool IsError = false;
+        /// <summary>
+        /// ErrorMessage is the error related to the failure of the command.
+        /// </summary>
+        public string ErrorMessage;
     }
-
-
 }

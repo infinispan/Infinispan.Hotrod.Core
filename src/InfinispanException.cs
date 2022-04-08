@@ -4,23 +4,18 @@ using System.Text;
 
 namespace Infinispan.Hotrod.Core
 {
+    /// <summary>
+    /// InfinispanException represent a generic exception
+    /// </summary>
     public class InfinispanException : Exception
     {
-        public InfinispanException(string msg) : base(msg)
+        /// <summary>
+        /// CommandResult collect all the info related to the command execution
+        /// </summary>
+        public CommandResult Result;
+        public InfinispanException(CommandResult result) : base(result.ErrorMessage)
         {
-        }
-        public InfinispanException(string msg, Exception innerError) : base(msg, innerError) { }
-    }
-    public class InfinispanOperationException<K> : InfinispanException
-    {
-        public K Args;
-        public InfinispanOperationException(K args, string msg) : base(msg)
-        {
-            Args = args;
-        }
-        public InfinispanOperationException(K args, string msg, Exception innerError) : base(msg, innerError)
-        {
-            Args = args;
+            Result = result;
         }
     }
 }
