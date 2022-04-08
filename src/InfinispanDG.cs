@@ -424,7 +424,7 @@ namespace Infinispan.Hotrod.Core
         private InfinispanHost[] mActiveHosts = new InfinispanHost[0];
         private static Int32 MAXHASHVALUE { get; set; } = 0x7FFFFFFF;
         internal IDictionary<String, InfinispanRequest> ListenerMap = new Dictionary<String, InfinispanRequest>();
-        private async Task<Result> Execute(CacheBase cache, Command cmd)
+        private async Task<CommandResult> Execute(CacheBase cache, Command cmd)
         {
             TopologyInfo topologyInfo;
             // Get the topology info for this cache. Initial hosts list will be used
@@ -433,14 +433,15 @@ namespace Infinispan.Hotrod.Core
             topologyInfoMap.TryGetValue(cache, out topologyInfo);
             var result = await ExecuteWithRetry(cache, cmd, topologyInfo);
             if (result.IsError)
-                throw new InfinispanException(result.Messge);
+            {
+                throw new InfinispanException(result);
+            }
             return result;
         }
-        private async Task<Result> ExecuteWithRetry(CacheBase cache, Command cmd, TopologyInfo topologyInfo)
+        private async Task<CommandResult> ExecuteWithRetry(CacheBase cache, Command cmd, TopologyInfo topologyInfo)
         {
+            var cmdResult = new CommandResult();
             var hostHandlerForRetry = new HostHandlerForRetry(this);
-            var cmdResultTask = new TaskCompletionSource<Result>();
-            Result lastResult = new Result();
             InfinispanHost host = null;
             int segment = -1;
             switch (cmd.getTopologyKnowledgeType())
@@ -469,8 +470,10 @@ namespace Infinispan.Hotrod.Core
                         continue;
                     }
                     // No (more) hosts available for the execution
-                    var cmdResult = new Result() { ResultType = ResultType.NetError, Messge = "Infinispan server is not available" };
-                    cmdResultTask.TrySetResult(cmdResult);
+                    Result res = new Result() { ResultType = ResultType.NetError, Messge = "Infinispan server is not available" };
+                    cmdResult.Results.Add(res);
+                    cmdResult.IsError = true;
+                    cmdResult.ErrorMessage = res.Messge;
                     return cmdResult;
                 }
                 // First available host will be used even if its clients are all busy
@@ -491,20 +494,22 @@ namespace Infinispan.Hotrod.Core
                         Console.WriteLine("errCon");
                         hostHandlerForRetry.faultHosts.Add(host);
                         // TODO: save the error? and then go ahead with retry
+                        cmdResult.Results.Add(result);
                         continue;
                     }
                     InfinispanRequest request = new InfinispanRequest(cache, client, cmd);
                     result = await request.Execute();
+                    cmdResult.Results.Add(result);
                     if (result.IsError)
                     {
                         if (canRetry(result))
                         {
                             continue;
                         }
-                        return result;
+                        cmdResult.IsError = true;
+                        cmdResult.ErrorMessage = result.Messge;
                     }
-                    cmdResultTask.TrySetResult(result);
-                    return result;
+                    return cmdResult;
                 }
                 catch (Exception) { }
                 finally

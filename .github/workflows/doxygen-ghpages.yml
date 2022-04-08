@@ -5,10 +5,15 @@ on: [push, pull_request]
 jobs:
   run-ci-tests:
     runs-on: ubuntu-latest
+    env:
+       HAVE_DOTNET_TOKEN: ${{ secrets.DOTNETCLIENT_PERSONAL_TOKEN != '' }}
     steps:
       - uses: actions/checkout@v2
+        if: ${{ env.HAVE_DOTNET_TOKEN == 'true' }}
       - uses: mattnotmitt/doxygen-action@v1.9.2
+        if: ${{ env.HAVE_DOTNET_TOKEN == 'true' }}
       - uses: peaceiris/actions-gh-pages@v3
+        if: ${{ env.HAVE_DOTNET_TOKEN == 'true' }}
         with:
           personal_token: ${{ secrets.DOTNETCLIENT_PERSONAL_TOKEN }}
           publish_dir: ./docs
