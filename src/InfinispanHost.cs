@@ -63,6 +63,7 @@ namespace Infinispan.Hotrod.Core
 
         public string Password { get; set; }
         public string User { get; set; }
+        public string Domain { get; set; }
         public string AuthMech { get; set; }
 
         public bool Master { get; set; }
@@ -145,7 +146,7 @@ namespace Infinispan.Hotrod.Core
                             taskResult.ResultType = ResultType.NetError;
                             return taskResult;
                         }
-                        Commands.AUTH auth = new Commands.AUTH(this.AuthMech, new System.Net.NetworkCredential(User, Password));
+                        Commands.AUTH auth = new Commands.AUTH(this.AuthMech, new System.Net.NetworkCredential(User, Password, Domain));
                         while (auth.Completed == 0)
                         {
                             request = new InfinispanRequest(null, client, auth);

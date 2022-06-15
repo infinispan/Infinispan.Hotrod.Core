@@ -37,6 +37,10 @@ namespace Infinispan.Hotrod.Core
         /// </summary>
         public string AuthMech { get; set; }
         /// <summary>
+        /// SASL domain name  
+        /// </summary>
+        public string Domain { get; set; } = "infinispan";
+        /// <summary>
         /// HotRod protocol version
         /// </summary>
         public byte Version { get; set; } = 0x1f;
@@ -57,6 +61,7 @@ namespace Infinispan.Hotrod.Core
         /// Certification chain for server certificate verification. Leave it null for no verification.
         /// </summary>
         public X509Chain CACert;
+        public string ServiceName = "hotrod";
         public bool SwitchCluster(string clusterName)
         {
             if (mClusters.ContainsKey(clusterName))
@@ -94,9 +99,10 @@ namespace Infinispan.Hotrod.Core
         {
             InfinispanHost ispnHost = new InfinispanHost(this, host, port)
             {
-                User = User,
-                Password = Password,
-                AuthMech = AuthMech
+                User = this.User,
+                Password = this.Password,
+                AuthMech = this.AuthMech,
+                Domain = this.Domain
             };
             if (!mClusters.ContainsKey(clusterName))
             {
@@ -117,9 +123,11 @@ namespace Infinispan.Hotrod.Core
         {
             InfinispanHost ispnHost = new InfinispanHost(this, host, port)
             {
-                User = User,
-                Password = Password,
-                AuthMech = AuthMech
+                User = this.User,
+                Password = this.Password,
+                AuthMech = this.AuthMech,
+                Domain = this.Domain
+
             };
             if (!mClusters.ContainsKey(clusterName))
             {

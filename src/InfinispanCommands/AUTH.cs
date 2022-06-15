@@ -14,8 +14,7 @@ namespace Infinispan.Hotrod.Core.Commands
             Credential = c;
             NetworkReceive = OnReceive;
             SaslMechName = mech;
-            c.Domain = "hotrod/node0";
-            SaslMech = SaslMechanism.Create(mech, new Uri("hotrod://node0"), c);
+            SaslMech = SaslMechanism.Create(mech, new Uri("hotrod://" + c.Domain), c);
         }
         public int TimeOut { get; set; }
 

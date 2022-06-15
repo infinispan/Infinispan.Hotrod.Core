@@ -58,6 +58,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             ispnCluster.User = "supervisor";
             ispnCluster.Password = "lessStrongPassword";
             ispnCluster.AuthMech = "PLAIN";
+            ispnCluster.Domain = "node0";
             ispnCluster.Version = 0x1f;
             ispnCluster.ClientIntelligence = 0x03;
             ispnCluster.ForceReturnValue = false;
@@ -76,6 +77,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             ispnCluster.User = "supervisor";
             ispnCluster.Password = "lessStrongPassword";
             ispnCluster.AuthMech = "DIGEST-MD5";
+            ispnCluster.Domain = "node0";
             ispnCluster.Version = 0x1f;
             ispnCluster.ClientIntelligence = 0x03;
             ispnCluster.ForceReturnValue = false;
@@ -100,6 +102,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             ispnCluster.User = user;
             ispnCluster.Password = password;
             ispnCluster.AuthMech = mech;
+            ispnCluster.Domain = "node0";
             ispnCluster.Version = 0x1f;
             ispnCluster.ClientIntelligence = 0x03;
             ispnCluster.ForceReturnValue = false;
