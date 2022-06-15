@@ -3,14 +3,15 @@ using Infinispan.Hotrod.Core.Tests.Util;
 using Xunit;
 namespace Infinispan.Hotrod.Core.XUnitTest
 {
-        public class AuthorizationCacheTestFixture : IDisposable
+    public class AuthorizationCacheTestFixture : IDisposable
     {
-        public HotRodServer hotRodServer {get; private set;}
-        public AuthorizationCacheTestFixture() {
+        public HotRodServer hotRodServer { get; private set; }
+        public AuthorizationCacheTestFixture()
+        {
             hotRodServer = new HotRodServer("infinispan-sasl.xml");
             hotRodServer.StartHotRodServer();
         }
-        public void Dispose()   
+        public void Dispose()
         {
             hotRodServer.Dispose();
         }
@@ -20,7 +21,8 @@ namespace Infinispan.Hotrod.Core.XUnitTest
     public abstract class BaseAuthorizationTest : IClassFixture<AuthorizationCacheTestFixture>
     {
         AuthorizationCacheTestFixture fixture;
-        public BaseAuthorizationTest(AuthorizationCacheTestFixture fixture) {
+        public BaseAuthorizationTest(AuthorizationCacheTestFixture fixture)
+        {
             this.fixture = fixture;
             BeforeClass();
         }
@@ -45,15 +47,16 @@ namespace Infinispan.Hotrod.Core.XUnitTest
         private Cache<String, String> InitCache(string user, string password, string cacheName = AUTH_CACHE)
         {
             var ispnCluster = new InfinispanDG();
-            ispnCluster.User=user;
-            ispnCluster.Password=password;
-            ispnCluster.AuthMech= GetMech();
+            ispnCluster.User = user;
+            ispnCluster.Password = password;
+            ispnCluster.AuthMech = GetMech();
+            ispnCluster.Domain = "node0";
             ispnCluster.Version = 0x1f;
             ispnCluster.ClientIntelligence = 0x01;
             ispnCluster.ForceReturnValue = false;
             var host = ispnCluster.AddHost("127.0.0.1", 11222);
 
-            marshaller= new StringMarshaller();
+            marshaller = new StringMarshaller();
             var cache = ispnCluster.NewCache(marshaller, marshaller, cacheName);
 
             // marshaller = new JBasicMarshaller();
@@ -70,7 +73,7 @@ namespace Infinispan.Hotrod.Core.XUnitTest
         }
 
 
-         
+
 
 
     }

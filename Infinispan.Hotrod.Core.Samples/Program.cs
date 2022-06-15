@@ -12,14 +12,14 @@ namespace Infinispan.Hotrod.Core.Samples
             var ispnCluster = new InfinispanDG();
 
             // Configuration section
-            // ispnCluster.User="reader";
-            // ispnCluster.Password="password";
-            // ispnCluster.AuthMech="PLAIN"; // "DIGEST-MD5";
+            ispnCluster.User="admin";
+            ispnCluster.Password="admin";
+            ispnCluster.AuthMech= "PLAIN";
             ispnCluster.Version = 0x1f;
             ispnCluster.ClientIntelligence = 0x03;
             ispnCluster.ForceReturnValue = false;
 
-            var host = ispnCluster.AddHost("127.0.0.1", 11422);
+            var host = ispnCluster.AddHost("127.0.0.1", 11222);
             System.Threading.Thread.Sleep(1000);
             using (CodeTrackFactory.TrackReport("Test", CodeTrackLevel.Bussiness, null))
             {

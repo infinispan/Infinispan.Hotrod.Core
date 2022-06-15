@@ -17,7 +17,7 @@ namespace Infinispan.Hotrod.Core
             if (this.Host.Cluster.UseTLS)
             {
 
-                TcpClient = BeetleX.SocketFactory.CreateSslClient<AsyncTcpClient>(this.Host.Name, this.Host.Port, "hotrod");
+                TcpClient = BeetleX.SocketFactory.CreateSslClient<AsyncTcpClient>(this.Host.Name, this.Host.Port, this.Host.Cluster.ServiceName);
                 TcpClient.CertificateValidationCallback = (o, e, f, d) =>
                 {
                     if (host.Cluster.CACert == null)
