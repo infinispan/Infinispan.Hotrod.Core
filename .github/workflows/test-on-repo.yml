@@ -1,6 +1,6 @@
 name: infinispan-netcore-tests
 env:
-  ISPN_VER: '13.0.6.Final'
+  ISPN_VER: '13.0.10.Final'
 on: [push, pull_request]
 jobs:
   run-ci-tests:
