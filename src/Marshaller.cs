@@ -38,11 +38,11 @@ namespace Infinispan.Hotrod.Core
         }
         public override byte[] marshall(string t)
         {
-            return t == null ? null : Encoding.GetBytes(t);
+            return ((t == null) || (t.Length==0)) ? null : Encoding.GetBytes(t);
         }
         public override string unmarshall(byte[] buff)
         {
-            return buff == null ? null : Encoding.GetString(buff);
+            return ((buff == null) || (buff.Length==0)) ? null : Encoding.GetString(buff);
         }
     }
 }
