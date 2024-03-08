@@ -113,6 +113,13 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             await _cache.Put(key2, "chlorine");
             Assert.Equal(initialSize + 2, await _cache.Size());
             Assert.Equal("chlorine", await _cache.Get(key2));
+
+            _cache.ForceReturnValue=true;
+            String key3 = UniqueKey.NextKey();
+            String oldVal = await _cache.Put(key3, "oxygen");
+            Assert.Null(oldVal);
+            oldVal = await _cache.Put(key3, "sodium");
+            Assert.Equal("oxygen", oldVal);
         }
 
         [Fact]
@@ -415,6 +422,32 @@ namespace Infinispan.Hotrod.Core.XUnitTest
             Assert.Equal("v1", await _cache.Get(key1));
             Assert.Equal("v2", await _cache.Get(key2));
             Assert.Equal("v3", await _cache.Get(key3));
+        }
+
+
+        [Fact]
+        public async void PutIfAbsentTest()
+        {
+            String key1 = UniqueKey.NextKey();
+            Int32 initialSize = await _cache.Size();
+
+            await _cache.PutIfAbsent(key1, "boron");
+            Assert.Equal(initialSize + 1, await _cache.Size());
+            Assert.Equal("boron", await _cache.Get(key1));
+
+            await _cache.PutIfAbsent(key1, "chlorine");
+            Assert.Equal(initialSize + 1, await _cache.Size());
+            Assert.Equal("boron", await _cache.Get(key1));
+
+            _cache.ForceReturnValue = true;
+            String key2 = UniqueKey.NextKey();
+            String oldVal = await _cache.PutIfAbsent(key2, "boron2");
+            Assert.Equal(initialSize + 2, await _cache.Size());
+            Assert.Null(oldVal);
+            Assert.Equal("boron2", await _cache.Get(key2));
+            oldVal = await _cache.PutIfAbsent(key2, "chlorine2");
+            Assert.Equal(initialSize + 2, await _cache.Size());
+            Assert.Equal(oldVal, await _cache.Get(key2));
         }
 
         // [Test]
