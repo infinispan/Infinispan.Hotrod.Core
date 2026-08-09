@@ -43,7 +43,7 @@ namespace Infinispan.Hotrod.Core.Commands
         }
         public override Result OnReceive(InfinispanRequest request, ResponseStream stream)
         {
-            if ((request.Command.Flags & 0x01) == 1)
+            if ((request.Command.Flags & 0x01) == 1 && request.ResponseStatus == 0x04)
             {
                 PrevValue = ValueMarshaller.unmarshall(Codec.readArray(stream));
                 return new Result { Status = ResultStatus.Completed, ResultType = ResultType.Object };
